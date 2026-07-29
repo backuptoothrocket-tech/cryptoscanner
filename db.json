@@ -2660,6 +2660,145 @@
       ],
       "formattedAlert": "🔴 <b>SCALP SHORT SIGNAL</b>\n━━━━━━━━━━━━━━━━━━━━\n📌 <b>XRPUSDT</b>  |  Scalp 1H/15M\n🕐 Wed, 29 Jul 2026 20:08:03 UTC\n━━━━━━━━━━━━━━━━━━━━\n\n🤖 <b>AI Confidence:</b> 45%  |  Score: <b>45/100</b>\n\n📈 <b>CONFLUENCE SIGNALS</b>\n✅ UT Bot ATR: <b>SELL</b>\n✅ EMA 50/200: <b>BEARISH</b>\n✅ ADX Strength: <b>18 (RANGING)</b>\n✅ OBV Flow: <b>FALLING</b>\n✅ Structure: <b>CHOCH</b>\n✅ Volume: <b>LOW</b>\n\n📊 <b>Multi-Timeframe Confluence</b>\n  🔴 <b>4H</b>: BEARISH\n  🔴 <b>1H</b>: BEARISH • CHOCH\n  🟢 <b>15M</b>: BULLISH • CHOCH\n  🔴 <b>5M</b>: BEARISH • RSI: oversold • CHOCH\n\n💰 <b>TRADE PLAN</b>\n  Entry:      <code>1.0658</code>\n  Stop Loss:  <code>1.07651</code>  ⛔\n  TP1 (1.0R): <code>1.05509</code>  🎯 ← Scalp target (Lock 50% / Break-even)\n  TP2 (2.0R): <code>1.04438</code>  🎯 ← Main target\n  TP3 (3.0R): <code>1.03367</code>  🎯 ← Runner\n\n  📐 R:R  1:2.0 Scalp (ATR=0.00893 | SL=1.2×ATR)\n💼 <b>Position Sizing Guide (1-2% risk per trade)</b>\n  $1,000 acct → Risk $10-20 | $5,000 → $50-100\n\n🧠 <b>AI Analysis</b>\nScalp evaluation complete: 45/100 confluence on XRPUSDT. OpenAI temporarily unavailable.\n\n⚠️ <i>This is not financial advice. Always manage risk.</i>",
       "telegramError": "Telegram delivery failed. https://api.telegram.org: Connection timed out after 10 seconds"
+    },
+    {
+      "id": "alert_dmno1gd",
+      "timestamp": "2026-07-29T20:15:46.321Z",
+      "symbol": "NEARUSDT",
+      "timeframe": "1H",
+      "price": 1.586,
+      "payload": {
+        "symbol": "NEARUSDT",
+        "timeframe": "1H",
+        "price": 1.586,
+        "utbot": "sell",
+        "ema_crossover": "bearish",
+        "rsi": "neutral",
+        "rsiValue": 41.192715571056155,
+        "macd": "neutral",
+        "market_structure": "",
+        "volume": "normal",
+        "adx": 46.86080174227169,
+        "adxTrending": true,
+        "stochRsiSignal": "neutral",
+        "obvTrend": "falling",
+        "atrPct": 1.418424371587802,
+        "priceActionPattern": "NONE",
+        "priceActionBias": "NEUTRAL",
+        "priceActionDesc": "No clear price action patterns detected.",
+        "multiTimeframe": [
+          {
+            "timeframe": "4H",
+            "trend": "bearish",
+            "utbot": "sell",
+            "structure": "none",
+            "rsi": "oversold",
+            "macd": "neutral",
+            "volume": "low"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bearish",
+            "utbot": "sell",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "15M",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "CHOCH",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "low"
+          },
+          {
+            "timeframe": "5M",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "CHOCH",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "low"
+          }
+        ],
+        "side": "SHORT"
+      },
+      "score": 50,
+      "maxScore": 100,
+      "passedFilters": true,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": true
+      },
+      "scoreBreakdown": {
+        "UT Bot SHORT Trigger": 10,
+        "EMA 50/200 Trend Aligned": 15,
+        "ADX Trending (47)": 15,
+        "Stoch RSI Neutral": 0,
+        "MACD Neutral/Counter": 0,
+        "OBV Money Flow Aligned": 10,
+        "No Structure Pivot Broken": 0,
+        "Price Action: No Pattern": 0
+      },
+      "aiDecision": {
+        "decision": "SEND",
+        "confidence": 50,
+        "reason": "Scalp evaluation complete: 50/100 confluence on NEARUSDT. OpenAI temporarily unavailable."
+      },
+      "tradePlan": {
+        "entry": 1.586,
+        "stopLoss": 1.613,
+        "takeProfit1": 1.559,
+        "takeProfit2": 1.53201,
+        "takeProfit3": 1.50501,
+        "riskRewardRatio": "1:2.0 Scalp (ATR=0.0225 | SL=1.2×ATR)"
+      },
+      "telegramSent": false,
+      "multiTimeframe": [
+        {
+          "timeframe": "4H",
+          "trend": "bearish",
+          "utbot": "sell",
+          "structure": "none",
+          "rsi": "oversold",
+          "macd": "neutral",
+          "volume": "low"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bearish",
+          "utbot": "sell",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "15M",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "CHOCH",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "low"
+        },
+        {
+          "timeframe": "5M",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "CHOCH",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "low"
+        }
+      ],
+      "formattedAlert": "🔴 <b>SCALP SHORT SIGNAL</b>\n━━━━━━━━━━━━━━━━━━━━\n📌 <b>NEARUSDT</b>  |  Scalp 1H/15M\n🕐 Wed, 29 Jul 2026 20:15:46 UTC\n━━━━━━━━━━━━━━━━━━━━\n\n🤖 <b>AI Confidence:</b> 50%  |  Score: <b>50/100</b>\n\n📈 <b>CONFLUENCE SIGNALS</b>\n✅ UT Bot ATR: <b>SELL</b>\n✅ EMA 50/200: <b>BEARISH</b>\n✅ ADX Strength: <b>47 (TRENDING)</b>\n✅ OBV Flow: <b>FALLING</b>\n✅ Volume: <b>NORMAL</b>\n\n📊 <b>Multi-Timeframe Confluence</b>\n  🔴 <b>4H</b>: BEARISH • RSI: oversold\n  🔴 <b>1H</b>: BEARISH\n  🔴 <b>15M</b>: BEARISH • CHOCH\n  🟢 <b>5M</b>: BULLISH • CHOCH\n\n💰 <b>TRADE PLAN</b>\n  Entry:      <code>1.586</code>\n  Stop Loss:  <code>1.613</code>  ⛔\n  TP1 (1.0R): <code>1.559</code>  🎯 ← Scalp target (Lock 50% / Break-even)\n  TP2 (2.0R): <code>1.53201</code>  🎯 ← Main target\n  TP3 (3.0R): <code>1.50501</code>  🎯 ← Runner\n\n  📐 R:R  1:2.0 Scalp (ATR=0.0225 | SL=1.2×ATR)\n💼 <b>Position Sizing Guide (1-2% risk per trade)</b>\n  $1,000 acct → Risk $10-20 | $5,000 → $50-100\n\n🧠 <b>AI Analysis</b>\nScalp evaluation complete: 50/100 confluence on NEARUSDT. OpenAI temporarily unavailable.\n\n⚠️ <i>This is not financial advice. Always manage risk.</i>",
+      "telegramError": "Telegram delivery failed. https://api.telegram.org: Connection timed out after 10 seconds"
     }
   ]
 }
