@@ -1,0 +1,258 @@
+import React, { useState, useEffect } from "react";
+import { BotConfig, LogEntry } from "./types";
+import TelemetryStatus from "./components/TelemetryStatus";
+import ConfigForm from "./components/ConfigForm";
+import MarketScanner from "./components/MarketScanner";
+import LogViewer from "./components/LogViewer";
+import PineScriptViewer from "./components/PineScriptViewer";
+import PythonCodeViewer from "./components/PythonCodeViewer";
+import BacktestEngine from "./components/BacktestEngine";
+import PollingScanner from "./components/PollingScanner";
+import { Cpu, Terminal, LayoutDashboard, Database, HelpCircle, Activity, Radio, RefreshCw, Layers } from "lucide-react";
+
+export default function App() {
+  const [activeTab, setActiveTab] = useState<"dashboard" | "config" | "backtest" | "polling" | "code">("dashboard");
+  const [config, setConfig] = useState<BotConfig | null>(null);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchConfig = async () => {
+    try {
+      const response = await fetch("/api/config");
+      const data = await response.json();
+      setConfig(data);
+    } catch (err) {
+      console.error("Failed to fetch bot config settings", err);
+    }
+  };
+
+  const fetchLogs = async () => {
+    try {
+      const response = await fetch("/api/logs");
+      const data = await response.json();
+      setLogs(data);
+    } catch (err) {
+      console.error("Failed to fetch logs", err);
+    }
+  };
+
+  const clearLogs = async () => {
+    try {
+      const res = await fetch("/api/logs/clear", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        setLogs([]);
+      }
+    } catch (err) {
+      console.error("Failed to clear signal database logs", err);
+    }
+  };
+
+  const initData = async () => {
+    setLoading(true);
+    await Promise.all([fetchConfig(), fetchLogs()]);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    initData();
+  }, []);
+
+  // Update logs local state when simulation alert fires
+  const handleAlertTriggered = (newLog: LogEntry) => {
+    setLogs(prev => [newLog, ...prev]);
+  };
+
+  const handleConfigSaved = (updatedConfig: BotConfig) => {
+    setConfig(updatedConfig);
+  };
+
+  if (loading || !config) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-3">
+        <RefreshCw className="w-8 h-8 text-cyan-400 animate-spin" />
+        <span className="text-xs font-mono text-slate-400 uppercase tracking-widest">Initializing Quant Engine...</span>
+      </div>
+    );
+  }
+
+  // Derived dashboard metrics
+  const totalProcessed = logs.length;
+  const totalPassed = logs.filter(l => l.passedFilters).length;
+  const passRatio = totalProcessed > 0 ? Math.round((totalPassed / totalProcessed) * 100) : 0;
+  const dispatchSuccess = logs.filter(l => l.telegramSent).length;
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between selection:bg-cyan-500 selection:text-slate-950 font-sans" id="app-root">
+      
+      {/* 1. Universal Quant Header Status strip */}
+      <header className="border-b border-slate-900 bg-slate-950/80 sticky top-0 z-50 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-h-16 py-3 md:py-0 flex flex-col md:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-3 w-full md:w-auto justify-center md:justify-start">
+            <div className="h-9 w-9 bg-cyan-950 border border-cyan-500/30 rounded-lg flex items-center justify-center shrink-0">
+              <Cpu className="w-5 h-5 text-cyan-400" />
+            </div>
+            <div className="text-center md:text-left">
+              <h1 className="text-sm font-bold tracking-wider text-slate-100 flex items-center justify-center md:justify-start gap-1.5 uppercase">
+                AI Trading Alert Bot <span className="text-[10px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-1.5 py-0.2 rounded font-mono">v1.2</span>
+              </h1>
+              <p className="text-[10px] text-slate-500">TradingView Pine Script to Telegram Confluence Dispatcher</p>
+            </div>
+          </div>
+
+          {/* Primary View switching tabs with touch/horizontal scroll compatibility on mobile */}
+          <nav className="flex items-center gap-1 overflow-x-auto max-w-full pb-1 md:pb-0 scrollbar-none snap-x scroll-smooth shrink-0">
+            <button
+              onClick={() => setActiveTab("dashboard")}
+              className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium flex items-center gap-1.5 cursor-pointer shrink-0 snap-center ${
+                activeTab === "dashboard"
+                  ? "bg-slate-900 text-cyan-400 border border-slate-800"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+              id="tab-dashboard"
+            >
+              <LayoutDashboard className="w-3.5 h-3.5" />
+              <span>Confluence Desk</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("config")}
+              className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium flex items-center gap-1.5 cursor-pointer shrink-0 snap-center ${
+                activeTab === "config"
+                  ? "bg-slate-900 text-cyan-400 border border-slate-800"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+              id="tab-config"
+            >
+              <Terminal className="w-3.5 h-3.5" />
+              <span>Scoring Rules</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("backtest")}
+              className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium flex items-center gap-1.5 cursor-pointer shrink-0 snap-center ${
+                activeTab === "backtest"
+                  ? "bg-slate-900 text-cyan-400 border border-slate-800"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+              id="tab-backtest"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Historical Backtest</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("polling")}
+              className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium flex items-center gap-1.5 cursor-pointer shrink-0 snap-center ${
+                activeTab === "polling"
+                  ? "bg-slate-900 text-cyan-400 border border-slate-800"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+              id="tab-polling"
+            >
+              <Radio className="w-3.5 h-3.5" />
+              <span>Headless Polling Scanner</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("code")}
+              className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium flex items-center gap-1.5 cursor-pointer shrink-0 snap-center ${
+                activeTab === "code"
+                  ? "bg-slate-900 text-cyan-400 border border-slate-800"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+              id="tab-code"
+            >
+              <Activity className="w-3.5 h-3.5" />
+              <span>Full Deploy Code</span>
+            </button>
+          </nav>
+        </div>
+      </header>
+
+      {/* 2. Main content router view */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        
+        {/* Dynamic Telemetry Listener Banner status */}
+        <TelemetryStatus hasGeminiKey={true} webhookCount={logs.length} pollingEnabled={config?.pollingEnabled || false} />
+
+        {activeTab === "dashboard" && (
+          <div className="space-y-6 animate-fade-in">
+            {/* Quick overview metric cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4" id="stats-dashboard">
+              <div className="bg-slate-900 border border-slate-800/80 rounded-xl p-4 shadow-sm flex flex-col justify-between">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Processed triggers</span>
+                <span className="text-2xl font-black font-mono text-cyan-400 mt-1">{totalProcessed}</span>
+              </div>
+              <div className="bg-slate-900 border border-slate-800/80 rounded-xl p-4 shadow-sm flex flex-col justify-between">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Confluences Passed</span>
+                <span className="text-2xl font-black font-mono text-emerald-400 mt-1">{totalPassed}</span>
+              </div>
+              <div className="bg-slate-900 border border-slate-800/80 rounded-xl p-4 shadow-sm flex flex-col justify-between">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Scoring Filter Ratio</span>
+                <span className="text-2xl font-black font-mono text-indigo-400 mt-1">{passRatio}%</span>
+              </div>
+              <div className="bg-slate-900 border border-slate-800/80 rounded-xl p-4 shadow-sm flex flex-col justify-between">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Telegram Dispatches</span>
+                <span className="text-2xl font-black font-mono text-teal-400 mt-1">{dispatchSuccess}</span>
+              </div>
+            </div>
+
+            {/* Simulated Live scanner module triggers alerts */}
+            <MarketScanner config={config} onAlertTriggered={handleAlertTriggered} />
+
+            {/* Main Log viewing output streams */}
+            <LogViewer logs={logs} onClear={clearLogs} />
+          </div>
+        )}
+
+        {activeTab === "config" && (
+          <div className="animate-fade-in bg-slate-950">
+            <h2 className="sr-only">Rules Configuration View</h2>
+            <ConfigForm initialConfig={config} onSave={handleConfigSaved} />
+          </div>
+        )}
+
+        {activeTab === "backtest" && (
+          <div className="animate-fade-in bg-slate-950">
+            <h2 className="sr-only">Historical Backtesting View</h2>
+            <BacktestEngine config={config} />
+          </div>
+        )}
+
+        {activeTab === "polling" && (
+          <div className="animate-fade-in bg-slate-950">
+            <h2 className="sr-only">Headless Polling View</h2>
+            <PollingScanner config={config} onConfigSaved={handleConfigSaved} />
+          </div>
+        )}
+
+        {activeTab === "code" && (
+          <div className="space-y-6 animate-fade-in max-w-7xl">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              
+              {/* Pine Script Indicator view */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-xs text-slate-400 uppercase tracking-wider">1. TradingView Script Code</span>
+                </div>
+                <PineScriptViewer />
+              </div>
+
+              {/* standalone Python implementation and deployment specs */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-xs text-slate-400 uppercase tracking-wider">2. Standalone Service Deployment (24/7)</span>
+                </div>
+                <PythonCodeViewer />
+              </div>
+
+            </div>
+          </div>
+        )}
+
+      </main>
+
+      {/* 3. Footer credits */}
+      <footer className="border-t border-slate-950 py-6 mt-12 bg-slate-950 text-center text-[11px] text-slate-600">
+        <p>© 2026 AI Trading Alert Engine · Designed for quant desks and automated algorithmic delivery.</p>
+      </footer>
+    </div>
+  );
+}

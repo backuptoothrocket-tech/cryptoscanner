@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    letter-spacing: -0.01em;
+    background: #080b12;
+    color: #e2e8f0;
+  }
+  h1, h2, h3, h4, .font-display {
+    font-family: var(--font-display);
+  }
+}
+
+/* Scrollbars */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+/* Animations */
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 6px 1px rgba(6,182,212,0.15); }
+  50%       { box-shadow: 0 0 14px 3px rgba(6,182,212,0.35); }
+}
+@keyframes score-fill {
+  from { width: 0; }
+  to   { width: var(--score-width); }
+}
+@keyframes ticker-up {
+  0%   { color: #34d399; }
+  100% { color: inherit; }
+}
+@keyframes ticker-down {
+  0%   { color: #f87171; }
+  100% { color: inherit; }
+}
+
+.animate-fade-slide { animation: fadeSlideIn 0.3s ease both; }
+.animate-fade-in    { animation: fadeIn 0.25s ease both; }
+.glow-cyan          { animation: glow-pulse 2.5s ease-in-out infinite; }
+
+/* Score bar */
+.score-bar {
+  height: 3px;
+  border-radius: 99px;
+  animation: score-fill 0.8s ease-out both;
+}
+
+/* Glass card */
+.glass-card {
+  background: rgba(15, 20, 30, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+/* Sidebar nav item active */
+.nav-item-active {
+  background: linear-gradient(135deg, rgba(6,182,212,0.12), rgba(6,182,212,0.04));
+  border-left: 2px solid #06b6d4;
+  color: #06b6d4;
+}
+
+/* Neon glow text */
+.text-neon { text-shadow: 0 0 12px rgba(6,182,212,0.6); }
+
+/* Price flash */
+.flash-up   { color: #34d399 !important; }
+.flash-down { color: #f87171 !important; }
+
+/* Table row hover */
+.scanner-row {
+  transition: background 0.15s, border-color 0.15s;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.scanner-row:hover {
+  background: rgba(6,182,212,0.04);
+  border-bottom-color: rgba(6,182,212,0.15);
+  cursor: pointer;
+}
+.scanner-row.selected {
+  background: rgba(6,182,212,0.07);
+  border-bottom-color: rgba(6,182,212,0.3);
+}
+
+/* Pill badge */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  letter-spacing: 0.03em;
+}
+.pill-buy    { background: rgba(16,185,129,0.12); color: #10b981; border: 1px solid rgba(16,185,129,0.25); }
+.pill-sell   { background: rgba(239,68,68,0.12);  color: #ef4444; border: 1px solid rgba(239,68,68,0.25); }
+.pill-hold   { background: rgba(100,116,139,0.15); color: #94a3b8; border: 1px solid rgba(100,116,139,0.2); }
+.pill-bull   { background: rgba(16,185,129,0.12); color: #10b981; border: 1px solid rgba(16,185,129,0.25); }
+.pill-bear   { background: rgba(239,68,68,0.12);  color: #ef4444; border: 1px solid rgba(239,68,68,0.25); }
+.pill-neural { background: rgba(100,116,139,0.15); color: #94a3b8; border: 1px solid rgba(100,116,139,0.2); }

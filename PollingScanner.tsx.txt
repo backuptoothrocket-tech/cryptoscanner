@@ -1,0 +1,443 @@
+import React, { useState, useEffect } from "react";
+import { BotConfig } from "../types";
+import { 
+  Play, 
+  Square, 
+  Activity, 
+  Compass, 
+  Terminal, 
+  CheckCircle2, 
+  HelpCircle, 
+  ArrowRight, 
+  Sparkles, 
+  RotateCw, 
+  AlertCircle,
+  Clock,
+  ShieldCheck,
+  Zap,
+  Check
+} from "lucide-react";
+
+interface PollingScannerProps {
+  config: BotConfig;
+  onConfigSaved: (config: BotConfig) => void;
+}
+
+interface PollingLog {
+  id: string;
+  timestamp: string;
+  symbol: string;
+  price: number;
+  status: "SCANNING" | "TRIGGERED" | "BLOCKED" | "AI_FILTERED";
+  message: string;
+}
+
+export default function PollingScanner({ config, onConfigSaved }: PollingScannerProps) {
+  const [pollingEnabled, setPollingEnabled] = useState(config.pollingEnabled || false);
+  const [intervalSecs, setIntervalSecs] = useState(config.pollingIntervalSeconds || 15);
+  const [activeSymbols, setActiveSymbols] = useState<string[]>(config.activeSymbols || []);
+  const [saving, setSaving] = useState(false);
+  const [pollingLogs, setPollingLogs] = useState<PollingLog[]>([]);
+  const [sysStats, setSysStats] = useState({
+    totalScans: 142,
+    alertsMatched: 8,
+    lastScanTime: "Never",
+    pollingCooldownUntil: 0,
+  });
+  const [cooldownRemaining, setCooldownRemaining] = useState<string | null>(null);
+
+  useEffect(() => {
+    const calcRemaining = () => {
+      if (sysStats.pollingCooldownUntil && sysStats.pollingCooldownUntil > Date.now()) {
+        const diffMs = sysStats.pollingCooldownUntil - Date.now();
+        const mins = Math.floor(diffMs / 60000);
+        const secs = Math.floor((diffMs % 60005) / 1000);
+        setCooldownRemaining(`${mins}m ${secs}s`);
+      } else {
+        setCooldownRemaining(null);
+      }
+    };
+
+    calcRemaining();
+    const timer = setInterval(calcRemaining, 1000);
+    return () => clearInterval(timer);
+  }, [sysStats.pollingCooldownUntil]);
+  const [expandedStep, setExpandedStep] = useState<number>(1);
+
+  // Sync state if initial config changes
+  useEffect(() => {
+    if (config) {
+      setPollingEnabled(config.pollingEnabled || false);
+      setIntervalSecs(config.pollingIntervalSeconds || 15);
+      setActiveSymbols(config.activeSymbols || []);
+    }
+  }, [config]);
+
+  // Read Polling Monitor Logs from backend periodically
+  const fetchPollingLogs = async () => {
+    try {
+      const res = await fetch("/api/polling-logs");
+      if (res.ok) {
+        const data = await res.json();
+        setPollingLogs(data.logs || []);
+        if (data.stats) {
+          setSysStats(data.stats);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch headless polling logs", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchPollingLogs();
+    const timer = setInterval(fetchPollingLogs, 4000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleToggleSymbol = (symbol: string) => {
+    if (activeSymbols.includes(symbol)) {
+      setActiveSymbols(activeSymbols.filter(s => s !== symbol));
+    } else {
+      setActiveSymbols([...activeSymbols, symbol]);
+    }
+  };
+
+  const handleApplyConfigs = async (overrideState?: boolean) => {
+    setSaving(true);
+    const targetState = overrideState !== undefined ? overrideState : pollingEnabled;
+    const updatedConfig: BotConfig = {
+      ...config,
+      pollingEnabled: targetState,
+      pollingIntervalSeconds: Number(intervalSecs),
+      activeSymbols: activeSymbols,
+    };
+
+    try {
+      const res = await fetch("/api/config", {
+         method: "POST",
+         headers: { "Content-Type": "application/json" },
+         body: JSON.stringify(updatedConfig),
+      });
+      const data = await res.json();
+      if (data.success) {
+        onConfigSaved(data.config);
+        // Force immediate log fetch
+        setTimeout(fetchPollingLogs, 600);
+      }
+    } catch (err) {
+      console.error("Failed to save polling config", err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const togglePollingService = () => {
+    const nextState = !pollingEnabled;
+    setPollingEnabled(nextState);
+    handleApplyConfigs(nextState);
+  };
+
+  // Predefined set of high-fidelity symbols for selection matching our configured scanner list
+  const AVAILABLE_SIMULATION_PAIRS = [
+    "BTCUSDT", "XRPUSDT", "APRUSDT.P", "RIVERUSDT.P", 
+    "ICPUSDT.P", "BTCUSDT.P", "HYPEUSDT.P", "ZECUSDT.P", "NEARUSDT.P", 
+    "ASTERUSDT.P", "ICPUSDT", "PAXGUSDT", "DASHUSDT", "RENDERUSDT", 
+    "XPLUSDT.P", "TRXUSDT", "PEPEUSDT", "DOTUSDT", "ASTERUSDT", "XLMUSDT.P"
+  ];
+
+  return (
+    <div className="space-y-6" id="polling-scanner-view">
+      
+      {/* 1. Header Hero Panel */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 relative overflow-hidden shadow-lg shadow-cyan-950/5">
+        <div className="absolute right-0 top-0 w-80 h-80 bg-cyan-500/5 blur-3xl rounded-full -translate-y-12 translate-x-12 pointer-events-none" />
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+          <div className="space-y-2 max-w-2xl">
+            <span className="text-[10px] font-bold text-cyan-400 bg-cyan-950/60 border border-cyan-500/20 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+              Option A Execution Engine
+            </span>
+            <h1 className="text-xl font-bold tracking-tight text-slate-100 flex items-center gap-2">
+              Headless API Polling Scanner Mode
+            </h1>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Run a round-the-clock headless market scanner directly on the server. The scanner periodically fetches real price data, computes indicators, evaluates your confluence criteria, processes signals with Gemini, and delivers real-time Telegram alerts—all completely independent of TradingView alerts or local port webhooks!
+            </p>
+          </div>
+
+          <div className="flex flex-col items-center gap-2.5 min-w-[200px]">
+            <button
+              onClick={togglePollingService}
+              disabled={saving}
+              className={`w-full py-3 px-5 rounded-xl text-xs font-bold transition-all duration-200 active:scale-95 shadow-md flex items-center justify-center gap-2 cursor-pointer ${
+                pollingEnabled
+                  ? "bg-rose-500/10 hover:bg-rose-500/15 text-rose-400 border border-rose-500/30 shadow-rose-950/10"
+                  : "bg-gradient-to-r from-cyan-500 to-indigo-500 hover:from-cyan-400 hover:to-indigo-400 text-slate-950 shadow-cyan-500/10"
+              }`}
+            >
+              {pollingEnabled ? (
+                <>
+                  <Square className="w-4 h-4 fill-rose-400" />
+                  <span>Stop Polling Service</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4 fill-slate-950" />
+                  <span>Start Polling Service</span>
+                </>
+              )}
+            </button>
+            <div className="flex flex-col items-center gap-1 text-center">
+              <div className="flex items-center gap-1.5 text-[11px] font-mono text-slate-400">
+                <span className="relative flex h-2 w-2">
+                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${pollingEnabled ? (cooldownRemaining ? "bg-amber-400" : "bg-emerald-400") : "bg-slate-600"}`} />
+                  <span className={`relative inline-flex rounded-full h-2 w-2 ${pollingEnabled ? (cooldownRemaining ? "bg-amber-500" : "bg-emerald-500") : "bg-slate-500"}`} />
+                </span>
+                <span>Status: <strong className={pollingEnabled ? (cooldownRemaining ? "text-amber-400" : "text-emerald-400") : "text-slate-400"}>{pollingEnabled ? (cooldownRemaining ? "ON 15M BREAK" : "ACTIVE & RUNNING") : "STANDBY"}</strong></span>
+              </div>
+              {pollingEnabled && cooldownRemaining && (
+                <div className="text-[9px] font-bold font-mono text-amber-400 bg-amber-950/50 border border-amber-500/25 px-2.5 py-0.5 rounded-full flex items-center gap-1 animate-pulse mt-1">
+                  <Clock className="w-2.5 h-2.5 text-amber-400 shrink-0" />
+                  <span>Resuming in: <strong className="font-black text-white">{cooldownRemaining}</strong></span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Key Metrics & Configuration Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* Sub-panel left: Polling Parameters and active assets */}
+        <div className="lg:col-span-5 space-y-6">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-5">
+            <h2 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2 border-b border-slate-800 pb-2.5">
+              <Clock className="w-4 h-4 text-cyan-400" />
+              <span>Scanning Parameters</span>
+            </h2>
+
+            {/* Interval slider */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
+                <span>Polling Frequency</span>
+                <span className="font-mono text-cyan-400 font-bold">{intervalSecs} Seconds</span>
+              </div>
+              <input
+                type="range"
+                min="5"
+                max="120"
+                step="5"
+                value={intervalSecs}
+                onChange={e => setIntervalSecs(Number(e.target.value))}
+                className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+              />
+              <p className="text-[10px] text-slate-500 leading-normal">
+                How frequently the back-end scanner checks candidate pricing indicators. Rapid polling (5-15s) is outstanding for test environments.
+              </p>
+            </div>
+
+            {/* Target Assets Selector */}
+            <div className="space-y-2.5 pt-3 border-t border-slate-800/60">
+              <div className="flex justify-between items-center text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
+                <span>Monitored Assets List ({activeSymbols.length})</span>
+                <button 
+                  onClick={() => setActiveSymbols(AVAILABLE_SIMULATION_PAIRS)}
+                  className="text-[10px] text-cyan-400 hover:underline hover:text-cyan-300 font-medium"
+                >
+                  Select All
+                </button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 max-h-[160px] overflow-y-auto pr-1">
+                {AVAILABLE_SIMULATION_PAIRS.map(sym => {
+                  const active = activeSymbols.includes(sym);
+                  return (
+                    <button
+                      key={sym}
+                      type="button"
+                      onClick={() => handleToggleSymbol(sym)}
+                      className={`py-1.5 px-2 text-[10px] font-mono font-bold rounded-lg border transition-all text-center ${
+                        active
+                          ? "bg-cyan-950/40 border-cyan-500/30 text-cyan-400"
+                          : "bg-slate-950 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700"
+                      }`}
+                    >
+                      {sym}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <button
+              onClick={() => handleApplyConfigs()}
+              disabled={saving}
+              className="w-full py-2 bg-slate-950 hover:bg-slate-850 border border-slate-805 hover:border-slate-700 text-xs font-bold text-slate-300 hover:text-white rounded-lg active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-md shadow-black/10"
+            >
+              {saving ? <RotateCw className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5 text-cyan-400" />}
+              <span>Save & Apply Configuration</span>
+            </button>
+          </div>
+
+          {/* Quick Metrics Stats box */}
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+            <h2 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2 border-b border-slate-800 pb-2.5">
+              <Activity className="w-4 h-4 text-indigo-400" />
+              <span>Headless Daemon Stats</span>
+            </h2>
+            <div className="grid grid-cols-3 gap-3 pt-3.5 text-center">
+              <div className="p-2.5 bg-slate-950 rounded-lg border border-slate-800">
+                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block">Total Scans</span>
+                <span className="text-sm font-black font-mono mt-0.5 block text-slate-300">{sysStats.totalScans}</span>
+              </div>
+              <div className="p-2.5 bg-slate-950 rounded-lg border border-slate-800">
+                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block">Alert Hits</span>
+                <span className="text-sm font-black font-mono mt-0.5 block text-cyan-400">{sysStats.alertsMatched}</span>
+              </div>
+              <div className="p-2.5 bg-slate-950 rounded-lg border border-slate-800">
+                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block">Last Check</span>
+                <span className="text-[10px] font-bold font-mono mt-1 block text-slate-400 truncate" title={sysStats.lastScanTime}>
+                  {sysStats.lastScanTime === "Never" ? "Never" : sysStats.lastScanTime.split("T")?.[1]?.slice(0, 8) || sysStats.lastScanTime}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Sub-panel right: Live background monitor and Step-by-Step interactive handbook */}
+        <div className="lg:col-span-7 space-y-6">
+          {/* Loop monitoring terminal */}
+          <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col justify-between shadow-lg">
+            <div className="px-5 py-3.5 border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Terminal className="w-4 h-4 text-cyan-400" />
+                <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wider">Live Daemon Monitoring Console</h3>
+              </div>
+              <span className="text-[9px] font-mono text-cyan-500 bg-cyan-950/50 px-2 py-0.5 rounded border border-cyan-500/20 uppercase tracking-widest">
+                Real-Time Stream
+              </span>
+            </div>
+
+            {/* Logs Area */}
+            <div className="bg-slate-950 p-4 font-mono text-[11px] h-52 overflow-y-auto space-y-2 select-text">
+              {pollingLogs.length > 0 ? (
+                pollingLogs.map((log) => {
+                  let badgeColor = "text-slate-500";
+                  if (log.status === "TRIGGERED") badgeColor = "text-emerald-400 font-bold bg-emerald-950/45 px-1.5 py-0.2 rounded border border-emerald-500/20";
+                  if (log.status === "BLOCKED") badgeColor = "text-yellow-500";
+                  if (log.status === "AI_FILTERED") badgeColor = "text-rose-400";
+
+                  return (
+                    <div key={log.id} className="flex items-start gap-2 border-b border-slate-900/40 pb-1.5 last:border-0 hover:bg-slate-900/10 rounded">
+                      <span className="text-slate-600 shrink-0 text-[10px]">
+                        [{log.timestamp.split("T")?.[1]?.slice(0, 8) || log.timestamp}]
+                      </span>
+                      <span className="text-cyan-500 font-semibold shrink-0 min-w-[75px]">
+                        {log.symbol}
+                      </span>
+                      <span className="text-slate-400 shrink-0">
+                        ${log.price.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 4 })}
+                      </span>
+                      <span className="text-slate-600 shrink-0">|</span>
+                      <span className={`${badgeColor} shrink-0 text-[10px] scale-90 origin-left`}>
+                        {log.status}
+                      </span>
+                      <span className="text-slate-400 leading-relaxed font-sans text-[11px] truncate flex-1">
+                        — {log.message}
+                      </span>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-slate-600 space-y-2">
+                  <Activity className="w-8 h-8 opacity-40 animate-pulse text-indigo-400" />
+                  <p className="text-[10px] uppercase font-bold tracking-wider text-slate-500">
+                    Waiting for Polling Scanner Stream...
+                  </p>
+                  <p className="text-[10px] text-slate-500 max-w-[280px] text-center font-sans tracking-tight">
+                    Start the Polling Service above. The background server will stream continuous tick updates.
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            <div className="bg-slate-900 p-2.5 border-t border-slate-800 text-center">
+              <p className="text-[10px] text-slate-500 leading-none">
+                Logs run server-side continuously in the background container, writing to <code className="text-slate-400">db.json</code>.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Steps to Execute option Guide */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4 shadow-lg">
+        <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+          <HelpCircle className="w-5 h-5 text-indigo-400" />
+          <div>
+            <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wider">Step-By-Step Execution Blueprint</h3>
+            <p className="text-[10px] text-slate-500 mt-0.5">How to operate your bot with absolutely zero dependency on webhooks</p>
+          </div>
+        </div>
+
+        {/* Step-by-Step collapsible list */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          
+          {/* Step 1 */}
+          <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 flex flex-col justify-between">
+            <div className="space-y-2">
+              <span className="inline-block py-0.5 px-2 bg-indigo-950/50 border border-indigo-500/20 text-indigo-400 text-[10px] font-mono rounded font-black">
+                STEP 01
+              </span>
+              <h4 className="text-xs font-bold text-slate-200">Configure Rule Scoring & Credentials</h4>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Head over to the <strong className="text-slate-300">"Scoring Rules"</strong> tab. Enter your active Telegram Bot Token and Group/Chat ID. Press Save to mount credentials securely server-side.
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 text-[10px] font-bold text-cyan-400 mt-3.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Durable state saved in db.json</span>
+            </div>
+          </div>
+
+          {/* Step 2 */}
+          <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 flex flex-col justify-between">
+            <div className="space-y-2">
+              <span className="inline-block py-0.5 px-2 bg-indigo-950/50 border border-indigo-500/20 text-indigo-400 text-[10px] font-mono rounded font-black">
+                STEP 02
+              </span>
+              <h4 className="text-xs font-bold text-slate-200">Toggle Polling Active Mode</h4>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Enable the <strong className="text-slate-300">"Polling Service"</strong> switch above of this pane. Choose your frequency and customize which specific assets of our ticker list get monitored.
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 text-[10px] font-bold text-cyan-400 mt-3.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Spins up server daemon</span>
+            </div>
+          </div>
+
+          {/* Step 3 */}
+          <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 flex flex-col justify-between">
+            <div className="space-y-2">
+              <span className="inline-block py-0.5 px-2 bg-indigo-950/50 border border-indigo-500/20 text-indigo-400 text-[10px] font-mono rounded font-black">
+                STEP 03
+              </span>
+              <h4 className="text-xs font-bold text-slate-200">Automatic Gemini Filtering</h4>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                As the daemon scans the assets, any setup passing your rule scores automatically is dispatched to the Gemini 3.5 Flash API for prompt risk confirmation before immediate Telegram delivery!
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 text-[10px] font-bold text-indigo-400 mt-3.5">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+              <span>No user interaction needed</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  );
+}

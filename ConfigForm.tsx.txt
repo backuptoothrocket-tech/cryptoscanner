@@ -1,0 +1,450 @@
+import React, { useState } from "react";
+import { BotConfig, ConfluenceWeights, FilterRules } from "../types";
+import { Settings, Shield, Sliders, BellRing, Check, Save, AlertTriangle, RefreshCw } from "lucide-react";
+
+interface ConfigFormProps {
+  initialConfig: BotConfig;
+  onSave: (config: BotConfig) => void;
+}
+
+export default function ConfigForm({ initialConfig, onSave }: ConfigFormProps) {
+  const [config, setConfig] = useState<BotConfig>(initialConfig);
+  const [saving, setSaving] = useState(false);
+  const [testLoading, setTestLoading] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  // Deep copy initial state update helper when props change
+  React.useEffect(() => {
+    setConfig(initialConfig);
+  }, [initialConfig]);
+
+  const handleWeightChange = (key: keyof ConfluenceWeights, val: number) => {
+    setConfig(prev => ({
+      ...prev,
+      confluenceWeights: {
+        ...prev.confluenceWeights,
+        [key]: val,
+      },
+    }));
+  };
+
+  const handleFilterChange = (key: keyof FilterRules, checked: boolean) => {
+    setConfig(prev => ({
+      ...prev,
+      filters: {
+        ...prev.filters,
+        [key]: checked,
+      },
+    }));
+  };
+
+  const handleConfigChange = (key: keyof BotConfig, val: any) => {
+    setConfig(prev => ({
+      ...prev,
+      [key]: val,
+    }));
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const res = await fetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(config),
+      });
+      const data = await res.json();
+      if (data.success) {
+        onSave(data.config);
+      }
+    } catch (err) {
+      console.error("Failed to save config options", err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const runTestNotification = async () => {
+    if (!config.telegramToken || !config.telegramChatId) {
+      setTestResult({
+        success: false,
+        message: "Please enter your Telegram Token and Chat ID to send a test message.",
+      });
+      return;
+    }
+
+    setTestLoading(true);
+    setTestResult(null);
+    try {
+      const response = await fetch("/api/test-telegram", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token: config.telegramToken,
+          chatId: config.telegramChatId,
+        }),
+      });
+      const resJson = await response.json();
+      if (resJson.success) {
+        setTestResult({
+          success: true,
+          message: resJson.message,
+        });
+        setConfig(prev => ({
+          ...prev,
+          telegramToken: config.telegramToken,
+          telegramChatId: config.telegramChatId,
+          telegramEnabled: true
+        }));
+        if (resJson.config) {
+          onSave(resJson.config);
+        }
+      } else {
+        setTestResult({
+          success: false,
+          message: resJson.error || "Failed to trigger Connection Test dispatch.",
+        });
+      }
+    } catch (err: any) {
+      setTestResult({
+        success: false,
+        message: err.message || "Failed to connect to backend validator",
+      });
+    } finally {
+      setTestLoading(false);
+    }
+  };
+
+  // Calculate total weights for preview validation
+  const totalWeight = Object.values(config.confluenceWeights).reduce((a: number, b: any) => a + (Number(b) || 0), 0);
+
+  return (
+    <form onSubmit={handleSave} className="space-y-6" id="config-form">
+      {/* Configuration Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4 py-2 border-b border-slate-800">
+        <div className="flex items-center gap-2">
+          <Settings className="w-5 h-5 text-cyan-400" />
+          <h2 className="text-base font-semibold text-slate-100 uppercase tracking-wider">Engine Configuration & Weights</h2>
+        </div>
+        <button
+          type="submit"
+          className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 font-semibold text-xs text-slate-950 rounded-lg shadow-md hover:shadow-cyan-500/20 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
+          disabled={saving}
+          id="save-config-btn"
+        >
+          {saving ? (
+            <RefreshCw className="w-4 h-4 animate-spin" />
+          ) : (
+            <Save className="w-4 h-4" />
+          )}
+          <span>{saving ? "Saving Changes..." : "Apply Configurations"}</span>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Side: Confluence weight slider adjustments & thresholds */}
+        <div className="lg:col-span-6 space-y-6">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg space-y-4">
+            <h3 className="text-xs font-bold text-cyan-400 tracking-wider uppercase flex items-center gap-1.5 border-b border-slate-800 pb-2">
+              <Sliders className="w-4 h-4" /> Confluence Scoring Weights
+            </h3>
+
+            {/* Slider 1: UT Bot */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-200 font-medium">UT Bot buy/sell trigger</span>
+                <span className="font-mono text-cyan-400 font-bold">{config.confluenceWeights.utbot} points</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="50"
+                step="5"
+                value={config.confluenceWeights.utbot}
+                onChange={e => handleWeightChange("utbot", parseInt(e.target.value))}
+                className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+              />
+            </div>
+
+            {/* Slider 2: Hull Suite */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-200 font-medium">Hull Trend Suite direction align</span>
+                <span className="font-mono text-cyan-400 font-bold">{config.confluenceWeights.hull} points</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="40"
+                step="5"
+                value={config.confluenceWeights.hull}
+                onChange={e => handleWeightChange("hull", parseInt(e.target.value))}
+                className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+              />
+            </div>
+
+            {/* Slider 3: FVG */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-200 font-medium">Bullish/Bearish Fair Value Gaps (FVG)</span>
+                <span className="font-mono text-cyan-400 font-bold">{config.confluenceWeights.fvg} points</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="30"
+                step="5"
+                value={config.confluenceWeights.fvg}
+                onChange={e => handleWeightChange("fvg", parseInt(e.target.value))}
+                className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+              />
+            </div>
+
+            {/* Slider 4: OB */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-200 font-medium">Bullish/Bearish Order Blocks (OB)</span>
+                <span className="font-mono text-cyan-400 font-bold">{config.confluenceWeights.orderblock} points</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="30"
+                step="5"
+                value={config.confluenceWeights.orderblock}
+                onChange={e => handleWeightChange("orderblock", parseInt(e.target.value))}
+                className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+              />
+            </div>
+
+            {/* Slider 5: Market Structure */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-200 font-medium">Market Struct Break (BOS / CHOCH)</span>
+                <span className="font-mono text-cyan-400 font-bold">{config.confluenceWeights.market_structure} points</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="25"
+                step="5"
+                value={config.confluenceWeights.market_structure}
+                onChange={e => handleWeightChange("market_structure", parseInt(e.target.value))}
+                className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+              />
+            </div>
+
+            {/* Slider 6: Volume */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-200 font-medium">High Volume Spike Confirmation</span>
+                <span className="font-mono text-cyan-400 font-bold">{config.confluenceWeights.volume} points</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="15"
+                step="5"
+                value={config.confluenceWeights.volume}
+                onChange={e => handleWeightChange("volume", parseInt(e.target.value))}
+                className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+              />
+            </div>
+
+            {/* Slider 7: Session */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-200 font-medium">London & NY Active Sessions</span>
+                <span className="font-mono text-cyan-400 font-bold">{config.confluenceWeights.session} points</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="15"
+                step="5"
+                value={config.confluenceWeights.session}
+                onChange={e => handleWeightChange("session", parseInt(e.target.value))}
+                className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+              />
+            </div>
+
+            {/* Weight Status Tracker */}
+            <div className="flex items-center justify-between text-xs px-3 py-2 bg-slate-950 rounded-lg border border-slate-800">
+              <span className="text-slate-400">Total Max Indicator Score potential:</span>
+              <span className={`font-mono font-bold ${totalWeight === 100 ? "text-emerald-400" : "text-amber-400"}`}>
+                {totalWeight} / 100
+              </span>
+            </div>
+          </div>
+
+          {/* Filtering Trigger Threshold Value */}
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg space-y-4">
+            <h3 className="text-xs font-bold text-cyan-400 tracking-wider uppercase border-b border-slate-800 pb-2">
+              Scoring Filtering Boundaries
+            </h3>
+            
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-200 font-semibold uppercase">Minimum Confluence Pass Threshold</span>
+                <span className="font-mono text-cyan-300 font-black text-sm">{config.confidenceThreshold} points</span>
+              </div>
+              <input
+                type="range"
+                min="50"
+                max="95"
+                step="5"
+                value={config.confidenceThreshold}
+                onChange={e => handleConfigChange("confidenceThreshold", parseInt(e.target.value))}
+                className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+              />
+              <p className="text-[11px] text-slate-500">
+                Signals scoring lower than this threshold will be dropped prior to AI evaluation or dispatch.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Side: Smart Hard Block Rules & Telegram Settings */}
+        <div className="lg:col-span-6 space-y-6">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg space-y-4">
+            <h3 className="text-xs font-bold text-cyan-400 tracking-wider uppercase flex items-center gap-1.5 border-b border-slate-800 pb-2">
+              <Shield className="w-4 h-4" /> Algorithmic Filtering Rules
+            </h3>
+
+            <div className="space-y-3.5">
+              {/* Filter 1 */}
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={config.filters.rejectLowVolume}
+                  onChange={e => handleFilterChange("rejectLowVolume", e.target.checked)}
+                  className="mt-1 rounded border-slate-800 bg-slate-950 text-cyan-400 focus:ring-cyan-500 w-4 h-4 cursor-pointer"
+                />
+                <div>
+                  <span className="text-xs font-medium text-slate-200 group-hover:text-white transition-colors">Discard signals with low trading volumes</span>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Automated filters instantly suppress alerts triggered in flat books.</p>
+                </div>
+              </label>
+
+              {/* Filter 2 */}
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={config.filters.rejectAgainstHullTrend}
+                  onChange={e => handleFilterChange("rejectAgainstHullTrend", e.target.checked)}
+                  className="mt-1 rounded border-slate-800 bg-slate-950 text-cyan-400 focus:ring-cyan-500 w-4 h-4 cursor-pointer"
+                />
+                <div>
+                  <span className="text-xs font-medium text-slate-200 group-hover:text-white transition-colors">Enforce strict trend alignment check</span>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Blocks counter-trend setups pointing adversely against the Hull Suite line.</p>
+                </div>
+              </label>
+
+              {/* Filter 3 */}
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={config.filters.requireStructureConfirmation}
+                  onChange={e => handleFilterChange("requireStructureConfirmation", e.target.checked)}
+                  className="mt-1 rounded border-slate-800 bg-slate-950 text-cyan-400 focus:ring-cyan-500 w-4 h-4 cursor-pointer"
+                />
+                <div>
+                  <span className="text-xs font-medium text-slate-200 group-hover:text-white transition-colors">Require market structure break (BOS / CHOCH)</span>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Verifies institutional liquidity breaks to prevent false retail breakouts.</p>
+                </div>
+              </label>
+
+              {/* Filter 4 */}
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={config.filters.rejectDeadSession}
+                  onChange={e => handleFilterChange("rejectDeadSession", e.target.checked)}
+                  className="mt-1 rounded border-slate-800 bg-slate-950 text-cyan-400 focus:ring-cyan-500 w-4 h-4 cursor-pointer"
+                />
+                <div>
+                  <span className="text-xs font-medium text-slate-200 group-hover:text-white transition-colors">Only trade Active High Volatility sessions</span>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Excludes Asia or weekend periods, prioritizing New York and London hours.</p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {/* Telegram Credentials configuration and instant bot testing */}
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg space-y-4">
+            <h3 className="text-xs font-bold text-cyan-400 tracking-wider uppercase flex items-center gap-1.5 border-b border-slate-800 pb-2">
+              <BellRing className="w-4 h-4" /> Dispatch Notifications & BOT API
+            </h3>
+
+            <div className="space-y-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={config.telegramEnabled}
+                  onChange={e => handleConfigChange("telegramEnabled", e.target.checked)}
+                  className="rounded border-slate-800 bg-slate-950 text-cyan-400 w-4 h-4 cursor-pointer"
+                />
+                <div>
+                  <span className="text-xs font-medium text-slate-200">Enable Telegram Alerts Dispatch</span>
+                </div>
+              </label>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Telegram Bot Token ID</label>
+                  <input
+                    type="password"
+                    value={config.telegramToken}
+                    onChange={e => handleConfigChange("telegramToken", e.target.value)}
+                    placeholder="E.g. 7483120..."
+                    className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700/80 focus:border-cyan-400 text-xs rounded-lg px-3 py-2 text-slate-200 focus:outline-none transition-all font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Target Group or Chat ID</label>
+                  <input
+                    type="text"
+                    value={config.telegramChatId}
+                    onChange={e => handleConfigChange("telegramChatId", e.target.value)}
+                    placeholder="E.g. -100472193..."
+                    className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700/80 focus:border-cyan-400 text-xs rounded-lg px-3 py-2 text-slate-200 focus:outline-none transition-all font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* Bot Test Dispatch */}
+              <div className="pt-3 border-t border-slate-800/60 mt-2">
+                <button
+                  type="button"
+                  onClick={runTestNotification}
+                  disabled={testLoading}
+                  className="px-3.5 py-1.5 bg-slate-950 hover:bg-slate-850 text-cyan-400 hover:text-cyan-300 border border-cyan-500/30 hover:border-cyan-400/50 rounded-lg text-xs font-semibold cursor-pointer active:scale-95 transition-all flex items-center justify-center gap-2 w-full"
+                  id="test-telegram-btn"
+                >
+                  {testLoading ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <BellRing className="w-3.5 h-3.5" />
+                  )}
+                  <span>{testLoading ? "Delivering connection test..." : "Send Connection Test notification"}</span>
+                </button>
+
+                {testResult && (
+                  <div className={`mt-3 p-3 text-xs rounded-lg border ${
+                    testResult.success
+                      ? "bg-emerald-900/15 border-emerald-500/20 text-emerald-300"
+                      : "bg-rose-900/15 border-rose-500/20 text-rose-300"
+                  }`}>
+                    <p className="leading-relaxed">{testResult.message}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+  );
+}

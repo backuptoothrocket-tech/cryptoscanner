@@ -1,0 +1,3 @@
+2026-07-05 17:52:28: [Express] Startup Environment: NODE_ENV=production, determined_isProduction=true
+2026-07-05 17:52:28: [Express] Starting server in Production mode...
+2026-07-05 17:52:28: Server is listening on http://0.0.0.0:3000

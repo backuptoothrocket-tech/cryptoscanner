@@ -1,0 +1,1970 @@
+{
+  "config": {
+    "openAiKey": "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",
+    "activeSymbols": [
+      "BTCUSDT",
+      "ETHUSDT",
+      "SOLUSDT",
+      "BNBUSDT",
+      "ADAUSDT",
+      "XRPUSDT",
+      "DOGEUSDT",
+      "LTCUSDT",
+      "AVAXUSDT",
+      "LINKUSDT",
+      "DOTUSDT",
+      "NEARUSDT"
+    ],
+    "confidenceThreshold": 45,
+    "telegramToken": "8253888894:AAFO9W1wtknSYMBBA0RIr0zXcewNBg_msDk",
+    "telegramChatId": "2047918333",
+    "telegramEnabled": true,
+    "telegramApiUrl": "",
+    "confluenceWeights": {
+      "utbot": 10,
+      "ema_crossover": 15,
+      "adx": 15,
+      "stoch_rsi": 15,
+      "macd": 15,
+      "obv": 10,
+      "market_structure": 10,
+      "price_action": 10
+    },
+    "filters": {
+      "rejectLowVolume": false,
+      "rejectAgainstEmaTrend": false,
+      "rejectRsiOverbought": false,
+      "requireStructureConfirmation": false
+    },
+    "pollingEnabled": true,
+    "pollingIntervalSeconds": 60
+  },
+  "logs": [
+    {
+      "id": "alert_is2c88n",
+      "timestamp": "2026-06-25T17:59:23.270Z",
+      "symbol": "BTCUSDT",
+      "timeframe": "4H",
+      "price": 59636.2,
+      "payload": {
+        "symbol": "BTCUSDT",
+        "timeframe": "4H",
+        "price": 59636.2,
+        "utbot": "buy",
+        "ema_crossover": "bearish",
+        "rsi": "oversold",
+        "macd": "neutral",
+        "market_structure": "BOS",
+        "volume": "normal",
+        "side": "LONG",
+        "multiTimeframe": [
+          {
+            "timeframe": "1W",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "BOS",
+            "rsi": "neutral",
+            "macd": "bullish_cross",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "1D",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "high"
+          },
+          {
+            "timeframe": "4H",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "high"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "bullish_cross",
+            "volume": "high"
+          }
+        ]
+      },
+      "score": 55,
+      "maxScore": 100,
+      "passedFilters": true,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": true,
+        "rsiOverbought": false,
+        "noStructure": false
+      },
+      "scoreBreakdown": {
+        "UT Bot Swing Buy Trigger": 30,
+        "Against Macro EMA Trend": 0,
+        "RSI Momentum Aligned (Oversold/Overbought)": 15,
+        "MACD Neutral": 0,
+        "Swing Break of Structure (BOS)": 10,
+        "Normal/Low Volume Profile": 0
+      },
+      "aiDecision": {
+        "decision": "REJECT",
+        "confidence": 61,
+        "reason": "[Offline Simulation Mode] Aligned swing trend structures verified for BTCUSDT. Volume surge corroborates institutional support."
+      },
+      "tradePlan": {
+        "entry": 59636.2,
+        "stopLoss": 57847.1,
+        "takeProfit1": 62319.8,
+        "takeProfit2": 65003.5,
+        "takeProfit3": 68581.6,
+        "riskRewardRatio": "1:2.5+ (Swing Trade Plan)"
+      },
+      "telegramSent": true,
+      "multiTimeframe": [
+        {
+          "timeframe": "1W",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "BOS",
+          "rsi": "neutral",
+          "macd": "bullish_cross",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "1D",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "high"
+        },
+        {
+          "timeframe": "4H",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "high"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "bullish_cross",
+          "volume": "high"
+        }
+      ],
+      "formattedAlert": "ðŸš€ SWING LONG SIGNAL\n\nSymbol: BTCUSDT\nTimeframe: Composite Swing (1W, 1D, 4H, 1H)\n\nSwing Multi-Timeframe Alignment:\n  â€¢ [1W ]: ðŸ”´ BEAR | MACD: bullish_cross\n  â€¢ [1D ]: ðŸ”´ BEAR\n  â€¢ [4H ]: ðŸ”´ BEAR\n  â€¢ [1H ]: ðŸ”´ BEAR | MACD: bullish_cross\n\nAI Confidence rating: 61%\nRule Confluence score: 55/100\n\nConfluences Checked:\nâœ… UT Bot: BUY\nâœ… 50/200 EMA Trend: BEARISH\nâœ… RSI Momentum: OVERSOLD\nâœ… Structure: BOS Confirm\nâœ… Volume Level: NORMAL\n\nEntry price target: 59636.2\nStop Loss: 57847.1\n\nTake Profit 1: 62319.8\nTake Profit 2: 65003.5\nTake Profit 3: 68581.6\n\nRisk parameters: 1:2.5+ (Swing Trade Plan)\n\nAI Risk Analysis:\n[Offline Simulation Mode] Aligned swing trend structures verified for BTCUSDT. Volume surge corroborates institutional support."
+    },
+    {
+      "id": "alert_dmrngrb",
+      "timestamp": "2026-07-05T13:47:56.714Z",
+      "symbol": "BTCUSDT",
+      "timeframe": "4H",
+      "price": 108500,
+      "payload": {
+        "symbol": "BTCUSDT",
+        "price": 108500,
+        "utbot": "buy",
+        "ema_crossover": "bullish",
+        "rsi": "oversold",
+        "macd": "bullish_cross",
+        "market_structure": "BOS",
+        "volume": "high",
+        "side": "LONG",
+        "multiTimeframe": [
+          {
+            "timeframe": "1W",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "high"
+          },
+          {
+            "timeframe": "1D",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "4H",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "BOS",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "high"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "BOS",
+            "rsi": "neutral",
+            "macd": "bullish_cross",
+            "volume": "normal"
+          }
+        ]
+      },
+      "score": 100,
+      "maxScore": 100,
+      "passedFilters": true,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": false
+      },
+      "scoreBreakdown": {
+        "UT Bot Swing Buy Trigger": 30,
+        "Macro 50/200 EMA Trend Aligned": 25,
+        "RSI Momentum Aligned (Oversold/Overbought)": 15,
+        "MACD Momentum Crossover Aligned": 15,
+        "Swing Break of Structure (BOS)": 10,
+        "Institutional Volume Spike Confirm": 5
+      },
+      "aiDecision": {
+        "decision": "SEND",
+        "confidence": 100,
+        "reason": "[Offline Simulation Mode] Aligned swing trend structures verified for BTCUSDT. Volume surge corroborates institutional support."
+      },
+      "tradePlan": {
+        "entry": 108500,
+        "stopLoss": 105245,
+        "takeProfit1": 113382.5,
+        "takeProfit2": 118265,
+        "takeProfit3": 124775,
+        "riskRewardRatio": "1:2.5+ (Swing Trade Plan)"
+      },
+      "telegramSent": true,
+      "multiTimeframe": [
+        {
+          "timeframe": "1W",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "high"
+        },
+        {
+          "timeframe": "1D",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "4H",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "BOS",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "high"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "BOS",
+          "rsi": "neutral",
+          "macd": "bullish_cross",
+          "volume": "normal"
+        }
+      ],
+      "formattedAlert": "🚀 SWING LONG SIGNAL\n\nSymbol: BTCUSDT\nTimeframe: Composite Swing (1W, 1D, 4H, 1H)\n\nSwing Multi-Timeframe Alignment:\n  • [1W ]: 🔴 BEAR\n  • [1D ]: 🔴 BEAR\n  • [4H ]: 🔴 BEAR\n  • [1H ]: 🔴 BEAR | MACD: bullish_cross\n\nAI Confidence rating: 100%\nRule Confluence score: 100/100\n\nConfluences Checked:\n✅ UT Bot: BUY\n✅ 50/200 EMA Trend: BULLISH\n✅ RSI Momentum: OVERSOLD\n✅ MACD: BULLISH_CROSS\n✅ Structure: BOS Confirm\n✅ Volume Level: HIGH\n\nEntry price target: 108500\nStop Loss: 105245\n\nTake Profit 1: 113382.5\nTake Profit 2: 118265\nTake Profit 3: 124775\n\nRisk parameters: 1:2.5+ (Swing Trade Plan)\n\nAI Risk Analysis:\n[Offline Simulation Mode] Aligned swing trend structures verified for BTCUSDT. Volume surge corroborates institutional support."
+    },
+    {
+      "id": "alert_dgjimwf",
+      "timestamp": "2026-07-05T13:48:11.800Z",
+      "symbol": "ETHUSDT",
+      "timeframe": "4H",
+      "price": 3400,
+      "payload": {
+        "symbol": "ETHUSDT",
+        "price": 3400,
+        "utbot": "hold",
+        "ema_crossover": "bearish",
+        "rsi": "overbought",
+        "macd": "neutral",
+        "market_structure": "",
+        "volume": "normal",
+        "side": "SHORT",
+        "multiTimeframe": [
+          {
+            "timeframe": "1W",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "overbought",
+            "macd": "neutral",
+            "volume": "high"
+          },
+          {
+            "timeframe": "1D",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "BOS",
+            "rsi": "neutral",
+            "macd": "bearish_cross",
+            "volume": "high"
+          },
+          {
+            "timeframe": "4H",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "BOS",
+            "rsi": "neutral",
+            "macd": "bearish_cross",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          }
+        ]
+      },
+      "score": 40,
+      "maxScore": 100,
+      "passedFilters": true,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": true
+      },
+      "scoreBreakdown": {
+        "UT Bot Trigger Neutral": 0,
+        "Macro 50/200 EMA Trend Aligned": 25,
+        "RSI Momentum Aligned (Oversold/Overbought)": 15,
+        "MACD Neutral": 0,
+        "No Structure Break Confirm": 0,
+        "Normal/Low Volume Profile": 0
+      },
+      "aiDecision": {
+        "decision": "REJECT",
+        "confidence": 44,
+        "reason": "[Offline Simulation Mode] Aligned swing trend structures verified for ETHUSDT. Volume surge corroborates institutional support."
+      },
+      "tradePlan": {
+        "entry": 3400,
+        "stopLoss": 3536,
+        "takeProfit1": 3196,
+        "takeProfit2": 2992,
+        "takeProfit3": 2720,
+        "riskRewardRatio": "1:2.5+ (Swing Trade Plan)"
+      },
+      "telegramSent": true,
+      "multiTimeframe": [
+        {
+          "timeframe": "1W",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "overbought",
+          "macd": "neutral",
+          "volume": "high"
+        },
+        {
+          "timeframe": "1D",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "BOS",
+          "rsi": "neutral",
+          "macd": "bearish_cross",
+          "volume": "high"
+        },
+        {
+          "timeframe": "4H",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "BOS",
+          "rsi": "neutral",
+          "macd": "bearish_cross",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        }
+      ],
+      "formattedAlert": "🚨 SWING SHORT SIGNAL\n\nSymbol: ETHUSDT\nTimeframe: Composite Swing (1W, 1D, 4H, 1H)\n\nSwing Multi-Timeframe Alignment:\n  • [1W ]: 🔴 BEAR | RSI: overbought\n  • [1D ]: 🔴 BEAR | MACD: bearish_cross\n  • [4H ]: 🔴 BEAR | MACD: bearish_cross\n  • [1H ]: 🔴 BEAR\n\nAI Confidence rating: 44%\nRule Confluence score: 40/100\n\nConfluences Checked:\n✅ 50/200 EMA Trend: BEARISH\n✅ RSI Momentum: OVERBOUGHT\n✅ Volume Level: NORMAL\n\nEntry price target: 3400\nStop Loss: 3536\n\nTake Profit 1: 3196\nTake Profit 2: 2992\nTake Profit 3: 2720\n\nRisk parameters: 1:2.5+ (Swing Trade Plan)\n\nAI Risk Analysis:\n[Offline Simulation Mode] Aligned swing trend structures verified for ETHUSDT. Volume surge corroborates institutional support."
+    },
+    {
+      "id": "alert_jjb9e00",
+      "timestamp": "2026-07-05T13:49:06.121Z",
+      "symbol": "ETHUSDT",
+      "timeframe": "4H",
+      "price": 3400,
+      "payload": {
+        "symbol": "ETHUSDT",
+        "price": 3400,
+        "utbot": "hold",
+        "ema_crossover": "bearish",
+        "rsi": "overbought",
+        "macd": "neutral",
+        "market_structure": "",
+        "volume": "normal",
+        "side": "SHORT",
+        "multiTimeframe": [
+          {
+            "timeframe": "1W",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "bearish_cross",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "1D",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "BOS",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "4H",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "high"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bearish",
+            "utbot": "sell",
+            "structure": "none",
+            "rsi": "overbought",
+            "macd": "neutral",
+            "volume": "high"
+          }
+        ]
+      },
+      "score": 40,
+      "maxScore": 100,
+      "passedFilters": false,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": true
+      },
+      "scoreBreakdown": {
+        "UT Bot Trigger Neutral": 0,
+        "Macro 50/200 EMA Trend Aligned": 25,
+        "RSI Momentum Aligned (Oversold/Overbought)": 15,
+        "MACD Neutral": 0,
+        "No Structure Break Confirm": 0,
+        "Normal/Low Volume Profile": 0
+      },
+      "aiDecision": {
+        "decision": "REJECT",
+        "confidence": 44,
+        "reason": "[Offline Simulation Mode] Aligned swing trend structures verified for ETHUSDT. Volume surge corroborates institutional support."
+      },
+      "tradePlan": {
+        "entry": 3400,
+        "stopLoss": 3536,
+        "takeProfit1": 3196,
+        "takeProfit2": 2992,
+        "takeProfit3": 2720,
+        "riskRewardRatio": "1:2.5+ (Swing Trade Plan)"
+      },
+      "telegramSent": false,
+      "multiTimeframe": [
+        {
+          "timeframe": "1W",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "bearish_cross",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "1D",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "BOS",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "4H",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "high"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bearish",
+          "utbot": "sell",
+          "structure": "none",
+          "rsi": "overbought",
+          "macd": "neutral",
+          "volume": "high"
+        }
+      ],
+      "formattedAlert": "[BLOCKED BY COOLDOWN FILTER]\n🚨 SWING SHORT SIGNAL\n\nSymbol: ETHUSDT\nTimeframe: Composite Swing (1W, 1D, 4H, 1H)\n\nSwing Multi-Timeframe Alignment:\n  • [1W ]: 🔴 BEAR | MACD: bearish_cross\n  • [1D ]: 🔴 BEAR\n  • [4H ]: 🟢 BULL\n  • [1H ]: 🔴 BEAR | RSI: overbought\n\nAI Confidence rating: 44%\nRule Confluence score: 40/100\n\nConfluences Checked:\n✅ 50/200 EMA Trend: BEARISH\n✅ RSI Momentum: OVERBOUGHT\n✅ Volume Level: NORMAL\n\nEntry price target: 3400\nStop Loss: 3536\n\nTake Profit 1: 3196\nTake Profit 2: 2992\nTake Profit 3: 2720\n\nRisk parameters: 1:2.5+ (Swing Trade Plan)\n\nAI Risk Analysis:\n[Offline Simulation Mode] Aligned swing trend structures verified for ETHUSDT. Volume surge corroborates institutional support.",
+      "telegramError": "Rate-limited. Wait: Symbol 246s"
+    },
+    {
+      "id": "alert_0ryhq8m",
+      "timestamp": "2026-07-05T13:49:21.728Z",
+      "symbol": "SOLUSDT",
+      "timeframe": "4H",
+      "price": 200,
+      "payload": {
+        "symbol": "SOLUSDT",
+        "price": 200,
+        "utbot": "hold",
+        "ema_crossover": "bearish",
+        "rsi": "overbought",
+        "macd": "neutral",
+        "market_structure": "",
+        "volume": "normal",
+        "side": "SHORT",
+        "multiTimeframe": [
+          {
+            "timeframe": "1W",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "BOS",
+            "rsi": "neutral",
+            "macd": "bearish_cross",
+            "volume": "high"
+          },
+          {
+            "timeframe": "1D",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "high"
+          },
+          {
+            "timeframe": "4H",
+            "trend": "bearish",
+            "utbot": "sell",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "high"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "BOS",
+            "rsi": "neutral",
+            "macd": "bearish_cross",
+            "volume": "normal"
+          }
+        ]
+      },
+      "score": 40,
+      "maxScore": 100,
+      "passedFilters": false,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": true
+      },
+      "scoreBreakdown": {
+        "UT Bot Trigger Neutral": 0,
+        "Macro 50/200 EMA Trend Aligned": 25,
+        "RSI Momentum Aligned (Oversold/Overbought)": 15,
+        "MACD Neutral": 0,
+        "No Structure Break Confirm": 0,
+        "Normal/Low Volume Profile": 0
+      },
+      "aiDecision": {
+        "decision": "REJECT",
+        "confidence": 44,
+        "reason": "[Offline Simulation Mode] Aligned swing trend structures verified for SOLUSDT. Volume surge corroborates institutional support."
+      },
+      "tradePlan": {
+        "entry": 200,
+        "stopLoss": 212,
+        "takeProfit1": 182,
+        "takeProfit2": 164,
+        "takeProfit3": 140,
+        "riskRewardRatio": "1:2.5+ (Swing Trade Plan)"
+      },
+      "telegramSent": false,
+      "multiTimeframe": [
+        {
+          "timeframe": "1W",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "BOS",
+          "rsi": "neutral",
+          "macd": "bearish_cross",
+          "volume": "high"
+        },
+        {
+          "timeframe": "1D",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "high"
+        },
+        {
+          "timeframe": "4H",
+          "trend": "bearish",
+          "utbot": "sell",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "high"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "BOS",
+          "rsi": "neutral",
+          "macd": "bearish_cross",
+          "volume": "normal"
+        }
+      ],
+      "formattedAlert": "[BLOCKED BY MULTI-TIMEFRAME FILTER]\n🚨 SWING SHORT SIGNAL\n\nSymbol: SOLUSDT\nTimeframe: Composite Swing (1W, 1D, 4H, 1H)\n\nSwing Multi-Timeframe Alignment:\n  • [1W ]: 🟢 BULL | MACD: bearish_cross\n  • [1D ]: 🟢 BULL\n  • [4H ]: 🔴 BEAR\n  • [1H ]: 🟢 BULL | MACD: bearish_cross\n\nAI Confidence rating: 44%\nRule Confluence score: 40/100\n\nConfluences Checked:\n✅ 50/200 EMA Trend: BEARISH\n✅ RSI Momentum: OVERBOUGHT\n✅ Volume Level: NORMAL\n\nEntry price target: 200\nStop Loss: 212\n\nTake Profit 1: 182\nTake Profit 2: 164\nTake Profit 3: 140\n\nRisk parameters: 1:2.5+ (Swing Trade Plan)\n\nAI Risk Analysis:\n[Offline Simulation Mode] Aligned swing trend structures verified for SOLUSDT. Volume surge corroborates institutional support.",
+      "telegramError": "MTF Confluence rejected: Macro HTF (1W/1D) Trend mismatch, Overall swing alignment low (1/4 aligned)"
+    },
+    {
+      "id": "alert_886s8yd",
+      "timestamp": "2026-07-05T13:50:08.314Z",
+      "symbol": "BNBUSDT",
+      "timeframe": "4H",
+      "price": 698,
+      "payload": {
+        "symbol": "BNBUSDT",
+        "price": 698,
+        "utbot": "hold",
+        "ema_crossover": "bearish",
+        "rsi": "overbought",
+        "macd": "neutral",
+        "market_structure": "",
+        "volume": "normal",
+        "side": "SHORT",
+        "multiTimeframe": [
+          {
+            "timeframe": "1W",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "high"
+          },
+          {
+            "timeframe": "1D",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "BOS",
+            "rsi": "overbought",
+            "macd": "bearish_cross",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "4H",
+            "trend": "bearish",
+            "utbot": "sell",
+            "structure": "BOS",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "bearish_cross",
+            "volume": "high"
+          }
+        ]
+      },
+      "score": 40,
+      "maxScore": 100,
+      "passedFilters": false,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": true
+      },
+      "scoreBreakdown": {
+        "UT Bot Trigger Neutral": 0,
+        "Macro 50/200 EMA Trend Aligned": 25,
+        "RSI Momentum Aligned (Oversold/Overbought)": 15,
+        "MACD Neutral": 0,
+        "No Structure Break Confirm": 0,
+        "Normal/Low Volume Profile": 0
+      },
+      "aiDecision": {
+        "decision": "REJECT",
+        "confidence": 44,
+        "reason": "[Offline Simulation Mode] Aligned swing trend structures verified for BNBUSDT. Volume surge corroborates institutional support."
+      },
+      "tradePlan": {
+        "entry": 698,
+        "stopLoss": 739.88,
+        "takeProfit1": 635.18,
+        "takeProfit2": 572.36,
+        "takeProfit3": 488.6,
+        "riskRewardRatio": "1:2.5+ (Swing Trade Plan)"
+      },
+      "telegramSent": false,
+      "multiTimeframe": [
+        {
+          "timeframe": "1W",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "high"
+        },
+        {
+          "timeframe": "1D",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "BOS",
+          "rsi": "overbought",
+          "macd": "bearish_cross",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "4H",
+          "trend": "bearish",
+          "utbot": "sell",
+          "structure": "BOS",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "bearish_cross",
+          "volume": "high"
+        }
+      ],
+      "formattedAlert": "🚨 SWING SHORT SIGNAL\n\nSymbol: BNBUSDT\nTimeframe: Composite Swing (1W, 1D, 4H, 1H)\n\nSwing Multi-Timeframe Alignment:\n  • [1W ]: 🔴 BEAR\n  • [1D ]: 🔴 BEAR | RSI: overbought | MACD: bearish_cross\n  • [4H ]: 🔴 BEAR\n  • [1H ]: 🔴 BEAR | MACD: bearish_cross\n\nAI Confidence rating: 44%\nRule Confluence score: 40/100\n\nConfluences Checked:\n✅ 50/200 EMA Trend: BEARISH\n✅ RSI Momentum: OVERBOUGHT\n✅ Volume Level: NORMAL\n\nEntry price target: 698\nStop Loss: 739.88\n\nTake Profit 1: 635.18\nTake Profit 2: 572.36\nTake Profit 3: 488.6\n\nRisk parameters: 1:2.5+ (Swing Trade Plan)\n\nAI Risk Analysis:\n[Offline Simulation Mode] Aligned swing trend structures verified for BNBUSDT. Volume surge corroborates institutional support.",
+      "telegramError": "AI rejected signal: [Offline Simulation Mode] Aligned swing trend structures verified for BNBUSDT. Volume surge corroborates institutional support."
+    },
+    {
+      "id": "alert_am7m96z",
+      "timestamp": "2026-07-05T13:50:53.711Z",
+      "symbol": "BNBUSDT",
+      "timeframe": "4H",
+      "price": 585.48,
+      "payload": {
+        "symbol": "BNBUSDT",
+        "timeframe": "4H",
+        "price": 585.48,
+        "utbot": "hold",
+        "ema_crossover": "bearish",
+        "rsi": "overbought",
+        "macd": "neutral",
+        "market_structure": "BOS",
+        "volume": "normal",
+        "multiTimeframe": [
+          {
+            "timeframe": "1W",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "BOS",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "high"
+          },
+          {
+            "timeframe": "1D",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "BOS",
+            "rsi": "neutral",
+            "macd": "bearish_cross",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "4H",
+            "trend": "bearish",
+            "utbot": "sell",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bearish",
+            "utbot": "sell",
+            "structure": "none",
+            "rsi": "overbought",
+            "macd": "bearish_cross",
+            "volume": "normal"
+          }
+        ],
+        "side": "SHORT"
+      },
+      "score": 50,
+      "maxScore": 100,
+      "passedFilters": true,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": false
+      },
+      "scoreBreakdown": {
+        "UT Bot Trigger Neutral": 0,
+        "Macro 50/200 EMA Trend Aligned": 25,
+        "RSI Momentum Aligned (Oversold/Overbought)": 15,
+        "MACD Neutral": 0,
+        "Swing Break of Structure (BOS)": 10,
+        "Normal/Low Volume Profile": 0
+      },
+      "aiDecision": {
+        "decision": "SEND",
+        "confidence": 55,
+        "reason": "[Offline Mode] Confluence score 50/100 meets threshold for BNBUSDT. Aligned swing structures evaluated."
+      },
+      "tradePlan": {
+        "entry": 585.48,
+        "stopLoss": 620.609,
+        "takeProfit1": 532.787,
+        "takeProfit2": 480.094,
+        "takeProfit3": 409.836,
+        "riskRewardRatio": "1:2.5+ (Swing Trade Plan)"
+      },
+      "telegramSent": true,
+      "multiTimeframe": [
+        {
+          "timeframe": "1W",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "BOS",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "high"
+        },
+        {
+          "timeframe": "1D",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "BOS",
+          "rsi": "neutral",
+          "macd": "bearish_cross",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "4H",
+          "trend": "bearish",
+          "utbot": "sell",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bearish",
+          "utbot": "sell",
+          "structure": "none",
+          "rsi": "overbought",
+          "macd": "bearish_cross",
+          "volume": "normal"
+        }
+      ],
+      "formattedAlert": "🚨 SWING SHORT SIGNAL\n\nSymbol: BNBUSDT\nTimeframe: Composite Swing (1W, 1D, 4H, 1H)\n\nSwing Multi-Timeframe Alignment:\n  • [1W ]: 🔴 BEAR\n  • [1D ]: 🔴 BEAR | MACD: bearish_cross\n  • [4H ]: 🔴 BEAR\n  • [1H ]: 🔴 BEAR | RSI: overbought | MACD: bearish_cross\n\nAI Confidence rating: 55%\nRule Confluence score: 50/100\n\nConfluences Checked:\n✅ 50/200 EMA Trend: BEARISH\n✅ RSI Momentum: OVERBOUGHT\n✅ Structure: BOS Confirm\n✅ Volume Level: NORMAL\n\nEntry price target: 585.48\nStop Loss: 620.609\n\nTake Profit 1: 532.787\nTake Profit 2: 480.094\nTake Profit 3: 409.836\n\nRisk parameters: 1:2.5+ (Swing Trade Plan)\n\nAI Risk Analysis:\n[Offline Mode] Confluence score 50/100 meets threshold for BNBUSDT. Aligned swing structures evaluated."
+    },
+    {
+      "id": "alert_t3oaa1c",
+      "timestamp": "2026-07-05T13:50:57.464Z",
+      "symbol": "BNBUSDT",
+      "timeframe": "4H",
+      "price": 698,
+      "payload": {
+        "symbol": "BNBUSDT",
+        "price": 698,
+        "utbot": "hold",
+        "ema_crossover": "bearish",
+        "rsi": "overbought",
+        "macd": "neutral",
+        "market_structure": "",
+        "volume": "normal",
+        "side": "SHORT",
+        "multiTimeframe": [
+          {
+            "timeframe": "1W",
+            "trend": "bearish",
+            "utbot": "sell",
+            "structure": "BOS",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "1D",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "BOS",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "4H",
+            "trend": "bearish",
+            "utbot": "sell",
+            "structure": "BOS",
+            "rsi": "neutral",
+            "macd": "bearish_cross",
+            "volume": "high"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "bearish_cross",
+            "volume": "high"
+          }
+        ]
+      },
+      "score": 40,
+      "maxScore": 100,
+      "passedFilters": false,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": true
+      },
+      "scoreBreakdown": {
+        "UT Bot Trigger Neutral": 0,
+        "Macro 50/200 EMA Trend Aligned": 25,
+        "RSI Momentum Aligned (Oversold/Overbought)": 15,
+        "MACD Neutral": 0,
+        "No Structure Break Confirm": 0,
+        "Normal/Low Volume Profile": 0
+      },
+      "aiDecision": {
+        "decision": "SEND",
+        "confidence": 44,
+        "reason": "[Offline Mode] Confluence score 40/100 meets threshold for BNBUSDT. Aligned swing structures evaluated."
+      },
+      "tradePlan": {
+        "entry": 698,
+        "stopLoss": 739.88,
+        "takeProfit1": 635.18,
+        "takeProfit2": 572.36,
+        "takeProfit3": 488.6,
+        "riskRewardRatio": "1:2.5+ (Swing Trade Plan)"
+      },
+      "telegramSent": false,
+      "multiTimeframe": [
+        {
+          "timeframe": "1W",
+          "trend": "bearish",
+          "utbot": "sell",
+          "structure": "BOS",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "1D",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "BOS",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "4H",
+          "trend": "bearish",
+          "utbot": "sell",
+          "structure": "BOS",
+          "rsi": "neutral",
+          "macd": "bearish_cross",
+          "volume": "high"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "bearish_cross",
+          "volume": "high"
+        }
+      ],
+      "formattedAlert": "[BLOCKED BY COOLDOWN FILTER]\n🚨 SWING SHORT SIGNAL\n\nSymbol: BNBUSDT\nTimeframe: Composite Swing (1W, 1D, 4H, 1H)\n\nSwing Multi-Timeframe Alignment:\n  • [1W ]: 🔴 BEAR\n  • [1D ]: 🔴 BEAR\n  • [4H ]: 🔴 BEAR | MACD: bearish_cross\n  • [1H ]: 🟢 BULL | MACD: bearish_cross\n\nAI Confidence rating: 44%\nRule Confluence score: 40/100\n\nConfluences Checked:\n✅ 50/200 EMA Trend: BEARISH\n✅ RSI Momentum: OVERBOUGHT\n✅ Volume Level: NORMAL\n\nEntry price target: 698\nStop Loss: 739.88\n\nTake Profit 1: 635.18\nTake Profit 2: 572.36\nTake Profit 3: 488.6\n\nRisk parameters: 1:2.5+ (Swing Trade Plan)\n\nAI Risk Analysis:\n[Offline Mode] Confluence score 40/100 meets threshold for BNBUSDT. Aligned swing structures evaluated.",
+      "telegramError": "Rate-limited. Wait: Symbol 296s"
+    },
+    {
+      "id": "alert_xfo7kqk",
+      "timestamp": "2026-07-05T13:51:28.347Z",
+      "symbol": "ADAUSDT",
+      "timeframe": "4H",
+      "price": 0.75,
+      "payload": {
+        "symbol": "ADAUSDT",
+        "price": 0.75,
+        "utbot": "hold",
+        "ema_crossover": "bearish",
+        "rsi": "overbought",
+        "macd": "neutral",
+        "market_structure": "",
+        "volume": "normal",
+        "side": "SHORT",
+        "multiTimeframe": [
+          {
+            "timeframe": "1W",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "bearish_cross",
+            "volume": "high"
+          },
+          {
+            "timeframe": "1D",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "BOS",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "high"
+          },
+          {
+            "timeframe": "4H",
+            "trend": "bearish",
+            "utbot": "sell",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "bearish_cross",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "BOS",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "high"
+          }
+        ]
+      },
+      "score": 40,
+      "maxScore": 100,
+      "passedFilters": true,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": true
+      },
+      "scoreBreakdown": {
+        "UT Bot Trigger Neutral": 0,
+        "Macro 50/200 EMA Trend Aligned": 25,
+        "RSI Momentum Aligned (Oversold/Overbought)": 15,
+        "MACD Neutral": 0,
+        "No Structure Break Confirm": 0,
+        "Normal/Low Volume Profile": 0
+      },
+      "aiDecision": {
+        "decision": "SEND",
+        "confidence": 44,
+        "reason": "[Offline Mode] Confluence score 40/100 meets threshold for ADAUSDT. Aligned swing structures evaluated."
+      },
+      "tradePlan": {
+        "entry": 0.75,
+        "stopLoss": 0.795,
+        "takeProfit1": 0.6825,
+        "takeProfit2": 0.615,
+        "takeProfit3": 0.525,
+        "riskRewardRatio": "1:2.5+ (Swing Trade Plan)"
+      },
+      "telegramSent": true,
+      "multiTimeframe": [
+        {
+          "timeframe": "1W",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "bearish_cross",
+          "volume": "high"
+        },
+        {
+          "timeframe": "1D",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "BOS",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "high"
+        },
+        {
+          "timeframe": "4H",
+          "trend": "bearish",
+          "utbot": "sell",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "bearish_cross",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "BOS",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "high"
+        }
+      ],
+      "formattedAlert": "🚨 SWING SHORT SIGNAL\n\nSymbol: ADAUSDT\nTimeframe: Composite Swing (1W, 1D, 4H, 1H)\n\nSwing Multi-Timeframe Alignment:\n  • [1W ]: 🔴 BEAR | MACD: bearish_cross\n  • [1D ]: 🔴 BEAR\n  • [4H ]: 🔴 BEAR | MACD: bearish_cross\n  • [1H ]: 🔴 BEAR\n\nAI Confidence rating: 44%\nRule Confluence score: 40/100\n\nConfluences Checked:\n✅ 50/200 EMA Trend: BEARISH\n✅ RSI Momentum: OVERBOUGHT\n✅ Volume Level: NORMAL\n\nEntry price target: 0.75\nStop Loss: 0.795\n\nTake Profit 1: 0.6825\nTake Profit 2: 0.615\nTake Profit 3: 0.525\n\nRisk parameters: 1:2.5+ (Swing Trade Plan)\n\nAI Risk Analysis:\n[Offline Mode] Confluence score 40/100 meets threshold for ADAUSDT. Aligned swing structures evaluated."
+    },
+    {
+      "id": "alert_k27tqiv",
+      "timestamp": "2026-07-05T14:53:29.948Z",
+      "symbol": "BNBUSDT",
+      "timeframe": "4H",
+      "price": 586.42,
+      "payload": {
+        "symbol": "BNBUSDT",
+        "timeframe": "4H",
+        "price": 586.42,
+        "utbot": "hold",
+        "ema_crossover": "bearish",
+        "rsi": "overbought",
+        "macd": "neutral",
+        "market_structure": "BOS",
+        "volume": "normal",
+        "multiTimeframe": [
+          {
+            "timeframe": "1W",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "BOS",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "high"
+          },
+          {
+            "timeframe": "1D",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "bearish_cross",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "4H",
+            "trend": "bearish",
+            "utbot": "sell",
+            "structure": "BOS",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bearish",
+            "utbot": "sell",
+            "structure": "none",
+            "rsi": "overbought",
+            "macd": "neutral",
+            "volume": "high"
+          }
+        ],
+        "side": "SHORT"
+      },
+      "score": 50,
+      "maxScore": 100,
+      "passedFilters": true,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": false
+      },
+      "scoreBreakdown": {
+        "UT Bot Trigger Neutral": 0,
+        "Macro 50/200 EMA Trend Aligned": 25,
+        "RSI Momentum Aligned (Oversold/Overbought)": 15,
+        "MACD Neutral": 0,
+        "Swing Break of Structure (BOS)": 10,
+        "Normal/Low Volume Profile": 0
+      },
+      "aiDecision": {
+        "decision": "SEND",
+        "confidence": 55,
+        "reason": "[Offline Mode] Confluence score 50/100 meets threshold for BNBUSDT. Aligned swing structures evaluated."
+      },
+      "tradePlan": {
+        "entry": 586.42,
+        "stopLoss": 621.605,
+        "takeProfit1": 533.642,
+        "takeProfit2": 480.864,
+        "takeProfit3": 410.494,
+        "riskRewardRatio": "1:2.5+ (Swing Trade Plan)"
+      },
+      "telegramSent": true,
+      "multiTimeframe": [
+        {
+          "timeframe": "1W",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "BOS",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "high"
+        },
+        {
+          "timeframe": "1D",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "bearish_cross",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "4H",
+          "trend": "bearish",
+          "utbot": "sell",
+          "structure": "BOS",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bearish",
+          "utbot": "sell",
+          "structure": "none",
+          "rsi": "overbought",
+          "macd": "neutral",
+          "volume": "high"
+        }
+      ],
+      "formattedAlert": "🚨 SWING SHORT SIGNAL\n\nSymbol: BNBUSDT\nTimeframe: Composite Swing (1W, 1D, 4H, 1H)\n\nSwing Multi-Timeframe Alignment:\n  • [1W ]: 🔴 BEAR\n  • [1D ]: 🔴 BEAR | MACD: bearish_cross\n  • [4H ]: 🔴 BEAR\n  • [1H ]: 🔴 BEAR | RSI: overbought\n\nAI Confidence rating: 55%\nRule Confluence score: 50/100\n\nConfluences Checked:\n✅ 50/200 EMA Trend: BEARISH\n✅ RSI Momentum: OVERBOUGHT\n✅ Structure: BOS Confirm\n✅ Volume Level: NORMAL\n\nEntry price target: 586.42\nStop Loss: 621.605\n\nTake Profit 1: 533.642\nTake Profit 2: 480.864\nTake Profit 3: 410.494\n\nRisk parameters: 1:2.5+ (Swing Trade Plan)\n\nAI Risk Analysis:\n[Offline Mode] Confluence score 50/100 meets threshold for BNBUSDT. Aligned swing structures evaluated."
+    },
+    {
+      "id": "alert_hsf109u",
+      "timestamp": "2026-07-05T14:57:58.787Z",
+      "symbol": "ETHUSDT",
+      "timeframe": "4H",
+      "price": 1771.12,
+      "payload": {
+        "symbol": "ETHUSDT",
+        "timeframe": "4H",
+        "price": 1771.12,
+        "utbot": "hold",
+        "ema_crossover": "bearish",
+        "rsi": "overbought",
+        "macd": "neutral",
+        "market_structure": "",
+        "volume": "low",
+        "multiTimeframe": [
+          {
+            "timeframe": "1W",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "bearish_cross",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "1D",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "BOS",
+            "rsi": "neutral",
+            "macd": "bearish_cross",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "4H",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "BOS",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "high"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bearish",
+            "utbot": "sell",
+            "structure": "BOS",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "high"
+          }
+        ],
+        "side": "SHORT"
+      },
+      "score": 40,
+      "maxScore": 100,
+      "passedFilters": true,
+      "filterResults": {
+        "lowVolume": true,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": true
+      },
+      "scoreBreakdown": {
+        "UT Bot Trigger Neutral": 0,
+        "Macro 50/200 EMA Trend Aligned": 25,
+        "RSI Momentum Aligned (Oversold/Overbought)": 15,
+        "MACD Neutral": 0,
+        "No Structure Break Confirm": 0,
+        "Normal/Low Volume Profile": 0
+      },
+      "aiDecision": {
+        "decision": "SEND",
+        "confidence": 44,
+        "reason": "[Offline Mode] Confluence score 40/100 meets threshold for ETHUSDT. Aligned swing structures evaluated."
+      },
+      "tradePlan": {
+        "entry": 1771.1,
+        "stopLoss": 1842,
+        "takeProfit1": 1664.9,
+        "takeProfit2": 1558.6,
+        "takeProfit3": 1416.9,
+        "riskRewardRatio": "1:2.5+ (Swing Trade Plan)"
+      },
+      "telegramSent": true,
+      "multiTimeframe": [
+        {
+          "timeframe": "1W",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "bearish_cross",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "1D",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "BOS",
+          "rsi": "neutral",
+          "macd": "bearish_cross",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "4H",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "BOS",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "high"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bearish",
+          "utbot": "sell",
+          "structure": "BOS",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "high"
+        }
+      ],
+      "formattedAlert": "🚨 SWING SHORT SIGNAL\n\nSymbol: ETHUSDT\nTimeframe: Composite Swing (1W, 1D, 4H, 1H)\n\nSwing Multi-Timeframe Alignment:\n  • [1W ]: 🔴 BEAR | MACD: bearish_cross\n  • [1D ]: 🔴 BEAR | MACD: bearish_cross\n  • [4H ]: 🔴 BEAR\n  • [1H ]: 🔴 BEAR\n\nAI Confidence rating: 44%\nRule Confluence score: 40/100\n\nConfluences Checked:\n✅ 50/200 EMA Trend: BEARISH\n✅ RSI Momentum: OVERBOUGHT\n✅ Volume Level: LOW\n\nEntry price target: 1771.1\nStop Loss: 1842\n\nTake Profit 1: 1664.9\nTake Profit 2: 1558.6\nTake Profit 3: 1416.9\n\nRisk parameters: 1:2.5+ (Swing Trade Plan)\n\nAI Risk Analysis:\n[Offline Mode] Confluence score 40/100 meets threshold for ETHUSDT. Aligned swing structures evaluated."
+    },
+    {
+      "id": "alert_huiyd2s",
+      "timestamp": "2026-07-05T15:28:06.787Z",
+      "symbol": "BNBUSDT",
+      "timeframe": "4H",
+      "price": 587.06,
+      "payload": {
+        "symbol": "BNBUSDT",
+        "timeframe": "4H",
+        "price": 587.06,
+        "utbot": "hold",
+        "ema_crossover": "bearish",
+        "rsi": "overbought",
+        "macd": "neutral",
+        "market_structure": "BOS",
+        "volume": "normal",
+        "multiTimeframe": [
+          {
+            "timeframe": "1W",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "bearish_cross",
+            "volume": "high"
+          },
+          {
+            "timeframe": "1D",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "BOS",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "high"
+          },
+          {
+            "timeframe": "4H",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "high"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          }
+        ],
+        "side": "SHORT"
+      },
+      "score": null,
+      "maxScore": null,
+      "passedFilters": false,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": false
+      },
+      "scoreBreakdown": {
+        "UT Bot Trigger Neutral": 0,
+        "Macro 50/200 EMA Trend Aligned": 20,
+        "MACD Neutral": 0,
+        "Swing Break of Structure (BOS)": 10,
+        "Normal/Low Volume Profile": 0
+      },
+      "aiDecision": {
+        "decision": "REJECT",
+        "confidence": null,
+        "reason": "[Offline Mode] Confluence score NaN/100 below threshold for BNBUSDT. Aligned swing structures evaluated."
+      },
+      "tradePlan": {
+        "entry": 587.06,
+        "stopLoss": 622.284,
+        "takeProfit1": 534.225,
+        "takeProfit2": 481.389,
+        "takeProfit3": 410.942,
+        "riskRewardRatio": "1:2.5+ (Swing Trade Plan)"
+      },
+      "telegramSent": false,
+      "multiTimeframe": [
+        {
+          "timeframe": "1W",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "bearish_cross",
+          "volume": "high"
+        },
+        {
+          "timeframe": "1D",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "BOS",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "high"
+        },
+        {
+          "timeframe": "4H",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "high"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        }
+      ],
+      "formattedAlert": "🚨 SWING SHORT SIGNAL\n\nSymbol: BNBUSDT\nTimeframe: Composite Swing (1W, 1D, 4H, 1H)\n\nSwing Multi-Timeframe Alignment:\n  • [1W ]: 🔴 BEAR | MACD: bearish_cross\n  • [1D ]: 🔴 BEAR\n  • [4H ]: 🟢 BULL\n  • [1H ]: 🔴 BEAR\n\nAI Confidence rating: NaN%\nRule Confluence score: NaN/NaN\n\nConfluences Checked:\n✅ 50/200 EMA Trend: BEARISH\n✅ RSI Momentum: OVERBOUGHT\n✅ Structure: BOS Confirm\n✅ Volume Level: NORMAL\n\nEntry price target: 587.06\nStop Loss: 622.284\n\nTake Profit 1: 534.225\nTake Profit 2: 481.389\nTake Profit 3: 410.942\n\nRisk parameters: 1:2.5+ (Swing Trade Plan)\n\nAI Risk Analysis:\n[Offline Mode] Confluence score NaN/100 below threshold for BNBUSDT. Aligned swing structures evaluated.",
+      "telegramError": "AI rejected signal: [Offline Mode] Confluence score NaN/100 below threshold for BNBUSDT. Aligned swing structures evaluated."
+    },
+    {
+      "id": "alert_0di6mpx",
+      "timestamp": "2026-07-05T15:33:07.366Z",
+      "symbol": "BTCUSDT",
+      "timeframe": "4H",
+      "price": 97200,
+      "payload": {
+        "stochRsiSignal": "oversold_cross",
+        "ema_crossover": "bullish",
+        "volume": "high",
+        "adx": 35,
+        "utbot": "buy",
+        "price": 97200,
+        "symbol": "BTCUSDT",
+        "adxTrending": true,
+        "macd": "bullish_cross",
+        "rsi": "oversold",
+        "market_structure": "BOS",
+        "obvTrend": "rising",
+        "atrPct": 3.2,
+        "side": "LONG",
+        "multiTimeframe": [
+          {
+            "timeframe": "1W",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "1D",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "low"
+          },
+          {
+            "timeframe": "4H",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          }
+        ]
+      },
+      "score": 100,
+      "maxScore": 100,
+      "passedFilters": true,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": false
+      },
+      "scoreBreakdown": {
+        "UT Bot LONG Trigger": 10,
+        "EMA 50/200 Trend Aligned": 20,
+        "ADX Trending (35)": 15,
+        "Stoch RSI Extreme Crossover": 20,
+        "MACD Cross Aligned": 15,
+        "OBV Money Flow Aligned": 10,
+        "Swing Structure Confirm (BOS)": 10
+      },
+      "aiDecision": {
+        "decision": "SEND",
+        "confidence": 100,
+        "reason": "[Offline Mode] Confluence score 100/100 meets threshold for BTCUSDT. Aligned swing structures evaluated."
+      },
+      "tradePlan": {
+        "entry": 97200,
+        "stopLoss": 92534.4,
+        "takeProfit1": 104198.4,
+        "takeProfit2": 108864,
+        "takeProfit3": 115862.4,
+        "riskRewardRatio": "1:2.5 Swing (ATR=3110.4 | SL=1.5×ATR)"
+      },
+      "telegramSent": true,
+      "multiTimeframe": [
+        {
+          "timeframe": "1W",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "1D",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "low"
+        },
+        {
+          "timeframe": "4H",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        }
+      ],
+      "formattedAlert": "🟢 <b>SWING LONG SIGNAL</b>\n━━━━━━━━━━━━━━━━━━━━\n📌 <b>BTCUSDT</b>  |  Swing 4H/1D\n🕐 Sun, 05 Jul 2026 15:33:07 UTC\n━━━━━━━━━━━━━━━━━━━━\n\n🤖 <b>AI Confidence:</b> 100%  |  Score: <b>100/100</b>\n\n📈 <b>CONFLUENCE SIGNALS</b>\n✅ UT Bot ATR: <b>BUY</b>\n✅ EMA 50/200: <b>BULLISH</b>\n✅ ADX Strength: <b>35 (TRENDING)</b>\n✅ Stoch RSI: <b>OVERSOLD CROSS</b>\n✅ MACD: <b>BULLISH CROSS</b>\n✅ OBV Flow: <b>RISING</b>\n✅ Structure: <b>BOS</b>\n✅ RSI(14): <b>OVERSOLD</b>\n✅ Volume: <b>HIGH</b>\n\n📊 <b>Multi-Timeframe Confluence</b>\n  🔴 <b>1W</b>: BEARISH\n  🔴 <b>1D</b>: BEARISH\n  🔴 <b>4H</b>: BEARISH\n  🔴 <b>1H</b>: BEARISH\n\n💰 <b>TRADE PLAN</b>\n  Entry:      <code>97200</code>\n  Stop Loss:  <code>92534.4</code>  ⛔\n  TP1 (1.5R): <code>104198.4</code>  🎯 ← Close 50%\n  TP2 (2.5R): <code>108864</code>  🎯 ← Main target\n  TP3 (4.0R): <code>115862.4</code>  🎯 ← Runner\n\n  📐 R:R  1:2.5 Swing (ATR=3110.4 | SL=1.5×ATR)\n💼 <b>Position Sizing Guide (1-2% risk per trade)</b>\n  $1,000 acct → Risk $10-20 | $5,000 → $50-100\n\n🧠 <b>AI Analysis</b>\n[Offline Mode] Confluence score 100/100 meets threshold for BTCUSDT. Aligned swing structures evaluated.\n\n⚠️ <i>This is not financial advice. Always manage risk.</i>"
+    },
+    {
+      "id": "alert_zd0r0si",
+      "timestamp": "2026-07-05T15:37:07.581Z",
+      "symbol": "BNBUSDT",
+      "timeframe": "4H",
+      "price": 588.92,
+      "payload": {
+        "symbol": "BNBUSDT",
+        "timeframe": "4H",
+        "price": 588.92,
+        "utbot": "hold",
+        "ema_crossover": "bearish",
+        "rsi": "overbought",
+        "rsiValue": 70.4978989607124,
+        "macd": "neutral",
+        "market_structure": "BOS",
+        "volume": "high",
+        "adx": 27.28586991983864,
+        "adxTrending": true,
+        "stochRsiSignal": "neutral",
+        "obvTrend": "rising",
+        "atrPct": 1.2020673557336679,
+        "multiTimeframe": [
+          {
+            "timeframe": "1W",
+            "trend": "bearish",
+            "utbot": "buy",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "low"
+          },
+          {
+            "timeframe": "1D",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "4H",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "BOS",
+            "rsi": "overbought",
+            "macd": "neutral",
+            "volume": "high"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          }
+        ],
+        "side": "SHORT"
+      },
+      "score": 45,
+      "maxScore": 100,
+      "passedFilters": true,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": false
+      },
+      "scoreBreakdown": {
+        "UT Bot Neutral": 0,
+        "EMA 50/200 Trend Aligned": 20,
+        "ADX Trending (27)": 15,
+        "Stoch RSI Neutral": 0,
+        "MACD Neutral/Counter": 0,
+        "OBV Neutral/Counter": 0,
+        "Swing Structure Confirm (BOS)": 10
+      },
+      "aiDecision": {
+        "decision": "SEND",
+        "confidence": 50,
+        "reason": "[Offline Mode] Confluence score 45/100 meets threshold for BNBUSDT. Aligned swing structures evaluated."
+      },
+      "tradePlan": {
+        "entry": 588.92,
+        "stopLoss": 599.539,
+        "takeProfit1": 572.992,
+        "takeProfit2": 562.373,
+        "takeProfit3": 546.445,
+        "riskRewardRatio": "1:2.5 Swing (ATR=7.079 | SL=1.5×ATR)"
+      },
+      "telegramSent": true,
+      "multiTimeframe": [
+        {
+          "timeframe": "1W",
+          "trend": "bearish",
+          "utbot": "buy",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "low"
+        },
+        {
+          "timeframe": "1D",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "4H",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "BOS",
+          "rsi": "overbought",
+          "macd": "neutral",
+          "volume": "high"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        }
+      ],
+      "formattedAlert": "🔴 <b>SWING SHORT SIGNAL</b>\n━━━━━━━━━━━━━━━━━━━━\n📌 <b>BNBUSDT</b>  |  Swing 4H/1D\n🕐 Sun, 05 Jul 2026 15:37:07 UTC\n━━━━━━━━━━━━━━━━━━━━\n\n🤖 <b>AI Confidence:</b> 50%  |  Score: <b>45/100</b>\n\n📈 <b>CONFLUENCE SIGNALS</b>\n✅ EMA 50/200: <b>BEARISH</b>\n✅ ADX Strength: <b>27 (TRENDING)</b>\n✅ OBV Flow: <b>RISING</b>\n✅ Structure: <b>BOS</b>\n✅ RSI(14): <b>OVERBOUGHT (70)</b>\n✅ Volume: <b>HIGH</b>\n\n📊 <b>Multi-Timeframe Confluence</b>\n  🔴 <b>1W</b>: BEARISH\n  🔴 <b>1D</b>: BEARISH\n  🔴 <b>4H</b>: BEARISH • RSI: overbought • BOS\n  🟢 <b>1H</b>: BULLISH\n\n💰 <b>TRADE PLAN</b>\n  Entry:      <code>588.92</code>\n  Stop Loss:  <code>599.539</code>  ⛔\n  TP1 (1.5R): <code>572.992</code>  🎯 ← Close 50%\n  TP2 (2.5R): <code>562.373</code>  🎯 ← Main target\n  TP3 (4.0R): <code>546.445</code>  🎯 ← Runner\n\n  📐 R:R  1:2.5 Swing (ATR=7.079 | SL=1.5×ATR)\n💼 <b>Position Sizing Guide (1-2% risk per trade)</b>\n  $1,000 acct → Risk $10-20 | $5,000 → $50-100\n\n🧠 <b>AI Analysis</b>\n[Offline Mode] Confluence score 45/100 meets threshold for BNBUSDT. Aligned swing structures evaluated.\n\n⚠️ <i>This is not financial advice. Always manage risk.</i>"
+    },
+    {
+      "id": "alert_5ykzr33",
+      "timestamp": "2026-07-29T17:19:28.912Z",
+      "symbol": "BTCUSDT",
+      "timeframe": "1H",
+      "price": 97384.4,
+      "payload": {
+        "symbol": "BTCUSDT",
+        "timeframe": "1H",
+        "price": 97384.4,
+        "utbot": "sell",
+        "ema_crossover": "bearish",
+        "rsi": "overbought",
+        "rsiValue": 72.18063642918833,
+        "macd": "neutral",
+        "market_structure": "",
+        "volume": "normal",
+        "adx": 33.94826785960544,
+        "adxTrending": true,
+        "stochRsiSignal": "neutral",
+        "obvTrend": "falling",
+        "atrPct": 4.354206618791062,
+        "priceActionPattern": "NONE",
+        "priceActionBias": "NEUTRAL",
+        "priceActionDesc": "No patterns detected on simulated feed.",
+        "multiTimeframe": [
+          {
+            "timeframe": "4H",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bearish",
+            "utbot": "sell",
+            "structure": "none",
+            "rsi": "overbought",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "15M",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "5M",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          }
+        ],
+        "side": "SHORT"
+      },
+      "score": 50,
+      "maxScore": 100,
+      "passedFilters": true,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": true
+      },
+      "scoreBreakdown": {
+        "UT Bot SHORT Trigger": 10,
+        "EMA 50/200 Trend Aligned": 15,
+        "ADX Trending (34)": 15,
+        "Stoch RSI Neutral": 0,
+        "MACD Neutral/Counter": 0,
+        "OBV Money Flow Aligned": 10,
+        "No Structure Pivot Broken": 0,
+        "Price Action: No Pattern": 0
+      },
+      "aiDecision": {
+        "decision": "SEND",
+        "confidence": 50,
+        "reason": "Scalp evaluation complete: 50/100 confluence on BTCUSDT. OpenAI temporarily unavailable."
+      },
+      "tradePlan": {
+        "entry": 97384.4,
+        "stopLoss": 102472.8,
+        "takeProfit1": 92296,
+        "takeProfit2": 87207.6,
+        "takeProfit3": 82119.3,
+        "riskRewardRatio": "1:2.0 Scalp (ATR=4240.3 | SL=1.2×ATR)"
+      },
+      "telegramSent": false,
+      "multiTimeframe": [
+        {
+          "timeframe": "4H",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bearish",
+          "utbot": "sell",
+          "structure": "none",
+          "rsi": "overbought",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "15M",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "5M",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        }
+      ],
+      "formattedAlert": "🔴 <b>SCALP SHORT SIGNAL</b>\n━━━━━━━━━━━━━━━━━━━━\n📌 <b>BTCUSDT</b>  |  Scalp 1H/15M\n🕐 Wed, 29 Jul 2026 17:19:28 UTC\n━━━━━━━━━━━━━━━━━━━━\n\n🤖 <b>AI Confidence:</b> 50%  |  Score: <b>50/100</b>\n\n📈 <b>CONFLUENCE SIGNALS</b>\n✅ UT Bot ATR: <b>SELL</b>\n✅ EMA 50/200: <b>BEARISH</b>\n✅ ADX Strength: <b>34 (TRENDING)</b>\n✅ OBV Flow: <b>FALLING</b>\n✅ RSI(14): <b>OVERBOUGHT (72)</b>\n✅ Volume: <b>NORMAL</b>\n\n📊 <b>Multi-Timeframe Confluence</b>\n  🔴 <b>4H</b>: BEARISH\n  🔴 <b>1H</b>: BEARISH • RSI: overbought\n  🔴 <b>15M</b>: BEARISH\n  🔴 <b>5M</b>: BEARISH\n\n💰 <b>TRADE PLAN</b>\n  Entry:      <code>97384.4</code>\n  Stop Loss:  <code>102472.8</code>  ⛔\n  TP1 (1.0R): <code>92296</code>  🎯 ← Scalp target (Lock 50% / Break-even)\n  TP2 (2.0R): <code>87207.6</code>  🎯 ← Main target\n  TP3 (3.0R): <code>82119.3</code>  🎯 ← Runner\n\n  📐 R:R  1:2.0 Scalp (ATR=4240.3 | SL=1.2×ATR)\n💼 <b>Position Sizing Guide (1-2% risk per trade)</b>\n  $1,000 acct → Risk $10-20 | $5,000 → $50-100\n\n🧠 <b>AI Analysis</b>\nScalp evaluation complete: 50/100 confluence on BTCUSDT. OpenAI temporarily unavailable.\n\n⚠️ <i>This is not financial advice. Always manage risk.</i>",
+      "telegramError": "Telegram delivery failed. https://api.telegram.org: Connection timed out after 10 seconds"
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+[Express] Startup Environment: NODE_ENV=production, determined_isProduction=true
+[Express] Starting server in Production mode...
+Server is listening on http://0.0.0.0:3000

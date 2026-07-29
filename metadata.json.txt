@@ -1,0 +1,6 @@
+{
+  "name": "AI Trading Alert Bot Builder",
+  "description": "Configure, simulate, and export a high-performance quantitative trading alert bot using Pine Script triggers, dynamic AI confluence scoring, Gemini evaluation, and Telegram delivery.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,195 @@
+import React, { useState } from "react";
+import { Copy, Check, Code, FileText, ChevronDown, ChevronRight } from "lucide-react";
+
+export default function PineScriptViewer() {
+  const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<"indicator" | "payload">("indicator");
+
+  const pineCode = `//@version=5
+indicator("AI Confluence Alert Engine Triggers", overlay=true, margin_left=20)
+
+// --- SYSTEM INPUTS ---
+src = input.source(close, title="UT Bot Source")
+keyValue = input.float(2.0, title="UT Bot Key Value")
+atrPeriod = input.int(10, title="UT Bot ATR Period")
+
+// --- UT BOT TRIGGER ENGINE ---
+var float xATR = na
+var float xEMA = na
+xATR := ta.atr(atrPeriod)
+xEMA := ta.ema(src, emaPeriod = 1)
+
+var float target_price = na
+var float trailing_stop = na
+var bool is_long = false
+
+// Dynamic ATR Bands
+atr_delta = keyValue * xATR
+long_stop = close - atr_delta
+short_stop = close + atr_delta
+
+trailing_stop := is_long ? math.max(long_stop, nz(trailing_stop[1], long_stop)) : math.min(short_stop, nz(trailing_stop[1], short_stop))
+
+if ta.crossover(close, trailing_stop)
+    is_long := true
+if ta.crossunder(close, trailing_stop)
+    is_long := false
+
+ut_buy = is_long and not nz(is_long[1], false)
+ut_sell = not is_long and nz(is_long[1], true)
+
+plotshape(ut_buy, title="Buy Trigger", style=shape.triangleup, location=location.belowbar, color=color.emerald, size=size.small)
+plotshape(ut_sell, title="Sell Trigger", style=shape.triangledown, location=location.abovebar, color=color.rose, size=size.small)
+
+// --- HULL SUITE TREND ENG ---
+hullLength = input.int(55, title="Hull Length")
+hmaVal = ta.wma(2 * ta.wma(close, hullLength / 2) - ta.wma(close, hullLength), math.round(math.sqrt(hullLength)))
+hullTrend = hmaVal > hmaVal[1] ? "bullish" : "bearish"
+
+plot(hmaVal, color=hullTrend == "bullish" ? color.emerald : color.rose, linewidth=2, title="Hull Line")
+
+// --- FAIR VALUE GAPS (FVG) ---
+fvg_threshold = input.float(0.01, "FVG Min % Threshold") / 100
+var string fvg_state = "neutral"
+
+is_bullish_fvg = (low[0] > high[2]) and (close[1] > open[1]) and ((low[0] - high[2]) / close > fvg_threshold)
+is_bearish_fvg = (high[0] < low[2]) and (close[1] < open[1]) and ((low[2] - high[0]) / close > fvg_threshold)
+
+if is_bullish_fvg
+    fvg_state := "bullish"
+else if is_bearish_fvg
+    fvg_state := "bearish"
+
+// --- ORDER BLOCKS (OB) ---
+ob_len = input.int(5, "OB Confirmation Lookback")
+var string ob_state = "neutral"
+
+bullish_ob_cond = ta.crossover(close, ta.highest(high, ob_len)[1])
+bearish_ob_cond = ta.crossunder(close, ta.lowest(low, ob_len)[1])
+
+if bullish_ob_cond
+    ob_state := "bullish"
+else if bearish_ob_cond
+    ob_state := "bearish"
+
+// --- MARKET STRUCTURE (BOS/CHOCH) ---
+var string structure_state = "None"
+high_swing = ta.highest(high, 10)
+low_swing = ta.lowest(low, 10)
+
+if ta.crossover(close, high_swing[1])
+    structure_state := "BOS"
+else if ta.crossunder(close, low_swing[1])
+    structure_state := "CHOCH"
+
+// --- SESSION CALCULATION ---
+in_ny = not na(time(timeframe.period, "1300-2100:23456"))
+in_london = not na(time(timeframe.period, "0700-1500:23456"))
+in_asia = not na(time(timeframe.period, "0000-0800:23456"))
+
+current_session = in_ny ? "New York" : in_london ? "London" : in_asia ? "Asia" : "Off-hours"
+
+// --- VOLUME RATIO ENGINE ---
+vol_avg = ta.sma(volume, 20)
+vol_state = volume > vol_avg * 1.5 ? "High" : volume < vol_avg * 0.5 ? "Low" : "Normal"
+
+// --- ALERT DISPATCH TRIGGER ---
+alert_payload = '{"symbol": "' + syminfo.ticker + '", "timeframe": "' + timeframe.period + '", "price": ' + str.tostring(close) + ', "utbot": "' + (ut_buy ? "buy" : ut_sell ? "sell" : "hold") + '", "hull": "' + hullTrend + '", "fvg": "' + fvg_state + '", "orderblock": "' + ob_state + '", "market_structure": "' + structure_state + '", "session": "' + current_session + '", "volume": "' + vol_state + '"}'
+
+if ut_buy or ut_sell
+    alert(alert_payload, alert.freq_once_per_bar_close)
+`;
+
+  const payloadDoc = `{
+  "symbol": "BTCUSDT",
+  "timeframe": "15m",
+  "price": 104250,
+  "utbot": "buy",
+  "hull": "bullish",
+  "fvg": "bullish",
+  "orderblock": "bullish",
+  "market_structure": "BOS",
+  "session": "New York",
+  "volume": "High"
+}`;
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg h-full flex flex-col" id="pinescript-viewer">
+      {/* Header Tabs */}
+      <div className="bg-slate-950/80 px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <Code className="w-4 h-4 text-cyan-400" />
+          <h2 className="text-sm font-semibold text-slate-200 tracking-wide uppercase">TradingView Connection</h2>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setActiveTab("indicator")}
+            className={`px-3 py-1 text-xs rounded-md transition-all ${
+              activeTab === "indicator"
+                ? "bg-slate-800 text-cyan-400 font-medium border border-slate-700"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            Pine Script v5
+          </button>
+          <button
+            onClick={() => setActiveTab("payload")}
+            className={`px-3 py-1 text-xs rounded-md transition-all ${
+              activeTab === "payload"
+                ? "bg-slate-800 text-cyan-400 font-medium border border-slate-700"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            Payload Spec
+          </button>
+        </div>
+      </div>
+
+      {/* Code Area */}
+      <div className="relative flex-1 bg-slate-950 p-4 font-mono text-[11px] md:text-xs overflow-auto text-slate-300 select-all max-h-[450px]">
+        {activeTab === "indicator" ? (
+          <pre className="whitespace-pre">{pineCode}</pre>
+        ) : (
+          <pre className="whitespace-pre text-cyan-300">{payloadDoc}</pre>
+        )}
+
+        <button
+          onClick={() => copyToClipboard(activeTab === "indicator" ? pineCode : payloadDoc)}
+          className="absolute top-3 right-3 p-1.5 bg-slate-900/90 border border-slate-800 hover:bg-slate-800 rounded text-slate-400 hover:text-white transition-all flex items-center gap-1 cursor-pointer"
+          title="Copy code"
+        >
+          {copied ? (
+            <>
+              <Check className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-[10px] text-emerald-400 pr-1">Copied</span>
+            </>
+          ) : (
+            <>
+              <Copy className="w-3.5 h-3.5" />
+              <span className="text-[10px] pr-1">Copy code</span>
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Guide Footer */}
+      <div className="bg-slate-950/40 p-3.5 border-t border-slate-800/80 text-xs text-slate-400">
+        <div className="flex items-start gap-2.5">
+          <div className="bg-cyan-500/10 p-1 rounded text-cyan-400 mt-0.5 font-bold">1</div>
+          <div>
+            <p className="font-semibold text-slate-300">Setting up TradingView Webhook:</p>
+            <p className="text-slate-400 text-[11px] mt-0.5 leading-relaxed">
+              Open your target chart inside TradingView, add an Indicator, select <span className="font-mono text-cyan-400">Pine Editor</span>, paste the code, and click "Add to Chart". Then create an alert, click the <span className="font-semibold text-slate-300">Notifications</span> tab, check <span className="text-cyan-400">Webhook URL</span>, paste our link, and inside the Message field enter: <code className="bg-slate-900 border border-slate-800 px-1 rounded text-cyan-300">{"{{alert_message}}"}</code>.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

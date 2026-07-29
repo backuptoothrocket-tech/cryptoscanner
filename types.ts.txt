@@ -1,0 +1,100 @@
+export interface ConfluenceWeights {
+  utbot: number;
+  hull: number;
+  fvg: number;
+  orderblock: number;
+  market_structure: number;
+  volume: number;
+  session: number;
+}
+
+export interface FilterRules {
+  rejectLowVolume: boolean;
+  rejectAgainstHullTrend: boolean;
+  requireStructureConfirmation: boolean;
+  rejectDeadSession: boolean;
+}
+
+export interface BotConfig {
+  modelName: string;
+  activeSymbols: string[];
+  confidenceThreshold: number;
+  telegramToken: string;
+  telegramChatId: string;
+  telegramEnabled: boolean;
+  confluenceWeights: ConfluenceWeights;
+  filters: FilterRules;
+  pollingEnabled?: boolean;
+  pollingIntervalSeconds?: number;
+}
+
+export interface TimeframeAnalysis {
+  timeframe: string;
+  trend: "bullish" | "bearish";
+  utbot: "buy" | "sell" | "hold";
+  structure: "BOS" | "CHOCH" | "none";
+  fvg: "bullish" | "bearish" | "none";
+  orderblock: "bullish" | "bearish" | "none";
+  volume: "high" | "normal" | "low";
+}
+
+export interface LogEntry {
+  id: string;
+  timestamp: string;
+  symbol: string;
+  timeframe: string;
+  price: number;
+  payload: {
+    symbol: string;
+    timeframe: string;
+    price: number;
+    utbot: string;
+    hull: string;
+    fvg: string;
+    orderblock: string;
+    market_structure: string;
+    session: string;
+    volume: string;
+    side?: "LONG" | "SHORT";
+  };
+  score: number;
+  maxScore: number;
+  passedFilters: boolean;
+  filterResults: {
+    lowVolume: boolean;
+    againstTrend: boolean;
+    noStructure: boolean;
+    deadSession: boolean;
+  };
+  scoreBreakdown: Record<string, number>;
+  aiDecision?: {
+    decision: "SEND" | "REJECT";
+    confidence: number;
+    reason: string;
+  };
+  tradePlan?: {
+    entry: number;
+    stopLoss: number;
+    takeProfit1: number;
+    takeProfit2: number;
+    takeProfit3: number;
+    riskRewardRatio: string;
+  };
+  telegramSent: boolean;
+  telegramError?: string;
+  formattedAlert?: string;
+  multiTimeframe?: TimeframeAnalysis[];
+}
+
+export interface SimulatedSetup {
+  symbol: string;
+  price: number;
+  score: number;
+  volume: string;
+  hull: string;
+  utbot: string;
+  fvg: string;
+  orderblock: string;
+  market_structure: string;
+  session: string;
+}
