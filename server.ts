@@ -1892,16 +1892,17 @@ interface SymbolMeta {
 
 const MULTI_MARKET_CATALOG: Record<string, SymbolMeta> = {
   // Indian Equities (NSE)
-  "RELIANCE.NS": { symbol: "RELIANCE.NS", name: "Reliance Industries Ltd", assetClass: "INDIAN_EQUITY", currency: "INR", currencySymbol: "₹", tradingViewSymbol: "NSE:RELIANCE", basePrice: 2980.50 },
-  "TATAMOTORS.NS": { symbol: "TATAMOTORS.NS", name: "Tata Motors Ltd", assetClass: "INDIAN_EQUITY", currency: "INR", currencySymbol: "₹", tradingViewSymbol: "NSE:TATAMOTORS", basePrice: 995.20 },
-  "NIFTY50.NS": { symbol: "NIFTY50.NS", name: "Nifty 50 Index", assetClass: "INDIAN_EQUITY", currency: "INR", currencySymbol: "₹", tradingViewSymbol: "NSE:NIFTY", basePrice: 24850.00 },
-  "BANKNIFTY.NS": { symbol: "BANKNIFTY.NS", name: "Nifty Bank Index", assetClass: "INDIAN_EQUITY", currency: "INR", currencySymbol: "₹", tradingViewSymbol: "NSE:BANKNIFTY", basePrice: 52400.00 },
-  "TCS.NS": { symbol: "TCS.NS", name: "Tata Consultancy Services", assetClass: "INDIAN_EQUITY", currency: "INR", currencySymbol: "₹", tradingViewSymbol: "NSE:TCS", basePrice: 4280.00 },
-  "INFY.NS": { symbol: "INFY.NS", name: "Infosys Ltd", assetClass: "INDIAN_EQUITY", currency: "INR", currencySymbol: "₹", tradingViewSymbol: "NSE:INFY", basePrice: 1845.00 },
-  "HDFCBANK.NS": { symbol: "HDFCBANK.NS", name: "HDFC Bank Ltd", assetClass: "INDIAN_EQUITY", currency: "INR", currencySymbol: "₹", tradingViewSymbol: "NSE:HDFCBANK", basePrice: 1620.00 },
-  "ICICIBANK.NS": { symbol: "ICICIBANK.NS", name: "ICICI Bank Ltd", assetClass: "INDIAN_EQUITY", currency: "INR", currencySymbol: "₹", tradingViewSymbol: "NSE:ICICIBANK", basePrice: 1210.00 },
-  "SBIN.NS": { symbol: "SBIN.NS", name: "State Bank of India", assetClass: "INDIAN_EQUITY", currency: "INR", currencySymbol: "₹", tradingViewSymbol: "NSE:SBIN", basePrice: 850.00 },
-  "AXISBANK.NS": { symbol: "AXISBANK.NS", name: "Axis Bank Ltd", assetClass: "INDIAN_EQUITY", currency: "INR", currencySymbol: "₹", tradingViewSymbol: "NSE:AXISBANK", basePrice: 1280.00 },
+  // Base prices are offline fallbacks only — live prices are fetched from Yahoo Finance at runtime
+  "RELIANCE.NS": { symbol: "RELIANCE.NS", name: "Reliance Industries Ltd", assetClass: "INDIAN_EQUITY", currency: "INR", currencySymbol: "₹", tradingViewSymbol: "NSE:RELIANCE", basePrice: 1278.00 },
+  "TATAMOTORS.NS": { symbol: "TATAMOTORS.NS", name: "Tata Motors Ltd", assetClass: "INDIAN_EQUITY", currency: "INR", currencySymbol: "₹", tradingViewSymbol: "NSE:TATAMOTORS", basePrice: 700.00 },
+  "NIFTY50.NS": { symbol: "^NSEI", name: "Nifty 50 Index", assetClass: "INDIAN_EQUITY", currency: "INR", currencySymbol: "₹", tradingViewSymbol: "NSE:NIFTY", basePrice: 24850.00 },
+  "BANKNIFTY.NS": { symbol: "^NSEBANK", name: "Nifty Bank Index", assetClass: "INDIAN_EQUITY", currency: "INR", currencySymbol: "₹", tradingViewSymbol: "NSE:BANKNIFTY", basePrice: 56200.00 },
+  "TCS.NS": { symbol: "TCS.NS", name: "Tata Consultancy Services", assetClass: "INDIAN_EQUITY", currency: "INR", currencySymbol: "₹", tradingViewSymbol: "NSE:TCS", basePrice: 3500.00 },
+  "INFY.NS": { symbol: "INFY.NS", name: "Infosys Ltd", assetClass: "INDIAN_EQUITY", currency: "INR", currencySymbol: "₹", tradingViewSymbol: "NSE:INFY", basePrice: 1750.00 },
+  "HDFCBANK.NS": { symbol: "HDFCBANK.NS", name: "HDFC Bank Ltd", assetClass: "INDIAN_EQUITY", currency: "INR", currencySymbol: "₹", tradingViewSymbol: "NSE:HDFCBANK", basePrice: 1980.00 },
+  "ICICIBANK.NS": { symbol: "ICICIBANK.NS", name: "ICICI Bank Ltd", assetClass: "INDIAN_EQUITY", currency: "INR", currencySymbol: "₹", tradingViewSymbol: "NSE:ICICIBANK", basePrice: 1380.00 },
+  "SBIN.NS": { symbol: "SBIN.NS", name: "State Bank of India", assetClass: "INDIAN_EQUITY", currency: "INR", currencySymbol: "₹", tradingViewSymbol: "NSE:SBIN", basePrice: 820.00 },
+  "AXISBANK.NS": { symbol: "AXISBANK.NS", name: "Axis Bank Ltd", assetClass: "INDIAN_EQUITY", currency: "INR", currencySymbol: "₹", tradingViewSymbol: "NSE:AXISBANK", basePrice: 1100.00 },
 
   // Forex & Gold
   "EURUSD": { symbol: "EURUSD", name: "Euro / US Dollar", assetClass: "FOREX", currency: "USD", currencySymbol: "$", tradingViewSymbol: "FX:EURUSD", basePrice: 1.0850 },
@@ -2018,9 +2019,420 @@ app.get("/api/broker-recommendations", (req, res) => {
   res.json(getBrokerRecommendationsFeed());
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 🇮🇳 INDIA MARKET HUB — NSE LIVE DATA ENGINE
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface IndiaStock {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+  changePct: number;
+  volume: number;
+  high: number;
+  low: number;
+  open: number;
+  prevClose: number;
+  marketCap?: number;
+  sector?: string;
+  series?: string;
+  isin?: string;
+  yearHigh?: number;
+  yearLow?: number;
+  pe?: number;
+  pb?: number;
+}
+
+// ── NSE Session Cache ──
+let nseSessionCookie = "";
+let nseSessionExpiry = 0;
+const NSE_BASE = "https://www.nseindia.com";
+const NSE_HEADERS = {
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  "Accept": "application/json, text/plain, */*",
+  "Accept-Language": "en-US,en;q=0.9",
+  "Referer": "https://www.nseindia.com/market-data/live-equity-market",
+  "X-Requested-With": "XMLHttpRequest",
+};
+
+async function getNSESession(): Promise<string> {
+  if (nseSessionCookie && Date.now() < nseSessionExpiry) return nseSessionCookie;
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 10000);
+    const res = await fetch(`${NSE_BASE}/market-data/live-equity-market`, {
+      signal: ctrl.signal,
+      headers: { "User-Agent": NSE_HEADERS["User-Agent"], "Accept": "text/html,application/xhtml+xml" }
+    });
+    clearTimeout(t);
+    const setCookie = res.headers.get("set-cookie") || "";
+    // Extract all cookie name=value pairs
+    const cookies = setCookie.split(/,(?=[^ ])/).map(c => c.split(";")[0].trim()).filter(Boolean).join("; ");
+    nseSessionCookie = cookies;
+    nseSessionExpiry = Date.now() + 14 * 60 * 1000; // 14 min cache
+    return nseSessionCookie;
+  } catch {
+    return nseSessionCookie; // return stale if refresh fails
+  }
+}
+
+async function nseGet(path: string): Promise<any> {
+  const cookie = await getNSESession();
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 12000);
+  try {
+    const res = await fetch(`${NSE_BASE}${path}`, {
+      signal: ctrl.signal,
+      headers: { ...NSE_HEADERS, ...(cookie ? { Cookie: cookie } : {}) }
+    });
+    clearTimeout(t);
+    if (!res.ok) throw new Error(`NSE ${path} → HTTP ${res.status}`);
+    return await res.json();
+  } catch (e) {
+    clearTimeout(t);
+    throw e;
+  }
+}
+
+// ── Data caches ──
+const indiaCache: Record<string, { data: any; expiry: number }> = {};
+function fromCache(key: string) {
+  const c = indiaCache[key];
+  return c && Date.now() < c.expiry ? c.data : null;
+}
+function setCache(key: string, data: any, ttlMs: number) {
+  indiaCache[key] = { data, expiry: Date.now() + ttlMs };
+}
+
+function parseNSEStocks(raw: any[]): IndiaStock[] {
+  return (raw || []).map((s: any) => ({
+    symbol: s.symbol || s.Symbol || "",
+    name: s.companyName || s.meta?.companyName || s.symbol || "",
+    price: parseFloat(s.lastPrice || s.ltp || s.close || 0),
+    change: parseFloat(s.change || s.pChange || 0),
+    changePct: parseFloat(s.pChange || s.percChange || 0),
+    volume: parseFloat(s.totalTradedVolume || s.quantityTraded || 0),
+    high: parseFloat(s.dayHigh || s.high || 0),
+    low: parseFloat(s.dayLow || s.low || 0),
+    open: parseFloat(s.open || 0),
+    prevClose: parseFloat(s.previousClose || s.prevClose || 0),
+    yearHigh: parseFloat(s.yearHigh || s["52WeekHigh"] || 0),
+    yearLow: parseFloat(s.yearLow || s["52WeekLow"] || 0),
+    sector: s.industry || s.sector || "",
+    series: s.series || "EQ",
+    isin: s.isin || "",
+    pe: parseFloat(s.pe || 0),
+    pb: parseFloat(s.pb || 0),
+  })).filter(s => s.symbol && s.price > 0);
+}
+
+// ── Yahoo Finance Indian ETF / screener fetch ──
+async function fetchYahooIndiaStocks(scrId: string, count = 25): Promise<IndiaStock[]> {
+  try {
+    const url = `https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?formatted=true&lang=en-US&region=IN&scrIds=${scrId}&count=${count}&corsDomain=in.finance.yahoo.com`;
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 10000);
+    const res = await fetch(url, {
+      signal: ctrl.signal,
+      headers: { "User-Agent": NSE_HEADERS["User-Agent"], "Accept": "application/json" }
+    });
+    clearTimeout(t);
+    if (!res.ok) throw new Error(`Yahoo ${scrId} HTTP ${res.status}`);
+    const json = await res.json();
+    const quotes = json?.finance?.result?.[0]?.quotes || [];
+    return quotes.map((q: any) => ({
+      symbol: (q.symbol || "").replace(".NS", "").replace(".BO", ""),
+      name: q.longName || q.shortName || q.symbol || "",
+      price: q.regularMarketPrice?.raw ?? q.regularMarketPrice ?? 0,
+      change: q.regularMarketChange?.raw ?? 0,
+      changePct: q.regularMarketChangePercent?.raw ?? 0,
+      volume: q.regularMarketVolume?.raw ?? 0,
+      high: q.regularMarketDayHigh?.raw ?? 0,
+      low: q.regularMarketDayLow?.raw ?? 0,
+      open: q.regularMarketOpen?.raw ?? 0,
+      prevClose: q.regularMarketPreviousClose?.raw ?? 0,
+      yearHigh: q.fiftyTwoWeekHigh?.raw ?? 0,
+      yearLow: q.fiftyTwoWeekLow?.raw ?? 0,
+      marketCap: q.marketCap?.raw ?? 0,
+      sector: q.sector || "",
+      series: "EQ",
+      isin: "",
+      pe: q.forwardPE?.raw ?? 0,
+    })).filter((s: IndiaStock) => s.price > 0);
+  } catch {
+    return [];
+  }
+}
+
+// ── All NSE stocks from archives CSV ──
+let allNSEStocksCache: { symbol: string; name: string; series: string; isin: string; sector: string }[] = [];
+let allNSEStocksExpiry = 0;
+async function getAllNSEStocks() {
+  if (allNSEStocksCache.length > 0 && Date.now() < allNSEStocksExpiry) return allNSEStocksCache;
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 15000);
+    const res = await fetch("https://archives.nseindia.com/content/equities/EQUITY_L.csv", {
+      signal: ctrl.signal,
+      headers: { "User-Agent": NSE_HEADERS["User-Agent"] }
+    });
+    clearTimeout(t);
+    if (!res.ok) throw new Error(`NSE CSV HTTP ${res.status}`);
+    const csv = await res.text();
+    const lines = csv.trim().split("\n").slice(1); // skip header
+    allNSEStocksCache = lines.map(line => {
+      const parts = line.split(",");
+      return {
+        symbol: (parts[0] || "").trim(),
+        name: (parts[1] || "").trim(),
+        series: (parts[2] || "").trim(),
+        isin: (parts[3] || "").trim(),
+        sector: ""
+      };
+    }).filter(s => s.symbol && s.series === "EQ");
+    allNSEStocksExpiry = Date.now() + 6 * 60 * 60 * 1000; // 6h cache
+    return allNSEStocksCache;
+  } catch {
+    return allNSEStocksCache; // return stale
+  }
+}
+
+// ── /api/india/gainers ──
+app.get("/api/india/gainers", async (req, res) => {
+  const cached = fromCache("gainers");
+  if (cached) return res.json(cached);
+  try {
+    const [nse, yahoo] = await Promise.allSettled([
+      nseGet("/api/live-analysis-variations?index=gainers"),
+      fetchYahooIndiaStocks("day_gainers", 25)
+    ]);
+
+    let stocks: IndiaStock[] = [];
+    if (nse.status === "fulfilled" && nse.value?.NIFTY?.data) {
+      stocks = parseNSEStocks(nse.value.NIFTY.data);
+    } else if (nse.status === "fulfilled" && Array.isArray(nse.value?.data)) {
+      stocks = parseNSEStocks(nse.value.data);
+    }
+
+    // Merge Yahoo data if NSE returned nothing
+    if (stocks.length === 0 && yahoo.status === "fulfilled") {
+      stocks = yahoo.value;
+    }
+
+    stocks = stocks.sort((a, b) => b.changePct - a.changePct).slice(0, 25);
+    const result = { stocks, source: stocks.length > 0 ? "NSE_LIVE" : "EMPTY", timestamp: new Date().toISOString() };
+    setCache("gainers", result, 60000); // 1 min cache
+    res.json(result);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message, stocks: [], source: "ERROR" });
+  }
+});
+
+// ── /api/india/losers ──
+app.get("/api/india/losers", async (req, res) => {
+  const cached = fromCache("losers");
+  if (cached) return res.json(cached);
+  try {
+    const [nse, yahoo] = await Promise.allSettled([
+      nseGet("/api/live-analysis-variations?index=loosers"),
+      fetchYahooIndiaStocks("day_losers", 25)
+    ]);
+
+    let stocks: IndiaStock[] = [];
+    if (nse.status === "fulfilled" && nse.value?.NIFTY?.data) {
+      stocks = parseNSEStocks(nse.value.NIFTY.data);
+    } else if (nse.status === "fulfilled" && Array.isArray(nse.value?.data)) {
+      stocks = parseNSEStocks(nse.value.data);
+    }
+    if (stocks.length === 0 && yahoo.status === "fulfilled") stocks = yahoo.value;
+
+    stocks = stocks.sort((a, b) => a.changePct - b.changePct).slice(0, 25);
+    const result = { stocks, source: "NSE_LIVE", timestamp: new Date().toISOString() };
+    setCache("losers", result, 60000);
+    res.json(result);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message, stocks: [], source: "ERROR" });
+  }
+});
+
+// ── /api/india/most-active ──
+app.get("/api/india/most-active", async (req, res) => {
+  const cached = fromCache("most-active");
+  if (cached) return res.json(cached);
+  try {
+    const [byVol, byVal] = await Promise.allSettled([
+      nseGet("/api/live-analysis-most-active-securities?index=volume&limit=25"),
+      nseGet("/api/live-analysis-most-active-securities?index=value&limit=25")
+    ]);
+
+    let byVolume: IndiaStock[] = [];
+    let byValue: IndiaStock[] = [];
+
+    if (byVol.status === "fulfilled") {
+      const d = byVol.value;
+      byVolume = parseNSEStocks(Array.isArray(d) ? d : (d?.data || []));
+    }
+    if (byVal.status === "fulfilled") {
+      const d = byVal.value;
+      byValue = parseNSEStocks(Array.isArray(d) ? d : (d?.data || []));
+    }
+
+    const result = {
+      byVolume: byVolume.slice(0, 25),
+      byValue: byValue.slice(0, 25),
+      source: "NSE_LIVE",
+      timestamp: new Date().toISOString()
+    };
+    setCache("most-active", result, 60000);
+    res.json(result);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message, byVolume: [], byValue: [], source: "ERROR" });
+  }
+});
+
+// ── /api/india/trending-etfs ──
+app.get("/api/india/trending-etfs", async (req, res) => {
+  const cached = fromCache("trending-etfs");
+  if (cached) return res.json(cached);
+  try {
+    // NSE ETF list
+    const [nseEtf, yahooEtf] = await Promise.allSettled([
+      nseGet("/api/etf"),
+      fetchYahooIndiaStocks("most_actives", 30)
+    ]);
+
+    let etfs: IndiaStock[] = [];
+    if (nseEtf.status === "fulfilled") {
+      const d = nseEtf.value;
+      const raw = Array.isArray(d) ? d : (d?.data || []);
+      etfs = parseNSEStocks(raw).filter(s => s.series === "EQ" || true);
+    }
+
+    // If NSE ETF API fails, filter Yahoo results for known ETF names
+    if (etfs.length === 0 && yahooEtf.status === "fulfilled") {
+      etfs = yahooEtf.value.filter((s: IndiaStock) =>
+        /ETF|BEES|NIFTY|BANK|GOLD|SILVER|IT|PHARMA|CPSE|BHARAT|LIQUID/i.test(s.name + s.symbol)
+      );
+    }
+
+    // Sort by volume
+    etfs = etfs.sort((a, b) => b.volume - a.volume).slice(0, 25);
+    const result = { etfs, source: etfs.length > 0 ? "NSE_LIVE" : "EMPTY", timestamp: new Date().toISOString() };
+    setCache("trending-etfs", result, 120000); // 2 min cache
+    res.json(result);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message, etfs: [], source: "ERROR" });
+  }
+});
+
+// ── /api/india/top-performers ──
+app.get("/api/india/top-performers", async (req, res) => {
+  const cached = fromCache("top-performers");
+  if (cached) return res.json(cached);
+  try {
+    const [nse52, nifty500] = await Promise.allSettled([
+      nseGet("/api/live-analysis-52week-high-low-pa?index=nifty500&fo_mkt=false"),
+      nseGet("/api/equity-stockIndices?index=NIFTY%20500")
+    ]);
+
+    let stocks: IndiaStock[] = [];
+
+    if (nifty500.status === "fulfilled") {
+      const raw = nifty500.value?.data || [];
+      stocks = parseNSEStocks(raw)
+        .filter(s => s.changePct > 0)
+        .sort((a, b) => b.changePct - a.changePct)
+        .slice(0, 25);
+    }
+
+    if (stocks.length === 0 && nse52.status === "fulfilled") {
+      const raw = nse52.value?.data || nse52.value || [];
+      stocks = parseNSEStocks(Array.isArray(raw) ? raw : []).slice(0, 25);
+    }
+
+    const result = { stocks, source: stocks.length > 0 ? "NSE_LIVE" : "EMPTY", timestamp: new Date().toISOString() };
+    setCache("top-performers", result, 120000);
+    res.json(result);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message, stocks: [], source: "ERROR" });
+  }
+});
+
+// ── /api/india/all-stocks ──
+app.get("/api/india/all-stocks", async (req, res) => {
+  try {
+    const stocks = await getAllNSEStocks();
+    res.json({ stocks, total: stocks.length, timestamp: new Date().toISOString() });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message, stocks: [] });
+  }
+});
+
+// ── /api/india/search?q=RELIANCE ──
+app.get("/api/india/search", async (req, res) => {
+  const q = ((req.query.q as string) || "").toUpperCase().trim();
+  if (!q || q.length < 1) return res.json({ results: [] });
+  try {
+    const stocks = await getAllNSEStocks();
+    const results = stocks
+      .filter(s => s.symbol.includes(q) || s.name.toUpperCase().includes(q))
+      .slice(0, 30);
+    res.json({ results, query: q });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message, results: [] });
+  }
+});
+
+// ── /api/india/nifty-indices ── quick price for major indices
+app.get("/api/india/nifty-indices", async (req, res) => {
+  const cached = fromCache("nifty-indices");
+  if (cached) return res.json(cached);
+  try {
+    const symbols = ["^NSEI", "^NSEBANK", "^CNXIT", "^NSMIDCP", "^NSEMDCP50"];
+    const results = await Promise.allSettled(
+      symbols.map(sym =>
+        fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=1d`, {
+          headers: { "User-Agent": NSE_HEADERS["User-Agent"] }
+        }).then(r => r.json())
+      )
+    );
+    const indices = results.map((r, i) => {
+      if (r.status !== "fulfilled") return null;
+      const meta = r.value?.chart?.result?.[0]?.meta;
+      if (!meta?.regularMarketPrice) return null;
+      const names: Record<string, string> = {
+        "^NSEI": "NIFTY 50", "^NSEBANK": "BANK NIFTY", "^CNXIT": "NIFTY IT",
+        "^NSMIDCP": "NIFTY MIDCAP", "^NSEMDCP50": "NIFTY MIDCAP 50"
+      };
+      return {
+        symbol: symbols[i],
+        name: names[symbols[i]] || symbols[i],
+        price: parseFloat(meta.regularMarketPrice.toFixed(2)),
+        change: parseFloat((meta.regularMarketPrice - (meta.previousClose || meta.chartPreviousClose || meta.regularMarketPrice)).toFixed(2)),
+        changePct: parseFloat((((meta.regularMarketPrice - (meta.previousClose || meta.chartPreviousClose || meta.regularMarketPrice)) / (meta.previousClose || meta.chartPreviousClose || meta.regularMarketPrice)) * 100).toFixed(2)),
+        high: parseFloat((meta.regularMarketDayHigh || meta.regularMarketPrice).toFixed(2)),
+        low: parseFloat((meta.regularMarketDayLow || meta.regularMarketPrice).toFixed(2)),
+        prevClose: parseFloat((meta.previousClose || meta.chartPreviousClose || 0).toFixed(2)),
+      };
+    }).filter(Boolean);
+    const result = { indices, timestamp: new Date().toISOString() };
+    setCache("nifty-indices", result, 60000);
+    res.json(result);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message, indices: [] });
+  }
+});
+
 app.get("/api/smc-report/:symbol", async (req, res) => {
   try {
-    const rawSymb = (req.params.symbol || "RELIANCE.NS").toUpperCase();
+    let rawSymb = (req.params.symbol || "RELIANCE.NS").toUpperCase().trim();
+    // Normalize Indian stock symbol names e.g. RELIANCE -> RELIANCE.NS
+    if (!rawSymb.endsWith(".NS") && !rawSymb.startsWith("^") && rawSymb.length <= 12 && !["EURUSD", "GBPUSD", "USDJPY", "XAUUSD", "BTCUSDT", "ETHUSDT", "SOLUSDT"].includes(rawSymb)) {
+      if (MULTI_MARKET_CATALOG[`${rawSymb}.NS`]) {
+        rawSymb = `${rawSymb}.NS`;
+      }
+    }
     const meta = MULTI_MARKET_CATALOG[rawSymb] || {
       symbol: rawSymb,
       name: rawSymb,
@@ -2028,13 +2440,16 @@ app.get("/api/smc-report/:symbol", async (req, res) => {
       currency: rawSymb.endsWith(".NS") ? "INR" : "USD",
       currencySymbol: rawSymb.endsWith(".NS") ? "₹" : "$",
       tradingViewSymbol: rawSymb.endsWith(".NS") ? `NSE:${rawSymb.replace(".NS","")}` : rawSymb.length === 6 ? `FX:${rawSymb}` : `BINANCE:${rawSymb}`,
-      basePrice: rawSymb.includes("BTC") ? 65400 : rawSymb.includes("RELIANCE") ? 2980 : 100
+      basePrice: rawSymb.includes("BTC") ? 65400 : rawSymb.includes("RELIANCE") ? 1278 : 100
     };
 
     let livePrice = meta.basePrice;
     let atr14 = meta.basePrice * 0.015;
+    let dailyHighFetched: number | null = null;
+    let dailyLowFetched: number | null = null;
+    let vwapFetched: number | null = null;
 
-    // Fetch real Binance data if crypto, else calculate precise market dynamics
+    // Fetch real Binance data for CRYPTO
     if (meta.assetClass === "CRYPTO") {
       try {
         const ind = await fetchRecentKlinesAndTrend(meta.symbol);
@@ -2044,15 +2459,101 @@ app.get("/api/smc-report/:symbol", async (req, res) => {
         }
       } catch (e) {}
     } else {
-      // Intraday price oscillation for live feed simulation
-      const variance = (Math.sin(Date.now() / 15000) * 0.005);
-      livePrice = parseFloat((meta.basePrice * (1 + variance)).toFixed(meta.basePrice > 100 ? 2 : 4));
-      atr14 = livePrice * 0.012;
+      // Fetch real live price from Yahoo Finance for Indian Equities & Forex
+      try {
+        // Yahoo Finance symbol mapping for Forex pairs
+        const yahooSymbol = meta.assetClass === "FOREX"
+          ? rawSymb + "=X"  // e.g. EURUSD=X
+          : rawSymb;        // e.g. RELIANCE.NS
+
+        const yahooUrls = [
+          `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=1d&range=5d`,
+          `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=1d&range=5d`
+        ];
+
+        let fetched = false;
+        for (const url of yahooUrls) {
+          if (fetched) break;
+          try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 8000);
+            const yRes = await fetch(url, {
+              signal: controller.signal,
+              headers: {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "application/json",
+                "Referer": "https://finance.yahoo.com"
+              }
+            });
+            clearTimeout(timeout);
+            if (!yRes.ok) continue;
+            const yData = await yRes.json();
+            const result = yData?.chart?.result?.[0];
+            if (!result) continue;
+
+            const meta2 = result.meta;
+            const regularPrice = meta2?.regularMarketPrice;
+            const dayHigh = meta2?.regularMarketDayHigh;
+            const dayLow = meta2?.regularMarketDayLow;
+            const prevClose = meta2?.previousClose || meta2?.chartPreviousClose;
+
+            if (regularPrice && regularPrice > 0) {
+              livePrice = parseFloat(regularPrice.toFixed(regularPrice > 100 ? 2 : 4));
+              fetched = true;
+
+              if (dayHigh) dailyHighFetched = parseFloat(dayHigh.toFixed(regularPrice > 100 ? 2 : 4));
+              if (dayLow) dailyLowFetched = parseFloat(dayLow.toFixed(regularPrice > 100 ? 2 : 4));
+
+              // Calculate VWAP from intraday candles if available
+              const quotes = result.indicators?.quote?.[0];
+              if (quotes?.high && quotes?.low && quotes?.close && quotes?.volume) {
+                const highs: number[] = quotes.high.filter((v: any) => v != null);
+                const lows: number[] = quotes.low.filter((v: any) => v != null);
+                const closes: number[] = quotes.close.filter((v: any) => v != null);
+                const vols: number[] = quotes.volume.filter((v: any) => v != null);
+                if (closes.length > 0) {
+                  let tpvSum = 0, volSum = 0;
+                  const len = Math.min(highs.length, lows.length, closes.length, vols.length);
+                  for (let i = 0; i < len; i++) {
+                    const tp = (highs[i] + lows[i] + closes[i]) / 3;
+                    tpvSum += tp * vols[i];
+                    volSum += vols[i];
+                  }
+                  if (volSum > 0) {
+                    vwapFetched = parseFloat((tpvSum / volSum).toFixed(regularPrice > 100 ? 2 : 4));
+                  }
+                }
+              }
+
+              // ATR from daily range
+              if (dayHigh && dayLow) {
+                atr14 = (dayHigh - dayLow);
+              } else {
+                atr14 = livePrice * 0.012;
+              }
+            }
+          } catch (innerErr) {
+            // try next url
+          }
+        }
+
+        if (!fetched) {
+          // Fallback: tiny oscillation around base price
+          const variance = (Math.sin(Date.now() / 15000) * 0.003);
+          livePrice = parseFloat((meta.basePrice * (1 + variance)).toFixed(meta.basePrice > 100 ? 2 : 4));
+          atr14 = livePrice * 0.012;
+        }
+      } catch (yahooErr) {
+        // Fallback to base price
+        const variance = (Math.sin(Date.now() / 15000) * 0.003);
+        livePrice = parseFloat((meta.basePrice * (1 + variance)).toFixed(meta.basePrice > 100 ? 2 : 4));
+        atr14 = livePrice * 0.012;
+      }
     }
 
-    const vwap = parseFloat((livePrice * 0.997).toFixed(livePrice > 100 ? 2 : 4));
-    const dailyLow = parseFloat((livePrice * 0.985).toFixed(livePrice > 100 ? 2 : 4));
-    const dailyHigh = parseFloat((livePrice * 1.018).toFixed(livePrice > 100 ? 2 : 4));
+    const vwap = vwapFetched ?? parseFloat((livePrice * 0.997).toFixed(livePrice > 100 ? 2 : 4));
+    const dailyLow = dailyLowFetched ?? parseFloat((livePrice * 0.985).toFixed(livePrice > 100 ? 2 : 4));
+    const dailyHigh = dailyHighFetched ?? parseFloat((livePrice * 1.018).toFixed(livePrice > 100 ? 2 : 4));
 
     // Overextension check: price > 2.5x ATR away from VWAP
     const distFromVwap = Math.abs(livePrice - vwap);

@@ -2104,6 +2104,562 @@
       ],
       "formattedAlert": "🔴 <b>SCALP SHORT SIGNAL</b>\n━━━━━━━━━━━━━━━━━━━━\n📌 <b>NEARUSDT</b>  |  Scalp 1H/15M\n🕐 Wed, 29 Jul 2026 19:23:41 UTC\n━━━━━━━━━━━━━━━━━━━━\n\n🤖 <b>AI Confidence:</b> 70%  |  Score: <b>70/100</b>\n\n📈 <b>CONFLUENCE SIGNALS</b>\n✅ EMA 50/200: <b>BEARISH</b>\n✅ ADX Strength: <b>49 (TRENDING)</b>\n✅ Stoch RSI: <b>OVERBOUGHT CROSS</b>\n✅ OBV Flow: <b>FALLING</b>\n✅ Structure: <b>BOS</b>\n✅ Volume: <b>NORMAL</b>\n🕯️⚪ Price Action: <b>INSIDE BAR</b>\n\n📊 <b>Multi-Timeframe Confluence</b>\n  🔴 <b>4H</b>: BEARISH • CHOCH\n  🔴 <b>1H</b>: BEARISH • BOS\n  🔴 <b>15M</b>: BEARISH • BOS\n  🟢 <b>5M</b>: BULLISH • MACD: bearish cross\n\n💰 <b>TRADE PLAN</b>\n  Entry:      <code>1.616</code>\n  Stop Loss:  <code>1.64131</code>  ⛔\n  TP1 (1.0R): <code>1.59069</code>  🎯 ← Scalp target (Lock 50% / Break-even)\n  TP2 (2.0R): <code>1.56537</code>  🎯 ← Main target\n  TP3 (3.0R): <code>1.54006</code>  🎯 ← Runner\n\n  📐 R:R  1:2.0 Scalp (ATR=0.02109 | SL=1.2×ATR)\n💼 <b>Position Sizing Guide (1-2% risk per trade)</b>\n  $1,000 acct → Risk $10-20 | $5,000 → $50-100\n\n🕯️ <b>Price Action Signal</b>\n  Pattern: <b>INSIDE BAR</b> (NEUTRAL)\n  Inside Bar: Price consolidated completely inside previous range.\n\n🧠 <b>AI Analysis</b>\nScalp evaluation complete: 70/100 confluence on NEARUSDT. OpenAI temporarily unavailable.\n\n⚠️ <i>This is not financial advice. Always manage risk.</i>",
       "telegramError": "Telegram delivery failed. https://api.telegram.org: Connection timed out after 10 seconds"
+    },
+    {
+      "id": "alert_4q9a6u6",
+      "timestamp": "2026-07-29T19:34:42.030Z",
+      "symbol": "NEARUSDT",
+      "timeframe": "1H",
+      "price": 1.606,
+      "payload": {
+        "symbol": "NEARUSDT",
+        "timeframe": "1H",
+        "price": 1.606,
+        "utbot": "hold",
+        "ema_crossover": "bearish",
+        "rsi": "neutral",
+        "rsiValue": 46.044475478804564,
+        "macd": "neutral",
+        "market_structure": "BOS",
+        "volume": "normal",
+        "adx": 48.79006303008981,
+        "adxTrending": true,
+        "stochRsiSignal": "overbought_cross",
+        "obvTrend": "falling",
+        "atrPct": 1.3624242979558758,
+        "priceActionPattern": "INSIDE_BAR",
+        "priceActionBias": "NEUTRAL",
+        "priceActionDesc": "Inside Bar: Price consolidated completely inside previous range.",
+        "multiTimeframe": [
+          {
+            "timeframe": "4H",
+            "trend": "bearish",
+            "utbot": "buy",
+            "structure": "CHOCH",
+            "rsi": "oversold",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "BOS",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "15M",
+            "trend": "bearish",
+            "utbot": "sell",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "low"
+          },
+          {
+            "timeframe": "5M",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          }
+        ],
+        "side": "SHORT"
+      },
+      "score": 70,
+      "maxScore": 100,
+      "passedFilters": true,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": false
+      },
+      "scoreBreakdown": {
+        "UT Bot Neutral": 0,
+        "EMA 50/200 Trend Aligned": 15,
+        "ADX Trending (49)": 15,
+        "Stoch RSI Extreme Crossover": 15,
+        "MACD Neutral/Counter": 0,
+        "OBV Money Flow Aligned": 10,
+        "Swing Structure Confirm (BOS)": 10,
+        "Price Action: Inside Bar (Consolidation)": 5
+      },
+      "aiDecision": {
+        "decision": "SEND",
+        "confidence": 70,
+        "reason": "Scalp evaluation complete: 70/100 confluence on NEARUSDT. OpenAI temporarily unavailable."
+      },
+      "tradePlan": {
+        "entry": 1.606,
+        "stopLoss": 1.63226,
+        "takeProfit1": 1.57974,
+        "takeProfit2": 1.55349,
+        "takeProfit3": 1.52723,
+        "riskRewardRatio": "1:2.0 Scalp (ATR=0.02188 | SL=1.2×ATR)"
+      },
+      "telegramSent": false,
+      "multiTimeframe": [
+        {
+          "timeframe": "4H",
+          "trend": "bearish",
+          "utbot": "buy",
+          "structure": "CHOCH",
+          "rsi": "oversold",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "BOS",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "15M",
+          "trend": "bearish",
+          "utbot": "sell",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "low"
+        },
+        {
+          "timeframe": "5M",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        }
+      ],
+      "formattedAlert": "🔴 <b>SCALP SHORT SIGNAL</b>\n━━━━━━━━━━━━━━━━━━━━\n📌 <b>NEARUSDT</b>  |  Scalp 1H/15M\n🕐 Wed, 29 Jul 2026 19:34:42 UTC\n━━━━━━━━━━━━━━━━━━━━\n\n🤖 <b>AI Confidence:</b> 70%  |  Score: <b>70/100</b>\n\n📈 <b>CONFLUENCE SIGNALS</b>\n✅ EMA 50/200: <b>BEARISH</b>\n✅ ADX Strength: <b>49 (TRENDING)</b>\n✅ Stoch RSI: <b>OVERBOUGHT CROSS</b>\n✅ OBV Flow: <b>FALLING</b>\n✅ Structure: <b>BOS</b>\n✅ Volume: <b>NORMAL</b>\n🕯️⚪ Price Action: <b>INSIDE BAR</b>\n\n📊 <b>Multi-Timeframe Confluence</b>\n  🔴 <b>4H</b>: BEARISH • RSI: oversold • CHOCH\n  🔴 <b>1H</b>: BEARISH • BOS\n  🔴 <b>15M</b>: BEARISH\n  🟢 <b>5M</b>: BULLISH\n\n💰 <b>TRADE PLAN</b>\n  Entry:      <code>1.606</code>\n  Stop Loss:  <code>1.63226</code>  ⛔\n  TP1 (1.0R): <code>1.57974</code>  🎯 ← Scalp target (Lock 50% / Break-even)\n  TP2 (2.0R): <code>1.55349</code>  🎯 ← Main target\n  TP3 (3.0R): <code>1.52723</code>  🎯 ← Runner\n\n  📐 R:R  1:2.0 Scalp (ATR=0.02188 | SL=1.2×ATR)\n💼 <b>Position Sizing Guide (1-2% risk per trade)</b>\n  $1,000 acct → Risk $10-20 | $5,000 → $50-100\n\n🕯️ <b>Price Action Signal</b>\n  Pattern: <b>INSIDE BAR</b> (NEUTRAL)\n  Inside Bar: Price consolidated completely inside previous range.\n\n🧠 <b>AI Analysis</b>\nScalp evaluation complete: 70/100 confluence on NEARUSDT. OpenAI temporarily unavailable.\n\n⚠️ <i>This is not financial advice. Always manage risk.</i>",
+      "telegramError": "Telegram delivery failed. https://api.telegram.org: Connection timed out after 10 seconds"
+    },
+    {
+      "id": "alert_aou0lnf",
+      "timestamp": "2026-07-29T19:48:42.963Z",
+      "symbol": "NEARUSDT",
+      "timeframe": "1H",
+      "price": 1.602,
+      "payload": {
+        "symbol": "NEARUSDT",
+        "timeframe": "1H",
+        "price": 1.602,
+        "utbot": "hold",
+        "ema_crossover": "bearish",
+        "rsi": "neutral",
+        "rsiValue": 45.03051707123254,
+        "macd": "neutral",
+        "market_structure": "BOS",
+        "volume": "normal",
+        "adx": 48.891783101855246,
+        "adxTrending": true,
+        "stochRsiSignal": "overbought_cross",
+        "obvTrend": "falling",
+        "atrPct": 1.3925783803834455,
+        "priceActionPattern": "NONE",
+        "priceActionBias": "NEUTRAL",
+        "priceActionDesc": "No clear price action patterns detected.",
+        "multiTimeframe": [
+          {
+            "timeframe": "4H",
+            "trend": "bearish",
+            "utbot": "buy",
+            "structure": "CHOCH",
+            "rsi": "oversold",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "BOS",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "15M",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "low"
+          },
+          {
+            "timeframe": "5M",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          }
+        ],
+        "side": "SHORT"
+      },
+      "score": 65,
+      "maxScore": 100,
+      "passedFilters": true,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": false
+      },
+      "scoreBreakdown": {
+        "UT Bot Neutral": 0,
+        "EMA 50/200 Trend Aligned": 15,
+        "ADX Trending (49)": 15,
+        "Stoch RSI Extreme Crossover": 15,
+        "MACD Neutral/Counter": 0,
+        "OBV Money Flow Aligned": 10,
+        "Swing Structure Confirm (BOS)": 10,
+        "Price Action: No Pattern": 0
+      },
+      "aiDecision": {
+        "decision": "SEND",
+        "confidence": 65,
+        "reason": "Scalp evaluation complete: 65/100 confluence on NEARUSDT. OpenAI temporarily unavailable."
+      },
+      "tradePlan": {
+        "entry": 1.602,
+        "stopLoss": 1.62877,
+        "takeProfit1": 1.57523,
+        "takeProfit2": 1.54846,
+        "takeProfit3": 1.52169,
+        "riskRewardRatio": "1:2.0 Scalp (ATR=0.02231 | SL=1.2×ATR)"
+      },
+      "telegramSent": false,
+      "multiTimeframe": [
+        {
+          "timeframe": "4H",
+          "trend": "bearish",
+          "utbot": "buy",
+          "structure": "CHOCH",
+          "rsi": "oversold",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "BOS",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "15M",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "low"
+        },
+        {
+          "timeframe": "5M",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        }
+      ],
+      "formattedAlert": "🔴 <b>SCALP SHORT SIGNAL</b>\n━━━━━━━━━━━━━━━━━━━━\n📌 <b>NEARUSDT</b>  |  Scalp 1H/15M\n🕐 Wed, 29 Jul 2026 19:48:42 UTC\n━━━━━━━━━━━━━━━━━━━━\n\n🤖 <b>AI Confidence:</b> 65%  |  Score: <b>65/100</b>\n\n📈 <b>CONFLUENCE SIGNALS</b>\n✅ EMA 50/200: <b>BEARISH</b>\n✅ ADX Strength: <b>49 (TRENDING)</b>\n✅ Stoch RSI: <b>OVERBOUGHT CROSS</b>\n✅ OBV Flow: <b>FALLING</b>\n✅ Structure: <b>BOS</b>\n✅ Volume: <b>NORMAL</b>\n\n📊 <b>Multi-Timeframe Confluence</b>\n  🔴 <b>4H</b>: BEARISH • RSI: oversold • CHOCH\n  🔴 <b>1H</b>: BEARISH • BOS\n  🔴 <b>15M</b>: BEARISH\n  🟢 <b>5M</b>: BULLISH\n\n💰 <b>TRADE PLAN</b>\n  Entry:      <code>1.602</code>\n  Stop Loss:  <code>1.62877</code>  ⛔\n  TP1 (1.0R): <code>1.57523</code>  🎯 ← Scalp target (Lock 50% / Break-even)\n  TP2 (2.0R): <code>1.54846</code>  🎯 ← Main target\n  TP3 (3.0R): <code>1.52169</code>  🎯 ← Runner\n\n  📐 R:R  1:2.0 Scalp (ATR=0.02231 | SL=1.2×ATR)\n💼 <b>Position Sizing Guide (1-2% risk per trade)</b>\n  $1,000 acct → Risk $10-20 | $5,000 → $50-100\n\n🧠 <b>AI Analysis</b>\nScalp evaluation complete: 65/100 confluence on NEARUSDT. OpenAI temporarily unavailable.\n\n⚠️ <i>This is not financial advice. Always manage risk.</i>",
+      "telegramError": "Telegram delivery failed. https://api.telegram.org: Connection timed out after 10 seconds"
+    },
+    {
+      "id": "alert_erxmq58",
+      "timestamp": "2026-07-29T19:58:59.279Z",
+      "symbol": "SOLUSDT",
+      "timeframe": "1H",
+      "price": 72.87,
+      "payload": {
+        "symbol": "SOLUSDT",
+        "timeframe": "1H",
+        "price": 72.87,
+        "utbot": "sell",
+        "ema_crossover": "bearish",
+        "rsi": "neutral",
+        "rsiValue": 41.57254765876382,
+        "macd": "bearish_cross",
+        "market_structure": "CHOCH",
+        "volume": "normal",
+        "adx": 21.849187642057327,
+        "adxTrending": true,
+        "stochRsiSignal": "neutral",
+        "obvTrend": "rising",
+        "atrPct": 0.9067338373121924,
+        "priceActionPattern": "BEARISH_ENGULFING",
+        "priceActionBias": "BEARISH",
+        "priceActionDesc": "Bearish Engulfing: Red body completely engulfed previous buyer consolidation.",
+        "multiTimeframe": [
+          {
+            "timeframe": "4H",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "high"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bearish",
+            "utbot": "sell",
+            "structure": "CHOCH",
+            "rsi": "neutral",
+            "macd": "bearish_cross",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "15M",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "CHOCH",
+            "rsi": "neutral",
+            "macd": "bearish_cross",
+            "volume": "high"
+          },
+          {
+            "timeframe": "5M",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "CHOCH",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          }
+        ],
+        "side": "SHORT"
+      },
+      "score": 75,
+      "maxScore": 100,
+      "passedFilters": true,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": false
+      },
+      "scoreBreakdown": {
+        "UT Bot SHORT Trigger": 10,
+        "EMA 50/200 Trend Aligned": 15,
+        "ADX Trending (22)": 15,
+        "Stoch RSI Neutral": 0,
+        "MACD Cross Aligned": 15,
+        "OBV Neutral/Counter": 0,
+        "Swing Structure Confirm (CHOCH)": 10,
+        "Price Action: BEARISH_ENGULFING": 10
+      },
+      "aiDecision": {
+        "decision": "SEND",
+        "confidence": 75,
+        "reason": "Scalp evaluation complete: 75/100 confluence on SOLUSDT. OpenAI temporarily unavailable."
+      },
+      "tradePlan": {
+        "entry": 72.87,
+        "stopLoss": 73.663,
+        "takeProfit1": 72.077,
+        "takeProfit2": 71.284,
+        "takeProfit3": 70.491,
+        "riskRewardRatio": "1:2.0 Scalp (ATR=0.661 | SL=1.2×ATR)"
+      },
+      "telegramSent": false,
+      "multiTimeframe": [
+        {
+          "timeframe": "4H",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "high"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bearish",
+          "utbot": "sell",
+          "structure": "CHOCH",
+          "rsi": "neutral",
+          "macd": "bearish_cross",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "15M",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "CHOCH",
+          "rsi": "neutral",
+          "macd": "bearish_cross",
+          "volume": "high"
+        },
+        {
+          "timeframe": "5M",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "CHOCH",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        }
+      ],
+      "formattedAlert": "🔴 <b>SCALP SHORT SIGNAL</b>\n━━━━━━━━━━━━━━━━━━━━\n📌 <b>SOLUSDT</b>  |  Scalp 1H/15M\n🕐 Wed, 29 Jul 2026 19:58:59 UTC\n━━━━━━━━━━━━━━━━━━━━\n\n🤖 <b>AI Confidence:</b> 75%  |  Score: <b>75/100</b>\n\n📈 <b>CONFLUENCE SIGNALS</b>\n✅ UT Bot ATR: <b>SELL</b>\n✅ EMA 50/200: <b>BEARISH</b>\n✅ ADX Strength: <b>22 (TRENDING)</b>\n✅ MACD: <b>BEARISH CROSS</b>\n✅ OBV Flow: <b>RISING</b>\n✅ Structure: <b>CHOCH</b>\n✅ Volume: <b>NORMAL</b>\n🕯️🔴 Price Action: <b>BEARISH ENGULFING</b>\n\n📊 <b>Multi-Timeframe Confluence</b>\n  🔴 <b>4H</b>: BEARISH\n  🔴 <b>1H</b>: BEARISH • MACD: bearish cross • CHOCH\n  🔴 <b>15M</b>: BEARISH • MACD: bearish cross • CHOCH\n  🔴 <b>5M</b>: BEARISH • CHOCH\n\n💰 <b>TRADE PLAN</b>\n  Entry:      <code>72.87</code>\n  Stop Loss:  <code>73.663</code>  ⛔\n  TP1 (1.0R): <code>72.077</code>  🎯 ← Scalp target (Lock 50% / Break-even)\n  TP2 (2.0R): <code>71.284</code>  🎯 ← Main target\n  TP3 (3.0R): <code>70.491</code>  🎯 ← Runner\n\n  📐 R:R  1:2.0 Scalp (ATR=0.661 | SL=1.2×ATR)\n💼 <b>Position Sizing Guide (1-2% risk per trade)</b>\n  $1,000 acct → Risk $10-20 | $5,000 → $50-100\n\n🕯️ <b>Price Action Signal</b>\n  Pattern: <b>BEARISH ENGULFING</b> (BEARISH)\n  Bearish Engulfing: Red body completely engulfed previous buyer consolidation.\n\n🧠 <b>AI Analysis</b>\nScalp evaluation complete: 75/100 confluence on SOLUSDT. OpenAI temporarily unavailable.\n\n⚠️ <i>This is not financial advice. Always manage risk.</i>",
+      "telegramError": "Telegram delivery failed. https://api.telegram.org: Connection timed out after 10 seconds"
+    },
+    {
+      "id": "alert_0kt14ym",
+      "timestamp": "2026-07-29T20:08:03.322Z",
+      "symbol": "XRPUSDT",
+      "timeframe": "1H",
+      "price": 1.0658,
+      "payload": {
+        "symbol": "XRPUSDT",
+        "timeframe": "1H",
+        "price": 1.0658,
+        "utbot": "sell",
+        "ema_crossover": "bearish",
+        "rsi": "neutral",
+        "rsiValue": 43.18255746635814,
+        "macd": "neutral",
+        "market_structure": "CHOCH",
+        "volume": "low",
+        "adx": 18.231867074903537,
+        "adxTrending": false,
+        "stochRsiSignal": "neutral",
+        "obvTrend": "falling",
+        "atrPct": 0.8374602017944752,
+        "priceActionPattern": "NONE",
+        "priceActionBias": "NEUTRAL",
+        "priceActionDesc": "No clear price action patterns detected.",
+        "multiTimeframe": [
+          {
+            "timeframe": "4H",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "low"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bearish",
+            "utbot": "sell",
+            "structure": "CHOCH",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "low"
+          },
+          {
+            "timeframe": "15M",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "CHOCH",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "5M",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "CHOCH",
+            "rsi": "oversold",
+            "macd": "neutral",
+            "volume": "normal"
+          }
+        ],
+        "side": "SHORT"
+      },
+      "score": 45,
+      "maxScore": 100,
+      "passedFilters": true,
+      "filterResults": {
+        "lowVolume": true,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": false
+      },
+      "scoreBreakdown": {
+        "UT Bot SHORT Trigger": 10,
+        "EMA 50/200 Trend Aligned": 15,
+        "ADX Ranging (18)": 0,
+        "Stoch RSI Neutral": 0,
+        "MACD Neutral/Counter": 0,
+        "OBV Money Flow Aligned": 10,
+        "Swing Structure Confirm (CHOCH)": 10,
+        "Price Action: No Pattern": 0
+      },
+      "aiDecision": {
+        "decision": "SEND",
+        "confidence": 45,
+        "reason": "Scalp evaluation complete: 45/100 confluence on XRPUSDT. OpenAI temporarily unavailable."
+      },
+      "tradePlan": {
+        "entry": 1.0658,
+        "stopLoss": 1.07651,
+        "takeProfit1": 1.05509,
+        "takeProfit2": 1.04438,
+        "takeProfit3": 1.03367,
+        "riskRewardRatio": "1:2.0 Scalp (ATR=0.00893 | SL=1.2×ATR)"
+      },
+      "telegramSent": false,
+      "multiTimeframe": [
+        {
+          "timeframe": "4H",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "low"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bearish",
+          "utbot": "sell",
+          "structure": "CHOCH",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "low"
+        },
+        {
+          "timeframe": "15M",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "CHOCH",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "5M",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "CHOCH",
+          "rsi": "oversold",
+          "macd": "neutral",
+          "volume": "normal"
+        }
+      ],
+      "formattedAlert": "🔴 <b>SCALP SHORT SIGNAL</b>\n━━━━━━━━━━━━━━━━━━━━\n📌 <b>XRPUSDT</b>  |  Scalp 1H/15M\n🕐 Wed, 29 Jul 2026 20:08:03 UTC\n━━━━━━━━━━━━━━━━━━━━\n\n🤖 <b>AI Confidence:</b> 45%  |  Score: <b>45/100</b>\n\n📈 <b>CONFLUENCE SIGNALS</b>\n✅ UT Bot ATR: <b>SELL</b>\n✅ EMA 50/200: <b>BEARISH</b>\n✅ ADX Strength: <b>18 (RANGING)</b>\n✅ OBV Flow: <b>FALLING</b>\n✅ Structure: <b>CHOCH</b>\n✅ Volume: <b>LOW</b>\n\n📊 <b>Multi-Timeframe Confluence</b>\n  🔴 <b>4H</b>: BEARISH\n  🔴 <b>1H</b>: BEARISH • CHOCH\n  🟢 <b>15M</b>: BULLISH • CHOCH\n  🔴 <b>5M</b>: BEARISH • RSI: oversold • CHOCH\n\n💰 <b>TRADE PLAN</b>\n  Entry:      <code>1.0658</code>\n  Stop Loss:  <code>1.07651</code>  ⛔\n  TP1 (1.0R): <code>1.05509</code>  🎯 ← Scalp target (Lock 50% / Break-even)\n  TP2 (2.0R): <code>1.04438</code>  🎯 ← Main target\n  TP3 (3.0R): <code>1.03367</code>  🎯 ← Runner\n\n  📐 R:R  1:2.0 Scalp (ATR=0.00893 | SL=1.2×ATR)\n💼 <b>Position Sizing Guide (1-2% risk per trade)</b>\n  $1,000 acct → Risk $10-20 | $5,000 → $50-100\n\n🧠 <b>AI Analysis</b>\nScalp evaluation complete: 45/100 confluence on XRPUSDT. OpenAI temporarily unavailable.\n\n⚠️ <i>This is not financial advice. Always manage risk.</i>",
+      "telegramError": "Telegram delivery failed. https://api.telegram.org: Connection timed out after 10 seconds"
     }
   ]
 }

@@ -10,15 +10,17 @@ import BacktestEngine from "./components/BacktestEngine";
 import PollingScanner from "./components/PollingScanner";
 import TopPicks from "./components/TopPicks";
 import SMCReportView from "./components/SMCReport";
+import IndiaMarket from "./components/IndiaMarket";
 import {
   LayoutDashboard, Settings, BarChart2, Radio, Code2,
-  TrendingUp, Activity, Send, RefreshCw, Zap, Shield, Target
+  TrendingUp, Activity, Send, RefreshCw, Zap, Shield, Target, IndianRupee
 } from "lucide-react";
 
-type TabId = "smc" | "dashboard" | "config" | "backtest" | "polling" | "code";
+type TabId = "smc" | "india" | "dashboard" | "config" | "backtest" | "polling" | "code";
 
 const NAV_ITEMS: { id: TabId; label: string; icon: React.FC<any>; badge?: string }[] = [
   { id: "smc", label: "SMC Report", icon: Target },
+  { id: "india", label: "India Market", icon: IndianRupee },
   { id: "dashboard", label: "Scanner", icon: LayoutDashboard },
   { id: "backtest", label: "Backtest", icon: BarChart2 },
   { id: "polling", label: "Daemon", icon: Radio },
@@ -28,6 +30,7 @@ const NAV_ITEMS: { id: TabId; label: string; icon: React.FC<any>; badge?: string
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>("smc");
+  const [smcSymbol, setSmcSymbol] = useState<string>("RELIANCE.NS");
   const [config, setConfig] = useState<BotConfig | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -212,7 +215,17 @@ export default function App() {
           {/* ── SMC DUAL-ENGINE REPORT ── */}
           {activeTab === "smc" && (
             <div className="animate-fade-slide">
-              <SMCReportView config={config} />
+              <SMCReportView config={config} initialSymbol={smcSymbol} />
+            </div>
+          )}
+
+          {/* ── INDIA MARKET HUB ── */}
+          {activeTab === "india" && (
+            <div className="animate-fade-slide">
+              <IndiaMarket onNavigateToSMC={(sym) => {
+                setSmcSymbol(sym);
+                setActiveTab("smc");
+              }} />
             </div>
           )}
 

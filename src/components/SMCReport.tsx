@@ -24,6 +24,7 @@ import {
 
 interface SMCReportProps {
   config: BotConfig;
+  initialSymbol?: string;
 }
 
 const PRESET_MARKETS = [
@@ -73,8 +74,14 @@ function ScoreRing({ score }: { score: number }) {
   );
 }
 
-export default function SMCReportView({ config }: SMCReportProps) {
-  const [selectedSymbol, setSelectedSymbol] = useState<string>("RELIANCE.NS");
+export default function SMCReportView({ config, initialSymbol }: SMCReportProps) {
+  const [selectedSymbol, setSelectedSymbol] = useState<string>(initialSymbol || "RELIANCE.NS");
+
+  useEffect(() => {
+    if (initialSymbol) {
+      setSelectedSymbol(initialSymbol);
+    }
+  }, [initialSymbol]);
   const [activeMarketTab, setActiveMarketTab] = useState<"ALL" | AssetClass>("ALL");
   const [userCapitalInput, setUserCapitalInput] = useState<number>(500000);
   const [report, setReport] = useState<SMCDualReport | null>(null);
