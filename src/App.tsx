@@ -11,21 +11,23 @@ import PollingScanner from "./components/PollingScanner";
 import TopPicks from "./components/TopPicks";
 import SMCReportView from "./components/SMCReport";
 import IndiaMarket from "./components/IndiaMarket";
+import TradeJournal from "./components/TradeJournal";
 import {
   LayoutDashboard, Settings, BarChart2, Radio, Code2,
-  TrendingUp, Activity, Send, RefreshCw, Zap, Shield, Target, IndianRupee
+  TrendingUp, Activity, Send, RefreshCw, Zap, Shield, Target, IndianRupee, BookOpen
 } from "lucide-react";
 
-type TabId = "smc" | "india" | "dashboard" | "config" | "backtest" | "polling" | "code";
+type TabId = "smc" | "india" | "journal" | "dashboard" | "config" | "backtest" | "polling" | "code";
 
 const NAV_ITEMS: { id: TabId; label: string; icon: React.FC<any>; badge?: string }[] = [
-  { id: "smc", label: "SMC Report", icon: Target },
-  { id: "india", label: "India Market", icon: IndianRupee },
-  { id: "dashboard", label: "Scanner", icon: LayoutDashboard },
-  { id: "backtest", label: "Backtest", icon: BarChart2 },
-  { id: "polling", label: "Daemon", icon: Radio },
-  { id: "config", label: "Config", icon: Settings },
-  { id: "code", label: "Export", icon: Code2 },
+  { id: "smc",     label: "SMC Report",    icon: Target },
+  { id: "india",   label: "India Market",  icon: IndianRupee },
+  { id: "journal", label: "Trade Journal", icon: BookOpen, badge: "NEW" },
+  { id: "dashboard", label: "Scanner",     icon: LayoutDashboard },
+  { id: "backtest", label: "Backtest",     icon: BarChart2 },
+  { id: "polling", label: "Daemon",        icon: Radio },
+  { id: "config",  label: "Config",        icon: Settings },
+  { id: "code",    label: "Export",        icon: Code2 },
 ];
 
 export default function App() {
@@ -223,6 +225,16 @@ export default function App() {
           {activeTab === "india" && (
             <div className="animate-fade-slide">
               <IndiaMarket onNavigateToSMC={(sym) => {
+                setSmcSymbol(sym);
+                setActiveTab("smc");
+              }} />
+            </div>
+          )}
+
+          {/* ── TRADE JOURNAL ── */}
+          {activeTab === "journal" && (
+            <div className="animate-fade-slide">
+              <TradeJournal onNavigateToSMC={(sym) => {
                 setSmcSymbol(sym);
                 setActiveTab("smc");
               }} />
