@@ -2262,6 +2262,196 @@ ${verdict}${notes ? `\n\n📝 <i>${notes}</i>` : ""}
   }
 });
 
+// ─── TELEGRAM BOT COMMAND LISTENER ────────────────────────────────────────────
+// Polls the bot for incoming /trade commands from the user.
+// Usage examples the user sends to their bot:
+//   /trade RELIANCE LONG 1450 SL:1420 TP1:1500 TP2:1560 QTY:10
+//   /trade BTCUSDT SHORT 67000 SL:68500 TP1:64000 TP2:61000 QTY:0.1
+//   /trade EURUSD LONG 1.0850 SL:1.0790 TP1:1.0930 TP2:1.1010 QTY:1
+//   /status  → replies with a summary of all open trades
+//   /pnl     → replies with account P&L summary
+
+let telegramBotOffset = 0;
+
+async function parseTelegramBotUpdates() {
+  const db = readDB();
+  const token = db.config.telegramToken;
+  const chatId = db.config.telegramChatId;
+  if (!token || !chatId || !db.config.telegramEnabled) return;
+
+  try {
+    const url = `https://api.telegram.org/bot${token}/getUpdates?offset=${telegramBotOffset}&timeout=5&limit=10`;
+    const r = await fetch(url);
+    const data = await r.json();
+    if (!data.ok || !data.result || data.result.length === 0) return;
+
+    for (const update of data.result) {
+      telegramBotOffset = update.update_id + 1;
+
+      const msg = update.message || update.channel_post;
+      if (!msg || !msg.text) continue;
+
+      // Only process messages from the configured chat
+      const fromChatId = String(msg.chat?.id || "");
+      if (fromChatId !== String(chatId).replace("@","")) continue;
+
+      const text = (msg.text || "").trim();
+
+      // ── /trade command ────────────────────────────────────────────────────
+      if (text.toLowerCase().startsWith("/trade")) {
+        const logged = await handleTradeBotCommand(text, token, chatId);
+        if (!logged) {
+          await sendTelegramNotification(token, chatId,
+            `❌ <b>Invalid /trade format.</b>\n\nUse:\n<code>/trade SYMBOL LONG/SHORT ENTRY SL:xxx TP1:xxx TP2:xxx QTY:xxx</code>\n\nExamples:\n<code>/trade RELIANCE LONG 1450 SL:1420 TP1:1500 TP2:1560 QTY:10</code>\n<code>/trade BTCUSDT SHORT 67000 SL:68500 TP1:64000 QTY:0.1</code>\n<code>/trade EURUSD LONG 1.0850 SL:1.0790 TP1:1.0930</code>`
+          );
+        }
+
+      // ── /status command ───────────────────────────────────────────────────
+      } else if (text.toLowerCase() === "/status" || text.toLowerCase() === "/trades") {
+        const dbNow = readDB();
+        const openTrades = (dbNow.trades || []).filter(t => !t.isResolved);
+        if (openTrades.length === 0) {
+          await sendTelegramNotification(token, chatId, `📊 <b>Trade Journal Status</b>\n\nNo open trades currently being monitored.\n\nSend <code>/trade SYMBOL LONG ENTRY SL:xxx TP1:xxx</code> to add one!`);
+        } else {
+          const lines = openTrades.map((t, i) => {
+            const cur = t.market === "INDIAN_EQUITY" ? "₹" : "$";
+            const pnl = t.pnl != null ? `${t.pnl >= 0 ? "+" : "−"}${cur}${Math.abs(t.pnl).toFixed(2)}` : "—";
+            return `${i+1}. <b>${t.symbol}</b> ${t.side === "LONG" ? "📈" : "📉"} @ ${cur}${t.entryPrice} → <b>${t.status || "HOLDING"}</b> | PnL: <code>${pnl}</code>`;
+          }).join("\n");
+          await sendTelegramNotification(token, chatId, `📊 <b>Open Trades (${openTrades.length})</b>\n━━━━━━━━━━━━━━━━━━━━━\n${lines}\n\nSend <code>/pnl</code> for full account summary.`);
+        }
+
+      // ── /pnl command ──────────────────────────────────────────────────────
+      } else if (text.toLowerCase() === "/pnl" || text.toLowerCase() === "/account") {
+        const dbNow = readDB();
+        const trades = dbNow.trades || [];
+        const closed = trades.filter(t => t.isResolved);
+        const open   = trades.filter(t => !t.isResolved);
+        const realized   = closed.reduce((a, t) => a + (t.pnl || 0), 0);
+        const unrealized = open.reduce((a, t) => a + (t.pnl || 0), 0);
+        const net = realized + unrealized;
+        const winners = trades.filter(t => t.status === "TP1_HIT" || t.status === "TP2_HIT" || t.resolvedStatus === "TP1_HIT" || t.resolvedStatus === "TP2_HIT").length;
+        const losers  = trades.filter(t => t.status === "SL_HIT" || t.resolvedStatus === "SL_HIT").length;
+        const winRate = (winners + losers) > 0 ? Math.round((winners / (winners + losers)) * 100) : 0;
+        const sign = (n: number) => n >= 0 ? "+" : "−";
+        const fmt  = (n: number) => Math.abs(n).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        await sendTelegramNotification(token, chatId,
+          `💰 <b>P&amp;L ACCOUNT SUMMARY</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n` +
+          `💵 <b>Net P&amp;L:</b>         <code>${sign(net)}${fmt(net)}</code>\n` +
+          `✅ <b>Realized P&amp;L:</b>    <code>${sign(realized)}${fmt(realized)}</code> (${closed.length} closed)\n` +
+          `⏳ <b>Unrealized P&amp;L:</b>  <code>${sign(unrealized)}${fmt(unrealized)}</code> (${open.length} open)\n\n` +
+          `🏆 <b>Win Rate:</b>        <code>${winRate}%</code> (${winners}W / ${losers}L)\n` +
+          `📊 <b>Total Trades:</b>    <code>${trades.length}</code>\n\n` +
+          `━━━━━━━━━━━━━━━━━━━━━\n🤖 <i>CryptoScanner Auto Journal</i>`
+        );
+
+      // ── /help command ─────────────────────────────────────────────────────
+      } else if (text.toLowerCase() === "/help" || text.toLowerCase() === "/start") {
+        await sendTelegramNotification(token, chatId,
+          `🤖 <b>CryptoScanner Bot — Commands</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n` +
+          `📝 <b>Log a trade:</b>\n<code>/trade SYMBOL LONG/SHORT ENTRY SL:xxx TP1:xxx TP2:xxx QTY:xxx</code>\n\n` +
+          `📊 <b>View open trades:</b>\n<code>/status</code> or <code>/trades</code>\n\n` +
+          `💰 <b>View P&amp;L account:</b>\n<code>/pnl</code> or <code>/account</code>\n\n` +
+          `━━━━━━━━━━━━━━━━━━━━━\n` +
+          `<b>Examples:</b>\n` +
+          `<code>/trade RELIANCE LONG 1450 SL:1420 TP1:1500 TP2:1560 QTY:10</code>\n` +
+          `<code>/trade BTCUSDT SHORT 67000 SL:68500 TP1:64000 TP2:61000 QTY:0.1</code>\n` +
+          `<code>/trade EURUSD LONG 1.0850 SL:1.0790 TP1:1.0930</code>\n\n` +
+          `The bot will monitor your trade 24/7 and alert you when SL or TP is hit! 🎯`
+        );
+      }
+    }
+  } catch (e) {
+    // Silent — don't crash the daemon on network errors
+  }
+}
+
+async function handleTradeBotCommand(text: string, token: string, chatId: string): Promise<boolean> {
+  try {
+    // Parse: /trade SYMBOL LONG/SHORT ENTRY SL:xxx TP1:xxx [TP2:xxx] [QTY:xxx] [MKT:xxx]
+    const parts = text.trim().split(/\s+/);
+    if (parts.length < 5) return false;
+
+    const symbol = (parts[1] || "").toUpperCase().trim();
+    const sideRaw = (parts[2] || "").toUpperCase().trim();
+    const side: "LONG" | "SHORT" = sideRaw === "SHORT" ? "SHORT" : "LONG";
+    const entry = parseFloat(parts[3] || "0");
+
+    if (!symbol || !entry) return false;
+
+    let sl = 0, tp1 = 0, tp2 = 0, qty = 0, market = "";
+    for (const part of parts.slice(4)) {
+      const p = part.toUpperCase();
+      if (p.startsWith("SL:"))  sl   = parseFloat(p.slice(3));
+      if (p.startsWith("TP1:")) tp1  = parseFloat(p.slice(4));
+      if (p.startsWith("TP2:")) tp2  = parseFloat(p.slice(4));
+      if (p.startsWith("QTY:")) qty  = parseFloat(p.slice(4));
+      if (p.startsWith("MKT:")) market = p.slice(4);
+    }
+
+    if (!sl || !tp1) return false;
+
+    // Auto-detect market
+    if (!market) {
+      if (symbol.endsWith(".NS") || (!symbol.endsWith("USDT") && symbol.length <= 12 && !["EURUSD","GBPUSD","USDJPY","AUDUSD","USDCAD","USDCHF","NZDUSD","EURGBP","EURJPY","GBPJPY","XAUUSD","XAGUSD"].includes(symbol))) {
+        market = "INDIAN_EQUITY";
+      } else if (symbol.endsWith("USDT") || ["BTC","ETH","SOL","BNB","XRP","DOGE","ADA","AVAX","LINK","DOT","NEAR","SHIB","PEPE","SUI","UNI"].some(c => symbol.startsWith(c))) {
+        market = "CRYPTO";
+      } else {
+        market = "FOREX";
+      }
+    }
+
+    const defaultQty = market === "INDIAN_EQUITY" ? 10 : 1;
+    const finalQty = qty > 0 ? qty : defaultQty;
+
+    // Auto-log to Trade Journal
+    const trade = autoLogTradeFromAlert({
+      symbol,
+      side,
+      market,
+      entryPrice: entry,
+      sl,
+      tp1,
+      tp2: tp2 || undefined,
+      quantity: finalQty,
+      notes: `Logged via Telegram /trade command`
+    });
+
+    const cur = market === "INDIAN_EQUITY" ? "₹" : "$";
+    const fmt = (n: number) => `${cur}${n.toLocaleString("en-IN", { minimumFractionDigits: n < 10 ? 4 : 2, maximumFractionDigits: n < 10 ? 5 : 2 })}`;
+    const rr  = tp1 && sl && entry ? (Math.abs(tp1 - entry) / Math.abs(entry - sl)).toFixed(2) : "—";
+
+    await sendTelegramNotification(token, chatId,
+      `✅ <b>TRADE LOGGED — 24/7 MONITORING STARTED</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n` +
+      `📌 <b>Symbol:</b>   <code>${symbol}</code> (${market.replace("_"," ")})\n` +
+      `${side === "LONG" ? "📈" : "📉"} <b>Direction:</b> <b>${side}</b>\n\n` +
+      `━━━━━━━━━━━━━━━━━━━━━\n💰 <b>LEVELS</b>\n━━━━━━━━━━━━━━━━━━━━━\n` +
+      `🟢 <b>Entry:</b>     <code>${fmt(entry)}</code>\n` +
+      `🔴 <b>Stop Loss:</b> <code>${fmt(sl)}</code>\n` +
+      `🎯 <b>Target 1:</b>  <code>${fmt(tp1)}</code>\n` +
+      (tp2 ? `🎯 <b>Target 2:</b>  <code>${fmt(tp2)}</code>\n` : ``) +
+      `📦 <b>Quantity:</b>  <code>${finalQty}</code>\n` +
+      `⚖️ <b>R:R Ratio:</b> <code>1 : ${rr}</code>\n\n` +
+      `━━━━━━━━━━━━━━━━━━━━━\n` +
+      `🤖 <i>Server is now monitoring this trade every 30s.</i>\n` +
+      `<i>You'll get an automatic alert when SL or TP is hit!</i>\n\n` +
+      `Send <code>/status</code> to see all open trades.\nSend <code>/pnl</code> for your P&amp;L summary.`
+    );
+
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function startTelegramBotListener() {
+  console.log("[Bot] Telegram /trade command listener started...");
+  // Poll every 5 seconds for new messages
+  setInterval(parseTelegramBotUpdates, 5000);
+}
+
 // HEADLESS API POLLING SCANNER DAEMON
 
 interface PollingLog {
@@ -3675,5 +3865,7 @@ setupVite().then(() => {
     console.log(`Server is listening on http://0.0.0.0:${PORT}`);
     // Start 24/7 server-side Trade Monitor Daemon
     startTradeMonitorDaemon();
+    // Start Telegram bot /trade command listener
+    startTelegramBotListener();
   });
 });
