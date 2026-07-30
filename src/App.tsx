@@ -150,103 +150,84 @@ export default function App() {
 
         {/* Logo */}
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center glow-cyan"
-            style={{ background: "linear-gradient(135deg, #0e4a5a, #083345)", border: "1px solid rgba(6,182,212,0.3)" }}>
-            <TrendingUp className="w-4 h-4 text-cyan-400" />
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center glow-cyan shrink-0"
+            style={{ background: "linear-gradient(135deg, #0e4a5a, #083345)", border: "1px solid rgba(6,182,212,0.4)" }}>
+            <TrendingUp className="w-5 h-5 text-cyan-400" />
           </div>
           <div>
-            <h1 className="text-sm font-bold text-white tracking-tight leading-none">ApexSMC AI</h1>
-            <p className="text-[10px] text-slate-500 leading-none mt-0.5">Smart Money Multi-Asset Intelligence Engine</p>
+            <h1 className="text-lg font-black text-white tracking-tight leading-none">ApexSMC <span className="text-cyan-400">AI</span></h1>
+            <p className="text-[11px] text-slate-500 leading-none mt-1 hidden sm:block">Smart Money Multi-Asset Intelligence Engine</p>
           </div>
-          <span className="ml-1 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded"
-            style={{ background: "rgba(6,182,212,0.1)", color: "#06b6d4", border: "1px solid rgba(6,182,212,0.2)" }}>
+          <span className="shimmer-badge text-[9px] font-mono font-black px-2 py-0.5 rounded-md"
+            style={{ background: "rgba(6,182,212,0.15)", color: "#06b6d4", border: "1px solid rgba(6,182,212,0.3)" }}>
             PRO v3.0
           </span>
         </div>
 
-        {/* Metric pills */}
-        <div className="hidden md:flex items-center gap-2">
-          {[
-            { label: "Scanned", value: totalProcessed, color: "#06b6d4" },
-            { label: "Passed", value: totalPassed, color: "#10b981" },
-            { label: "Pass Rate", value: `${passRatio}%`, color: "#818cf8" },
-            { label: "Dispatched", value: dispatched, color: "#f59e0b" },
-          ].map(m => (
-            <div key={m.label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg"
-              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
-              <span className="text-[10px] text-slate-500 font-medium">{m.label}</span>
-              <span className="text-xs font-black font-mono" style={{ color: m.color }}>{m.value}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Status + nav toggle */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
-            style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)" }}>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[10px] font-bold text-emerald-400">LIVE</span>
+        <div className="flex items-center gap-4">
+          <div className="hidden lg:flex items-center gap-2">
+            {[
+              { label: "Scanned", value: totalProcessed, color: "#06b6d4" },
+              { label: "Passed",  value: totalPassed,    color: "#10b981" },
+              { label: "Signals",  value: dispatched,    color: "#f59e0b" },
+            ].map(m => (
+              <div key={m.label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg"
+                style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                <span className="text-[10px] text-slate-500 font-medium">{m.label}</span>
+                <span className="text-xs font-black font-mono" style={{ color: m.color }}>{m.value}</span>
+              </div>
+            ))}
           </div>
-          {config.telegramEnabled && (
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full"
-              style={{ background: "rgba(6,182,212,0.08)", border: "1px solid rgba(6,182,212,0.2)" }}>
-              <Send className="w-3 h-3 text-cyan-400" />
-              <span className="text-[10px] font-bold text-cyan-400">Telegram ON</span>
+
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full"
+              style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.25)" }}>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              <span className="text-xs font-bold text-emerald-400">LIVE</span>
             </div>
-          )}
+            {config.telegramEnabled && (
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full"
+                style={{ background: "rgba(6,182,212,0.1)", border: "1px solid rgba(6,182,212,0.25)" }}>
+                <Send className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="text-xs font-bold text-cyan-400">Telegram</span>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
-      {/* ── LIVE MARQUEE TICKER ── */}
-      <div className="h-8 shrink-0 overflow-hidden flex items-center border-b text-[10px] font-mono select-none z-30"
-        style={{ background: "#05070c", borderColor: "rgba(255,255,255,0.08)" }}>
-        {/* Solid dark badge with zero bleed-through */}
-        <div className="px-3.5 h-full flex items-center gap-2 font-bold shrink-0 z-20 shadow-lg"
-          style={{ background: "#0a0e17", color: "#06b6d4", borderRight: "1px solid rgba(6,182,212,0.3)" }}>
-          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping shrink-0" />
-          <span className="tracking-wider">LIVE FEEDS</span>
-        </div>
-
-        {/* Scrolling text container */}
-        <div className="flex-1 overflow-hidden flex items-center py-1">
-          <div className="flex gap-6 whitespace-nowrap animate-marquee">
-            {[
-              { s: "GOLD (XAUUSD)", p: "$2,385.40", c: "+0.84%", pos: true },
-              { s: "RELIANCE.NS", p: "₹1,278.00", c: "+1.25%", pos: true },
-              { s: "BTC/USDT", p: "$65,420.00", c: "+2.40%", pos: true },
-              { s: "EUR/USD", p: "1.0850", c: "+0.12%", pos: true },
-              { s: "NIFTY 50", p: "₹24,850.00", c: "+0.45%", pos: true },
-              { s: "ETH/USDT", p: "$3,450.00", c: "+1.95%", pos: true },
-              { s: "TATAMOTORS", p: "₹994.50", c: "+1.80%", pos: true },
-              { s: "SOL/USDT", p: "$178.50", c: "+5.12%", pos: true },
-              { s: "CRUDE OIL", p: "$78.20", c: "-0.45%", pos: false },
-              { s: "GBP/USD", p: "1.2950", c: "+0.18%", pos: true },
-            ].concat([
-              { s: "GOLD (XAUUSD)", p: "$2,385.40", c: "+0.84%", pos: true },
-              { s: "RELIANCE.NS", p: "₹1,278.00", c: "+1.25%", pos: true },
-              { s: "BTC/USDT", p: "$65,420.00", c: "+2.40%", pos: true },
-              { s: "EUR/USD", p: "1.0850", c: "+0.12%", pos: true },
-              { s: "NIFTY 50", p: "₹24,850.00", c: "+0.45%", pos: true },
-              { s: "ETH/USDT", p: "$3,450.00", c: "+1.95%", pos: true },
-              { s: "TATAMOTORS", p: "₹994.50", c: "+1.80%", pos: true },
-              { s: "SOL/USDT", p: "$178.50", c: "+5.12%", pos: true },
-              { s: "CRUDE OIL", p: "$78.20", c: "-0.45%", pos: false },
-              { s: "GBP/USD", p: "1.2950", c: "+0.18%", pos: true },
-            ]).map((t, i) => (
-              <span key={i} className="flex items-center gap-1.5">
-                <span className="text-slate-300 font-bold">{t.s}</span>
-                <span className="text-white font-mono font-bold">{t.p}</span>
-                <span className={t.pos ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>{t.c}</span>
-                <span className="text-slate-700 ml-2">|</span>
-              </span>
-            ))}
+      <div className="shrink-0 border-b overflow-x-auto scrollbar-none"
+        style={{ background: "#080c14", borderColor: "rgba(255,255,255,0.07)" }}>
+        <div className="flex items-center min-w-max px-4 py-2 gap-1">
+          <div className="flex items-center gap-2 pr-4 mr-3 shrink-0"
+            style={{ borderRight: "1px solid rgba(255,255,255,0.08)" }}>
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shrink-0" />
+            <span className="text-[11px] font-bold text-cyan-400 tracking-wider uppercase">Live Feeds</span>
           </div>
+          {[
+            { s: "GOLD",      sym: "XAUUSD",  p: "$2,385",  c: "+0.84%", pos: true,  icon: "🥇" },
+            { s: "BTC",       sym: "USDT",     p: "$65,420", c: "+2.40%", pos: true,  icon: "₿" },
+            { s: "ETH",       sym: "USDT",     p: "$3,450",  c: "+1.95%", pos: true,  icon: "Ξ" },
+            { s: "NIFTY 50",  sym: "INDEX",    p: "₹24,850", c: "+0.45%", pos: true,  icon: "🇮🇳" },
+            { s: "RELIANCE",  sym: "NSE",      p: "₹1,278",  c: "+1.25%", pos: true,  icon: "📈" },
+            { s: "EUR/USD",   sym: "FX",       p: "1.0850",  c: "+0.12%", pos: true,  icon: "💱" },
+            { s: "CRUDE OIL", sym: "WTI",      p: "$78.20",  c: "-0.45%", pos: false, icon: "🛢️" },
+            { s: "SOL",       sym: "USDT",     p: "$178.50", c: "+5.12%", pos: true,  icon: "◎" },
+          ].map((t, i) => (
+            <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-lg shrink-0"
+              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}>
+              <span className="text-sm">{t.icon}</span>
+              <div>
+                <div className="text-[11px] font-bold text-white leading-none">{t.s}</div>
+                <div className="text-[10px] font-mono text-slate-400 leading-none mt-0.5">{t.p}</div>
+              </div>
+              <span className={`text-[10px] font-black font-mono ${t.pos ? "text-emerald-400" : "text-red-400"}`}>{t.c}</span>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* ── BODY: sidebar + content ── */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
-
         {/* ── LEFT SIDEBAR ── */}
         <aside className="hidden md:flex flex-col py-4 shrink-0 z-30"
           style={{
@@ -293,26 +274,12 @@ export default function App() {
         {/* ── MAIN CONTENT ── */}
         <main className="flex-1 overflow-y-auto p-3.5 sm:p-5 lg:p-6 pb-20 md:pb-6 space-y-5">
 
-          {/* Mobile top scrollable sub-nav */}
-          <div className="flex md:hidden gap-1.5 overflow-x-auto pb-1.5 scrollbar-none">
-            {NAV_ITEMS.map(item => (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 cursor-pointer transition-all ${
-                  activeTab === item.id
-                    ? "bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 shadow-sm"
-                    : "text-slate-500 hover:text-slate-300 bg-white/[0.02]"
-                }`}
-              >
-                <item.icon className="w-3.5 h-3.5" />
-                {item.label}
-              </button>
-            ))}
-          </div>
+          {/* Mobile top scrollable sub-nav — hidden since bottom bar handles mobile nav */}
 
-          {/* Telemetry banner */}
-          <TelemetryStatus hasGeminiKey={true} webhookCount={logs.length} pollingEnabled={config?.pollingEnabled} />
+          {/* Telemetry banner — only shown on SMC and Daemon tabs */}
+          {(activeTab === "smc" || activeTab === "polling") && (
+            <TelemetryStatus hasGeminiKey={true} webhookCount={logs.length} pollingEnabled={config?.pollingEnabled} />
+          )}
 
           {/* ── SMC DUAL-ENGINE REPORT ── */}
           {activeTab === "smc" && (
