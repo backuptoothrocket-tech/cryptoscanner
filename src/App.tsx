@@ -11,23 +11,27 @@ import PollingScanner from "./components/PollingScanner";
 import TopPicks from "./components/TopPicks";
 import SMCReportView from "./components/SMCReport";
 import IndiaMarket from "./components/IndiaMarket";
+import CryptoMarket from "./components/CryptoMarket";
+import ForexMarket from "./components/ForexMarket";
 import TradeJournal from "./components/TradeJournal";
 import {
   LayoutDashboard, Settings, BarChart2, Radio, Code2,
-  TrendingUp, Activity, Send, RefreshCw, Zap, Shield, Target, IndianRupee, BookOpen
+  TrendingUp, Activity, Send, RefreshCw, Zap, Shield, Target, IndianRupee, BookOpen, Coins, Globe
 } from "lucide-react";
 
-type TabId = "smc" | "india" | "journal" | "dashboard" | "config" | "backtest" | "polling" | "code";
+type TabId = "smc" | "india" | "crypto" | "forex" | "journal" | "dashboard" | "config" | "backtest" | "polling" | "code";
 
 const NAV_ITEMS: { id: TabId; label: string; icon: React.FC<any>; badge?: string }[] = [
-  { id: "smc",     label: "SMC Report",    icon: Target },
-  { id: "india",   label: "India Market",  icon: IndianRupee },
-  { id: "journal", label: "Trade Journal", icon: BookOpen, badge: "NEW" },
-  { id: "dashboard", label: "Scanner",     icon: LayoutDashboard },
-  { id: "backtest", label: "Backtest",     icon: BarChart2 },
-  { id: "polling", label: "Daemon",        icon: Radio },
-  { id: "config",  label: "Config",        icon: Settings },
-  { id: "code",    label: "Export",        icon: Code2 },
+  { id: "smc",       label: "SMC Analyzer", icon: Target },
+  { id: "india",     label: "India Stocks", icon: IndianRupee },
+  { id: "crypto",    label: "Crypto Hub",   icon: Coins },
+  { id: "forex",     label: "Forex & Gold", icon: Globe },
+  { id: "journal",   label: "Trade Journal",icon: BookOpen, badge: "AUTO" },
+  { id: "dashboard", label: "Multi Scanner",icon: LayoutDashboard },
+  { id: "backtest",  label: "Backtest",     icon: BarChart2 },
+  { id: "polling",   label: "Daemon",        icon: Radio },
+  { id: "config",    label: "Config",        icon: Settings },
+  { id: "code",      label: "Export",        icon: Code2 },
 ];
 
 export default function App() {
@@ -225,6 +229,26 @@ export default function App() {
           {activeTab === "india" && (
             <div className="animate-fade-slide">
               <IndiaMarket onNavigateToSMC={(sym) => {
+                setSmcSymbol(sym);
+                setActiveTab("smc");
+              }} />
+            </div>
+          )}
+
+          {/* ── CRYPTO HUB ── */}
+          {activeTab === "crypto" && (
+            <div className="animate-fade-slide">
+              <CryptoMarket onNavigateToSMC={(sym) => {
+                setSmcSymbol(sym);
+                setActiveTab("smc");
+              }} />
+            </div>
+          )}
+
+          {/* ── FOREX & COMMODITIES HUB ── */}
+          {activeTab === "forex" && (
+            <div className="animate-fade-slide">
+              <ForexMarket onNavigateToSMC={(sym) => {
                 setSmcSymbol(sym);
                 setActiveTab("smc");
               }} />
