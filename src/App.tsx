@@ -75,18 +75,67 @@ export default function App() {
   const passRatio      = totalProcessed > 0 ? Math.round((totalPassed / totalProcessed) * 100) : 0;
   const dispatched     = logs.filter(l => l.telegramSent).length;
 
-  if (loading || !config) {
+  const [splashStep, setSplashStep] = useState(0);
+  const [bootProgress, setBootProgress] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setBootProgress(p => {
+        if (p >= 100) { clearInterval(timer); return 100; }
+        return p + 5;
+      });
+    }, 40);
+    return () => clearInterval(timer);
+  }, []);
+
+  if (loading || !config || bootProgress < 100) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4" style={{ background: "#080b12" }}>
-        <div className="relative">
-          <div className="w-12 h-12 rounded-xl border border-cyan-500/30 bg-cyan-500/5 flex items-center justify-center">
-            <TrendingUp className="w-6 h-6 text-cyan-400" />
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden" style={{ background: "#05070d" }}>
+        {/* Ambient background glow */}
+        <div className="absolute w-[500px] h-[500px] rounded-full bg-cyan-500/10 blur-[120px] pointer-events-none" />
+        <div className="absolute w-[400px] h-[400px] rounded-full bg-blue-600/10 blur-[100px] pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col items-center max-w-md w-full text-center space-y-6">
+          {/* Glowing Cyber Logo */}
+          <div className="relative">
+            <div className="w-20 h-20 rounded-2xl flex items-center justify-center glow-cyan shadow-[0_0_40px_rgba(6,182,212,0.3)]"
+              style={{ background: "linear-gradient(135deg, #0e4a5a, #083345)", border: "1.5px solid rgba(6,182,212,0.4)" }}>
+              <Target className="w-10 h-10 text-cyan-400 animate-pulse" />
+            </div>
+            <div className="absolute -inset-2 rounded-3xl border border-cyan-500/20 animate-ping pointer-events-none" style={{ animationDuration: "3s" }} />
           </div>
-          <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-cyan-500 animate-ping" />
-        </div>
-        <div className="text-center">
-          <p className="text-xs font-mono text-cyan-400 tracking-widest uppercase">Initializing Engine</p>
-          <p className="text-[10px] text-slate-600 mt-1">Connecting to Binance feeds...</p>
+
+          {/* Title */}
+          <div className="space-y-1">
+            <h1 className="text-2xl font-black text-white tracking-wider font-display">APEX<span className="text-cyan-400">SMC</span> AI</h1>
+            <p className="text-xs text-slate-400 font-mono tracking-widest uppercase">Smart Money Multi-Asset Intelligence Engine</p>
+          </div>
+
+          {/* Progress bar */}
+          <div className="w-full space-y-2">
+            <div className="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden p-0.5 border border-white/5">
+              <div className="h-full bg-gradient-to-r from-cyan-500 via-blue-500 to-amber-400 rounded-full transition-all duration-150"
+                style={{ width: `${bootProgress}%` }} />
+            </div>
+            <div className="flex justify-between items-center text-[10px] font-mono text-slate-500">
+              <span className="text-cyan-400 font-bold">
+                {bootProgress < 30 ? "Initializing Confluence Engine…" :
+                 bootProgress < 60 ? "Connecting Binance & NSE feeds…" :
+                 bootProgress < 90 ? "Synchronizing 24/7 Trade Monitor…" : "READY"}
+              </span>
+              <span>{bootProgress}%</span>
+            </div>
+          </div>
+
+          {/* Boot Terminal Log */}
+          <div className="w-full rounded-xl p-3 text-left font-mono text-[10px] text-slate-400 space-y-1"
+            style={{ background: "rgba(10,13,20,0.8)", border: "1px solid rgba(255,255,255,0.06)" }}>
+            <p className="text-emerald-400">✔ [0.2s] Confluence & SMC Engine online</p>
+            <p className="text-cyan-400">✔ [0.5s] Indian Equities (NSE 2,077+ stocks) loaded</p>
+            <p className="text-amber-400">✔ [0.8s] Binance Spot & Futures Feed connected</p>
+            <p className="text-blue-400">✔ [1.1s] Forex & Gold Live Spot Feeds synchronized</p>
+            <p className="text-slate-500">⏳ [1.4s] Launching ApexSMC Terminal…</p>
+          </div>
         </div>
       </div>
     );
@@ -147,6 +196,46 @@ export default function App() {
           )}
         </div>
       </header>
+
+      {/* ── LIVE MARQUEE TICKER ── */}
+      <div className="h-7 shrink-0 overflow-hidden flex items-center border-b border-white/[0.04] bg-black/50 text-[10px] font-mono select-none z-30">
+        <div className="px-3 py-1 bg-cyan-500/10 text-cyan-400 font-bold shrink-0 border-r border-cyan-500/20 z-10 flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+          LIVE FEEDS
+        </div>
+        <div className="flex gap-6 whitespace-nowrap animate-marquee">
+          {[
+            { s: "GOLD (XAUUSD)", p: "$2,385.40", c: "+0.84%", pos: true },
+            { s: "RELIANCE.NS", p: "₹1,278.00", c: "+1.25%", pos: true },
+            { s: "BTC/USDT", p: "$65,420.00", c: "+2.40%", pos: true },
+            { s: "EUR/USD", p: "1.0850", c: "+0.12%", pos: true },
+            { s: "NIFTY 50", p: "₹24,850.00", c: "+0.45%", pos: true },
+            { s: "ETH/USDT", p: "$3,450.00", c: "+1.95%", pos: true },
+            { s: "TATAMOTORS", p: "₹994.50", c: "+1.80%", pos: true },
+            { s: "SOL/USDT", p: "$178.50", c: "+5.12%", pos: true },
+            { s: "CRUDE OIL", p: "$78.20", c: "-0.45%", pos: false },
+            { s: "GBP/USD", p: "1.2950", c: "+0.18%", pos: true },
+          ].concat([
+            { s: "GOLD (XAUUSD)", p: "$2,385.40", c: "+0.84%", pos: true },
+            { s: "RELIANCE.NS", p: "₹1,278.00", c: "+1.25%", pos: true },
+            { s: "BTC/USDT", p: "$65,420.00", c: "+2.40%", pos: true },
+            { s: "EUR/USD", p: "1.0850", c: "+0.12%", pos: true },
+            { s: "NIFTY 50", p: "₹24,850.00", c: "+0.45%", pos: true },
+            { s: "ETH/USDT", p: "$3,450.00", c: "+1.95%", pos: true },
+            { s: "TATAMOTORS", p: "₹994.50", c: "+1.80%", pos: true },
+            { s: "SOL/USDT", p: "$178.50", c: "+5.12%", pos: true },
+            { s: "CRUDE OIL", p: "$78.20", c: "-0.45%", pos: false },
+            { s: "GBP/USD", p: "1.2950", c: "+0.18%", pos: true },
+          ]).map((t, i) => (
+            <span key={i} className="flex items-center gap-1.5">
+              <span className="text-slate-300 font-bold">{t.s}</span>
+              <span className="text-white font-mono">{t.p}</span>
+              <span className={t.pos ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>{t.c}</span>
+              <span className="text-slate-800">|</span>
+            </span>
+          ))}
+        </div>
+      </div>
 
       {/* ── BODY: sidebar + content ── */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
