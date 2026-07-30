@@ -741,13 +741,14 @@ function readDB() {
       const parsed = JSON.parse(data);
       return {
         config: { ...DEFAULT_CONFIG, ...parsed.config },
-        logs: parsed.logs || []
+        logs: parsed.logs || [],
+        trades: parsed.trades || []
       };
     }
   } catch (e) {
     console.error("Error reading database file, using fallback", e);
   }
-  return { config: DEFAULT_CONFIG, logs: [] };
+  return { config: DEFAULT_CONFIG, logs: [], trades: [] };
 }
 function writeDB(db) {
   try {
@@ -775,6 +776,143 @@ app.post("/api/logs/clear", (req, res) => {
   db.logs = [];
   writeDB(db);
   res.json({ success: true });
+});
+app.get("/api/trades", (req, res) => {
+  const db = readDB();
+  res.json({ trades: (db.trades || []).slice().reverse(), total: (db.trades || []).length });
+});
+app.post("/api/trades", (req, res) => {
+  const db = readDB();
+  if (!db.trades) db.trades = [];
+  const trade = {
+    id: req.body.id || `t_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    symbol: (req.body.symbol || "").toUpperCase(),
+    market: req.body.market || "INDIAN_EQUITY",
+    side: req.body.side || "LONG",
+    entryPrice: parseFloat(req.body.entryPrice) || 0,
+    quantity: parseFloat(req.body.quantity) || 0,
+    sl: parseFloat(req.body.sl) || 0,
+    tp1: parseFloat(req.body.tp1) || 0,
+    tp2: parseFloat(req.body.tp2) || 0,
+    entryDate: req.body.entryDate || (/* @__PURE__ */ new Date()).toISOString(),
+    notes: req.body.notes || "",
+    isResolved: false,
+    history: [{
+      timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+      status: "PENDING",
+      price: parseFloat(req.body.entryPrice) || 0,
+      pnl: 0,
+      pnlPct: 0,
+      telegramSent: false,
+      note: "Trade created and monitoring started"
+    }]
+  };
+  db.trades.push(trade);
+  writeDB(db);
+  res.json({ success: true, trade });
+});
+app.put("/api/trades/:id", async (req, res) => {
+  const db = readDB();
+  if (!db.trades) db.trades = [];
+  const idx = db.trades.findIndex((t) => t.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: "Trade not found" });
+  const existing = db.trades[idx];
+  const prevStatus = existing.status || "PENDING";
+  const newStatus = req.body.status || prevStatus;
+  const curPrice = parseFloat(req.body.currentPrice) || existing.currentPrice || 0;
+  const pnl = parseFloat(req.body.pnl) ?? existing.pnl ?? 0;
+  const pnlPct = parseFloat(req.body.pnlPct) ?? existing.pnlPct ?? 0;
+  const statusChanged = newStatus !== prevStatus && newStatus !== "PENDING";
+  const resolved = ["SL_HIT", "TP2_HIT"].includes(newStatus);
+  const alertStatuses = ["SL_HIT", "TP1_HIT", "TP2_HIT"];
+  let telegramSent = false;
+  if (statusChanged && alertStatuses.includes(newStatus)) {
+    const token = db.config.telegramToken;
+    const chatId = db.config.telegramChatId;
+    if (token && chatId && db.config.telegramEnabled) {
+      const cur = existing.market === "INDIAN_EQUITY" ? "\u20B9" : "$";
+      const fmt = (n) => `${cur}${Math.abs(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      const emoji = newStatus === "SL_HIT" ? "\u274C" : newStatus === "TP1_HIT" ? "\u2705" : "\u{1F3AF}";
+      const verdict = newStatus === "SL_HIT" ? "\u26D4 Stop Loss Hit \u2014 Exit immediately." : newStatus === "TP1_HIT" ? "\u2705 Target 1 Reached \u2014 Book 50% profit, move SL to entry (risk-free)." : "\u{1F3AF} Target 2 Reached \u2014 Book full profit!";
+      const rr = existing.entryPrice && existing.sl && existing.tp1 ? Math.abs(existing.tp1 - existing.entryPrice) / Math.abs(existing.entryPrice - existing.sl) : 0;
+      const msg = `
+${emoji} <b>TRADE ALERT \u2014 ${newStatus.replace("_", " ")}</b> ${emoji}
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+
+\u{1F4CC} <b>Symbol:</b> <code>${existing.symbol}</code> (${existing.market.replace("_", " ")})
+${existing.side === "LONG" ? "\u{1F4C8}" : "\u{1F4C9}"} <b>Direction:</b> <b>${existing.side}</b>
+
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u{1F4B0} <b>PRICE LEVELS</b>
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u{1F7E2} <b>Entry:</b>     <code>${fmt(existing.entryPrice)}</code>
+\u{1F534} <b>Stop Loss:</b> <code>${fmt(existing.sl)}</code>
+\u{1F3AF} <b>TP1:</b>       <code>${fmt(existing.tp1)}</code>${existing.tp2 ? `
+\u{1F3AF} <b>TP2:</b>       <code>${fmt(existing.tp2)}</code>` : ""}
+\u{1F4CA} <b>Exit Price:</b><code>${fmt(curPrice)}</code>
+\u{1F4E6} <b>Qty:</b>       <code>${existing.quantity}</code>
+
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u{1F4C8} <b>TRADE RESULT</b>
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u{1F4B5} <b>P&amp;L:</b>         <code>${pnl >= 0 ? "+" : "\u2212"}${fmt(pnl)}</code>
+\u{1F4C9} <b>P&amp;L %:</b>       <code>${pnl >= 0 ? "+" : ""}${pnlPct.toFixed(2)}%</code>
+\u2696\uFE0F <b>Risk:Reward:</b> <code>1 : ${rr.toFixed(2)}</code>
+\u{1F3F7} <b>Status:</b>     <b>${newStatus.replace(/_/g, " ")}</b>
+
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u{1F4CB} <b>VERDICT</b>
+${verdict}${existing.notes ? `
+
+\u{1F4DD} <i>${existing.notes}</i>` : ""}
+
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u{1F916} <i>CryptoScanner Auto Trade Journal</i>
+`.trim();
+      const result = await sendTelegramNotification(token, chatId, msg);
+      telegramSent = result.success;
+    }
+  }
+  const historyEntry = {
+    timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+    status: newStatus,
+    price: curPrice,
+    pnl,
+    pnlPct,
+    telegramSent,
+    note: statusChanged ? `Status changed: ${prevStatus} \u2192 ${newStatus}${telegramSent ? " \xB7 \u2705 Telegram sent" : ""}` : `Price update (${newStatus})`
+  };
+  const updated = {
+    ...existing,
+    currentPrice: curPrice,
+    status: newStatus,
+    pnl,
+    pnlPct,
+    lastUpdated: (/* @__PURE__ */ new Date()).toISOString(),
+    isResolved: resolved || existing.isResolved,
+    resolvedAt: resolved && !existing.isResolved ? (/* @__PURE__ */ new Date()).toISOString() : existing.resolvedAt,
+    resolvedStatus: resolved && !existing.isResolved ? newStatus : existing.resolvedStatus,
+    history: [...existing.history || [], historyEntry]
+  };
+  db.trades[idx] = updated;
+  writeDB(db);
+  res.json({ success: true, trade: updated, telegramSent, statusChanged });
+});
+app.delete("/api/trades/:id", (req, res) => {
+  const db = readDB();
+  if (!db.trades) db.trades = [];
+  const before = db.trades.length;
+  db.trades = db.trades.filter((t) => t.id !== req.params.id);
+  writeDB(db);
+  res.json({ success: true, removed: before - db.trades.length });
+});
+app.delete("/api/trades/resolved/all", (req, res) => {
+  const db = readDB();
+  if (!db.trades) db.trades = [];
+  const before = db.trades.length;
+  db.trades = db.trades.filter((t) => !t.isResolved);
+  writeDB(db);
+  res.json({ success: true, removed: before - db.trades.length });
 });
 function calculateRiskManagement(side, entryPrice, timeframe, symbol, atrValue) {
   let slDistance;

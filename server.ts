@@ -890,9 +890,46 @@ const DEFAULT_CONFIG = {
   pollingIntervalSeconds: 60
 };
 
+// ─── Trade Journal Types ─────────────────────────────────────────────────────
+interface TradeHistoryEntry {
+  timestamp: string;         // ISO date of this event
+  status: string;            // HOLDING | SL_HIT | TP1_HIT | TP2_HIT | BREAKEVEN
+  price: number;             // price at the time of this event
+  pnl: number;               // P&L at that moment
+  pnlPct: number;
+  telegramSent: boolean;     // whether Telegram alert was fired for this entry
+  note: string;              // e.g. "Status changed: HOLDING → SL_HIT"
+}
+
+interface TradeRecord {
+  id: string;
+  symbol: string;
+  market: string;            // INDIAN_EQUITY | CRYPTO | FOREX
+  side: string;              // LONG | SHORT
+  entryPrice: number;
+  quantity: number;
+  sl: number;
+  tp1: number;
+  tp2: number;
+  entryDate: string;
+  notes: string;
+  // live fields
+  currentPrice?: number;
+  status?: string;
+  pnl?: number;
+  pnlPct?: number;
+  lastUpdated?: string;
+  // outcome tracking
+  isResolved: boolean;       // true once SL or TP2 hit (trade closed)
+  resolvedAt?: string;
+  resolvedStatus?: string;
+  history: TradeHistoryEntry[];
+}
+
 interface DB {
   config: typeof DEFAULT_CONFIG;
   logs: any[];
+  trades: TradeRecord[];     // persistent trade journal
 }
 
 function readDB(): DB {
@@ -902,13 +939,14 @@ function readDB(): DB {
       const parsed = JSON.parse(data);
       return {
         config: { ...DEFAULT_CONFIG, ...parsed.config },
-        logs: parsed.logs || []
+        logs: parsed.logs || [],
+        trades: parsed.trades || []
       };
     }
   } catch (e) {
     console.error("Error reading database file, using fallback", e);
   }
-  return { config: DEFAULT_CONFIG, logs: [] };
+  return { config: DEFAULT_CONFIG, logs: [], trades: [] };
 }
 
 function writeDB(db: DB) {
@@ -943,6 +981,172 @@ app.post("/api/logs/clear", (req, res) => {
   writeDB(db);
   res.json({ success: true });
 });
+
+// ── TRADE JOURNAL CRUD API ────────────────────────────────────────────────────
+
+// GET all trades (newest first)
+app.get("/api/trades", (req, res) => {
+  const db = readDB();
+  res.json({ trades: (db.trades || []).slice().reverse(), total: (db.trades || []).length });
+});
+
+// POST create a new trade
+app.post("/api/trades", (req, res) => {
+  const db = readDB();
+  if (!db.trades) db.trades = [];
+  const trade: TradeRecord = {
+    id:            req.body.id || `t_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,
+    symbol:        (req.body.symbol || "").toUpperCase(),
+    market:        req.body.market || "INDIAN_EQUITY",
+    side:          req.body.side || "LONG",
+    entryPrice:    parseFloat(req.body.entryPrice) || 0,
+    quantity:      parseFloat(req.body.quantity) || 0,
+    sl:            parseFloat(req.body.sl) || 0,
+    tp1:           parseFloat(req.body.tp1) || 0,
+    tp2:           parseFloat(req.body.tp2) || 0,
+    entryDate:     req.body.entryDate || new Date().toISOString(),
+    notes:         req.body.notes || "",
+    isResolved:    false,
+    history:       [{
+      timestamp:    new Date().toISOString(),
+      status:       "PENDING",
+      price:        parseFloat(req.body.entryPrice) || 0,
+      pnl:          0,
+      pnlPct:       0,
+      telegramSent: false,
+      note:         "Trade created and monitoring started",
+    }],
+  };
+  db.trades.push(trade);
+  writeDB(db);
+  res.json({ success: true, trade });
+});
+
+// PUT update trade status + append history entry
+app.put("/api/trades/:id", async (req, res) => {
+  const db = readDB();
+  if (!db.trades) db.trades = [];
+  const idx = db.trades.findIndex(t => t.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: "Trade not found" });
+
+  const existing   = db.trades[idx];
+  const prevStatus = existing.status || "PENDING";
+  const newStatus  = req.body.status || prevStatus;
+  const curPrice   = parseFloat(req.body.currentPrice) || existing.currentPrice || 0;
+  const pnl        = parseFloat(req.body.pnl)    ?? existing.pnl    ?? 0;
+  const pnlPct     = parseFloat(req.body.pnlPct) ?? existing.pnlPct ?? 0;
+
+  // Determine if this is a meaningful status change
+  const statusChanged = newStatus !== prevStatus && newStatus !== "PENDING";
+  const resolved      = ["SL_HIT", "TP2_HIT"].includes(newStatus);
+  const alertStatuses = ["SL_HIT", "TP1_HIT", "TP2_HIT"];
+  let telegramSent    = false;
+
+  // If status changed to an alert-worthy state AND telegram enabled → auto-send
+  if (statusChanged && alertStatuses.includes(newStatus)) {
+    const token  = db.config.telegramToken;
+    const chatId = db.config.telegramChatId;
+    if (token && chatId && db.config.telegramEnabled) {
+      // Build and send the alert
+      const cur  = existing.market === "INDIAN_EQUITY" ? "₹" : "$";
+      const fmt  = (n: number) => `${cur}${Math.abs(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      const emoji = newStatus === "SL_HIT" ? "❌" : newStatus === "TP1_HIT" ? "✅" : "🎯";
+      const verdict =
+        newStatus === "SL_HIT"  ? "⛔ Stop Loss Hit — Exit immediately." :
+        newStatus === "TP1_HIT" ? "✅ Target 1 Reached — Book 50% profit, move SL to entry (risk-free)." :
+                                  "🎯 Target 2 Reached — Book full profit!";
+      const rr   = existing.entryPrice && existing.sl && existing.tp1
+                   ? Math.abs(existing.tp1 - existing.entryPrice) / Math.abs(existing.entryPrice - existing.sl)
+                   : 0;
+      const msg  = `
+${emoji} <b>TRADE ALERT — ${newStatus.replace("_"," ")}</b> ${emoji}
+━━━━━━━━━━━━━━━━━━━━━
+
+📌 <b>Symbol:</b> <code>${existing.symbol}</code> (${existing.market.replace("_"," ")})
+${existing.side === "LONG" ? "📈" : "📉"} <b>Direction:</b> <b>${existing.side}</b>
+
+━━━━━━━━━━━━━━━━━━━━━
+💰 <b>PRICE LEVELS</b>
+━━━━━━━━━━━━━━━━━━━━━
+🟢 <b>Entry:</b>     <code>${fmt(existing.entryPrice)}</code>
+🔴 <b>Stop Loss:</b> <code>${fmt(existing.sl)}</code>
+🎯 <b>TP1:</b>       <code>${fmt(existing.tp1)}</code>${existing.tp2 ? `\n🎯 <b>TP2:</b>       <code>${fmt(existing.tp2)}</code>` : ""}
+📊 <b>Exit Price:</b><code>${fmt(curPrice)}</code>
+📦 <b>Qty:</b>       <code>${existing.quantity}</code>
+
+━━━━━━━━━━━━━━━━━━━━━
+📈 <b>TRADE RESULT</b>
+━━━━━━━━━━━━━━━━━━━━━
+💵 <b>P&amp;L:</b>         <code>${pnl >= 0 ? "+" : "−"}${fmt(pnl)}</code>
+📉 <b>P&amp;L %:</b>       <code>${pnl >= 0 ? "+" : ""}${pnlPct.toFixed(2)}%</code>
+⚖️ <b>Risk:Reward:</b> <code>1 : ${rr.toFixed(2)}</code>
+🏷 <b>Status:</b>     <b>${newStatus.replace(/_/g," ")}</b>
+
+━━━━━━━━━━━━━━━━━━━━━
+📋 <b>VERDICT</b>
+${verdict}${existing.notes ? `\n\n📝 <i>${existing.notes}</i>` : ""}
+
+━━━━━━━━━━━━━━━━━━━━━
+🤖 <i>CryptoScanner Auto Trade Journal</i>
+`.trim();
+      const result = await sendTelegramNotification(token, chatId, msg);
+      telegramSent = result.success;
+    }
+  }
+
+  // Append history entry
+  const historyEntry: TradeHistoryEntry = {
+    timestamp:    new Date().toISOString(),
+    status:       newStatus,
+    price:        curPrice,
+    pnl,
+    pnlPct,
+    telegramSent,
+    note: statusChanged
+      ? `Status changed: ${prevStatus} → ${newStatus}${telegramSent ? " · ✅ Telegram sent" : ""}`
+      : `Price update (${newStatus})`,
+  };
+
+  // Merge update
+  const updated: TradeRecord = {
+    ...existing,
+    currentPrice: curPrice,
+    status:       newStatus,
+    pnl,
+    pnlPct,
+    lastUpdated:  new Date().toISOString(),
+    isResolved:   resolved || existing.isResolved,
+    resolvedAt:   resolved && !existing.isResolved ? new Date().toISOString() : existing.resolvedAt,
+    resolvedStatus: resolved && !existing.isResolved ? newStatus : existing.resolvedStatus,
+    history:      [...(existing.history || []), historyEntry],
+  };
+
+  db.trades[idx] = updated;
+  writeDB(db);
+  res.json({ success: true, trade: updated, telegramSent, statusChanged });
+});
+
+// DELETE one trade
+app.delete("/api/trades/:id", (req, res) => {
+  const db = readDB();
+  if (!db.trades) db.trades = [];
+  const before = db.trades.length;
+  db.trades = db.trades.filter(t => t.id !== req.params.id);
+  writeDB(db);
+  res.json({ success: true, removed: before - db.trades.length });
+});
+
+// DELETE all resolved/completed trades (cleanup)
+app.delete("/api/trades/resolved/all", (req, res) => {
+  const db = readDB();
+  if (!db.trades) db.trades = [];
+  const before = db.trades.length;
+  db.trades = db.trades.filter(t => !t.isResolved);
+  writeDB(db);
+  res.json({ success: true, removed: before - db.trades.length });
+});
+
+
 
 // ATR-Based Dynamic Stop Loss & Targets (1.2×ATR stop, professional scalp R ratios)
 function calculateRiskManagement(
