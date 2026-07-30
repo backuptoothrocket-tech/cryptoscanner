@@ -198,42 +198,49 @@ export default function App() {
       </header>
 
       {/* ── LIVE MARQUEE TICKER ── */}
-      <div className="h-7 shrink-0 overflow-hidden flex items-center border-b border-white/[0.04] bg-black/50 text-[10px] font-mono select-none z-30">
-        <div className="px-3 py-1 bg-cyan-500/10 text-cyan-400 font-bold shrink-0 border-r border-cyan-500/20 z-10 flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
-          LIVE FEEDS
+      <div className="h-8 shrink-0 overflow-hidden flex items-center border-b text-[10px] font-mono select-none z-30"
+        style={{ background: "#05070c", borderColor: "rgba(255,255,255,0.08)" }}>
+        {/* Solid dark badge with zero bleed-through */}
+        <div className="px-3.5 h-full flex items-center gap-2 font-bold shrink-0 z-20 shadow-lg"
+          style={{ background: "#0a0e17", color: "#06b6d4", borderRight: "1px solid rgba(6,182,212,0.3)" }}>
+          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping shrink-0" />
+          <span className="tracking-wider">LIVE FEEDS</span>
         </div>
-        <div className="flex gap-6 whitespace-nowrap animate-marquee">
-          {[
-            { s: "GOLD (XAUUSD)", p: "$2,385.40", c: "+0.84%", pos: true },
-            { s: "RELIANCE.NS", p: "₹1,278.00", c: "+1.25%", pos: true },
-            { s: "BTC/USDT", p: "$65,420.00", c: "+2.40%", pos: true },
-            { s: "EUR/USD", p: "1.0850", c: "+0.12%", pos: true },
-            { s: "NIFTY 50", p: "₹24,850.00", c: "+0.45%", pos: true },
-            { s: "ETH/USDT", p: "$3,450.00", c: "+1.95%", pos: true },
-            { s: "TATAMOTORS", p: "₹994.50", c: "+1.80%", pos: true },
-            { s: "SOL/USDT", p: "$178.50", c: "+5.12%", pos: true },
-            { s: "CRUDE OIL", p: "$78.20", c: "-0.45%", pos: false },
-            { s: "GBP/USD", p: "1.2950", c: "+0.18%", pos: true },
-          ].concat([
-            { s: "GOLD (XAUUSD)", p: "$2,385.40", c: "+0.84%", pos: true },
-            { s: "RELIANCE.NS", p: "₹1,278.00", c: "+1.25%", pos: true },
-            { s: "BTC/USDT", p: "$65,420.00", c: "+2.40%", pos: true },
-            { s: "EUR/USD", p: "1.0850", c: "+0.12%", pos: true },
-            { s: "NIFTY 50", p: "₹24,850.00", c: "+0.45%", pos: true },
-            { s: "ETH/USDT", p: "$3,450.00", c: "+1.95%", pos: true },
-            { s: "TATAMOTORS", p: "₹994.50", c: "+1.80%", pos: true },
-            { s: "SOL/USDT", p: "$178.50", c: "+5.12%", pos: true },
-            { s: "CRUDE OIL", p: "$78.20", c: "-0.45%", pos: false },
-            { s: "GBP/USD", p: "1.2950", c: "+0.18%", pos: true },
-          ]).map((t, i) => (
-            <span key={i} className="flex items-center gap-1.5">
-              <span className="text-slate-300 font-bold">{t.s}</span>
-              <span className="text-white font-mono">{t.p}</span>
-              <span className={t.pos ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>{t.c}</span>
-              <span className="text-slate-800">|</span>
-            </span>
-          ))}
+
+        {/* Scrolling text container */}
+        <div className="flex-1 overflow-hidden flex items-center py-1">
+          <div className="flex gap-6 whitespace-nowrap animate-marquee">
+            {[
+              { s: "GOLD (XAUUSD)", p: "$2,385.40", c: "+0.84%", pos: true },
+              { s: "RELIANCE.NS", p: "₹1,278.00", c: "+1.25%", pos: true },
+              { s: "BTC/USDT", p: "$65,420.00", c: "+2.40%", pos: true },
+              { s: "EUR/USD", p: "1.0850", c: "+0.12%", pos: true },
+              { s: "NIFTY 50", p: "₹24,850.00", c: "+0.45%", pos: true },
+              { s: "ETH/USDT", p: "$3,450.00", c: "+1.95%", pos: true },
+              { s: "TATAMOTORS", p: "₹994.50", c: "+1.80%", pos: true },
+              { s: "SOL/USDT", p: "$178.50", c: "+5.12%", pos: true },
+              { s: "CRUDE OIL", p: "$78.20", c: "-0.45%", pos: false },
+              { s: "GBP/USD", p: "1.2950", c: "+0.18%", pos: true },
+            ].concat([
+              { s: "GOLD (XAUUSD)", p: "$2,385.40", c: "+0.84%", pos: true },
+              { s: "RELIANCE.NS", p: "₹1,278.00", c: "+1.25%", pos: true },
+              { s: "BTC/USDT", p: "$65,420.00", c: "+2.40%", pos: true },
+              { s: "EUR/USD", p: "1.0850", c: "+0.12%", pos: true },
+              { s: "NIFTY 50", p: "₹24,850.00", c: "+0.45%", pos: true },
+              { s: "ETH/USDT", p: "$3,450.00", c: "+1.95%", pos: true },
+              { s: "TATAMOTORS", p: "₹994.50", c: "+1.80%", pos: true },
+              { s: "SOL/USDT", p: "$178.50", c: "+5.12%", pos: true },
+              { s: "CRUDE OIL", p: "$78.20", c: "-0.45%", pos: false },
+              { s: "GBP/USD", p: "1.2950", c: "+0.18%", pos: true },
+            ]).map((t, i) => (
+              <span key={i} className="flex items-center gap-1.5">
+                <span className="text-slate-300 font-bold">{t.s}</span>
+                <span className="text-white font-mono font-bold">{t.p}</span>
+                <span className={t.pos ? "text-emerald-400 font-bold" : "text-red-400 font-bold"}>{t.c}</span>
+                <span className="text-slate-700 ml-2">|</span>
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 
