@@ -1087,7 +1087,7 @@ ${existing.side === "LONG" ? "📈" : "📉"} <b>Direction:</b> <b>${existing.si
 ${verdict}${existing.notes ? `\n\n📝 <i>${existing.notes}</i>` : ""}
 
 ━━━━━━━━━━━━━━━━━━━━━
-🤖 <i>CryptoScanner Auto Trade Journal</i>
+🤖 <i>ApexSMC AI Auto Trade Journal</i>
 `.trim();
       const result = await sendTelegramNotification(token, chatId, msg);
       telegramSent = result.success;
@@ -1336,7 +1336,7 @@ ${trade.side === "LONG" ? "📈" : "📉"} <b>Direction:</b> <b>${trade.side}</b
 📋 <b>VERDICT</b>
 ${verdict}
 
-🤖 <i>CryptoScanner 24/7 Auto Journal Monitor</i>
+🤖 <i>ApexSMC AI 24/7 Auto Journal Monitor</i>
 `.trim();
 
             const resVal = await sendTelegramNotification(token, chatId, msg);
@@ -2239,7 +2239,7 @@ ${sideEmoji} <b>Direction:</b> <b>${side}</b>
 ${verdict}${notes ? `\n\n📝 <i>${notes}</i>` : ""}
 
 ━━━━━━━━━━━━━━━━━━━━━
-🤖 <i>CryptoScanner Trade Monitor</i>
+🤖 <i>ApexSMC AI Trade Monitor</i>
 `.trim();
 
   const result = await sendTelegramNotification(token, chatId, message);
@@ -2343,13 +2343,13 @@ async function parseTelegramBotUpdates() {
           `⏳ <b>Unrealized P&amp;L:</b>  <code>${sign(unrealized)}${fmt(unrealized)}</code> (${open.length} open)\n\n` +
           `🏆 <b>Win Rate:</b>        <code>${winRate}%</code> (${winners}W / ${losers}L)\n` +
           `📊 <b>Total Trades:</b>    <code>${trades.length}</code>\n\n` +
-          `━━━━━━━━━━━━━━━━━━━━━\n🤖 <i>CryptoScanner Auto Journal</i>`
+          `━━━━━━━━━━━━━━━━━━━━━\n🤖 <i>ApexSMC AI Auto Journal</i>`
         );
 
       // ── /help command ─────────────────────────────────────────────────────
       } else if (text.toLowerCase() === "/help" || text.toLowerCase() === "/start") {
         await sendTelegramNotification(token, chatId,
-          `🤖 <b>CryptoScanner Bot — Commands</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n` +
+          `🤖 <b>ApexSMC AI Bot — Commands</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n` +
           `📝 <b>Log a trade:</b>\n<code>/trade SYMBOL LONG/SHORT ENTRY SL:xxx TP1:xxx TP2:xxx QTY:xxx</code>\n\n` +
           `📊 <b>View open trades:</b>\n<code>/status</code> or <code>/trades</code>\n\n` +
           `💰 <b>View P&amp;L account:</b>\n<code>/pnl</code> or <code>/account</code>\n\n` +

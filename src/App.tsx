@@ -106,12 +106,12 @@ export default function App() {
             <TrendingUp className="w-4 h-4 text-cyan-400" />
           </div>
           <div>
-            <h1 className="text-sm font-bold text-white tracking-tight leading-none">AI Scalp Scanner</h1>
-            <p className="text-[10px] text-slate-500 leading-none mt-0.5">Scalping & Day Trading Confluence Engine</p>
+            <h1 className="text-sm font-bold text-white tracking-tight leading-none">ApexSMC AI</h1>
+            <p className="text-[10px] text-slate-500 leading-none mt-0.5">Smart Money Multi-Asset Intelligence Engine</p>
           </div>
           <span className="ml-1 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded"
             style={{ background: "rgba(6,182,212,0.1)", color: "#06b6d4", border: "1px solid rgba(6,182,212,0.2)" }}>
-            v2.0
+            PRO v3.0
           </span>
         </div>
 
@@ -325,7 +325,7 @@ export default function App() {
             Confluence filters online
           </span>
           <span className="text-[10px] font-mono text-slate-700">
-            {new Date().getFullYear()} AI Scalp Trade Crypto Scanner
+            {new Date().getFullYear()} ApexSMC AI — Smart Money Multi-Asset Intelligence Engine
           </span>
         </div>
         <div className="flex items-center gap-3">

@@ -867,7 +867,7 @@ ${verdict}${existing.notes ? `
 \u{1F4DD} <i>${existing.notes}</i>` : ""}
 
 \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
-\u{1F916} <i>CryptoScanner Auto Trade Journal</i>
+\u{1F916} <i>ApexSMC AI Auto Trade Journal</i>
 `.trim();
       const result = await sendTelegramNotification(token, chatId, msg);
       telegramSent = result.success;
@@ -1063,7 +1063,7 @@ ${trade.side === "LONG" ? "\u{1F4C8}" : "\u{1F4C9}"} <b>Direction:</b> <b>${trad
 \u{1F4CB} <b>VERDICT</b>
 ${verdict}
 
-\u{1F916} <i>CryptoScanner 24/7 Auto Journal Monitor</i>
+\u{1F916} <i>ApexSMC AI 24/7 Auto Journal Monitor</i>
 `.trim();
             const resVal = await sendTelegramNotification(token, chatId, msg);
             telegramSent = resVal.success;
@@ -1818,7 +1818,7 @@ ${verdict}${notes ? `
 \u{1F4DD} <i>${notes}</i>` : ""}
 
 \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
-\u{1F916} <i>CryptoScanner Trade Monitor</i>
+\u{1F916} <i>ApexSMC AI Trade Monitor</i>
 `.trim();
   const result = await sendTelegramNotification(token, chatId, message);
   if (result.success) {
@@ -1921,13 +1921,13 @@ Send <code>/pnl</code> for full account summary.`);
 \u{1F4CA} <b>Total Trades:</b>    <code>${trades.length}</code>
 
 \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
-\u{1F916} <i>CryptoScanner Auto Journal</i>`
+\u{1F916} <i>ApexSMC AI Auto Journal</i>`
         );
       } else if (text.toLowerCase() === "/help" || text.toLowerCase() === "/start") {
         await sendTelegramNotification(
           token,
           chatId,
-          `\u{1F916} <b>CryptoScanner Bot \u2014 Commands</b>
+          `\u{1F916} <b>ApexSMC AI Bot \u2014 Commands</b>
 \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
 
 \u{1F4DD} <b>Log a trade:</b>
