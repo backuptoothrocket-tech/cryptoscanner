@@ -370,25 +370,30 @@ function TradeCard({ trade, onDelete, onNavigateSMC }: {
   );
 }
 
-// ─── Summary Stats ────────────────────────────────────────────────────────────
+// ─── Signal Accuracy Stats ────────────────────────────────────────────────────
 function SummaryStats({ trades }: { trades: Trade[] }) {
-  const totalPnl = trades.reduce((s, t) => s + (t.pnl || 0), 0);
-  const winners  = trades.filter(t => t.status === "TP1_HIT" || t.status === "TP2_HIT").length;
-  const losers   = trades.filter(t => t.status === "SL_HIT").length;
-  const holding  = trades.filter(t => !t.isResolved).length;
-  const winRate  = (winners + losers) > 0 ? Math.round((winners / (winners + losers)) * 100) : null;
+  const resolved  = trades.filter(t => t.isResolved);
+  const winners   = trades.filter(t => t.resolvedStatus === "TP1_HIT" || t.resolvedStatus === "TP2_HIT" || t.status === "TP1_HIT" || t.status === "TP2_HIT").length;
+  const losers    = trades.filter(t => t.resolvedStatus === "SL_HIT" || t.status === "SL_HIT").length;
+  const holding   = trades.filter(t => !t.isResolved).length;
+  const winRate   = (winners + losers) > 0 ? Math.round((winners / (winners + losers)) * 100) : null;
+  const totalPnl  = trades.reduce((s, t) => s + (t.pnl || 0), 0);
+  const avgRR     = resolved.filter(t => t.entryPrice && t.sl && t.tp1).map(t => Math.abs(t.tp1 - t.entryPrice) / Math.abs(t.entryPrice - t.sl));
+  const avgRRVal  = avgRR.length > 0 ? (avgRR.reduce((a,b) => a+b, 0) / avgRR.length).toFixed(2) : null;
+  const rateColor = winRate !== null ? (winRate >= 60 ? "#10b981" : winRate >= 40 ? "#f59e0b" : "#ef4444") : "#64748b";
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
       {[
-        { label: "Total P&L",       val: (totalPnl >= 0 ? "+" : "") + totalPnl.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }), color: totalPnl >= 0 ? "#10b981" : "#ef4444", icon: "💰" },
-        { label: "Win Rate",        val: winRate !== null ? `${winRate}%` : "—", color: winRate !== null ? (winRate >= 60 ? "#10b981" : winRate >= 40 ? "#f59e0b" : "#ef4444") : "#64748b", icon: "🏆" },
-        { label: "Open Trades",     val: String(holding), color: "#06b6d4", icon: "📊" },
-        { label: "TP Hit / SL Hit", val: `${winners} / ${losers}`, color: "#94a3b8", icon: "🎯" },
+        { label: "App Signal Accuracy", val: winRate !== null ? `${winRate}%` : "—", color: rateColor, icon: "🎯", sub: `${winners} correct / ${losers} wrong` },
+        { label: "Signals Profit/Loss", val: `${winners} TP / ${losers} SL`,         color: "#94a3b8",  icon: "📊", sub: `${holding} still monitoring` },
+        { label: "Avg Risk:Reward",     val: avgRRVal ? `1 : ${avgRRVal}` : "—",     color: "#06b6d4",  icon: "⚖️", sub: "From resolved signals" },
+        { label: "Est. P&L if taken",   val: (totalPnl >= 0 ? "+" : "") + totalPnl.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }), color: totalPnl >= 0 ? "#10b981" : "#ef4444", icon: "💰", sub: "Theoretical" },
       ].map(s => (
-        <div key={s.label} className="rounded-xl p-4 text-center" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+        <div key={s.label} className="rounded-xl p-3 text-center" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
           <div className="text-xl mb-1">{s.icon}</div>
-          <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">{s.label}</div>
-          <div className="text-base font-black font-mono" style={{ color: s.color }}>{s.val}</div>
+          <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-1">{s.label}</div>
+          <div className="text-sm font-black font-mono" style={{ color: s.color }}>{s.val}</div>
+          <div className="text-[9px] text-slate-600 mt-0.5">{s.sub}</div>
         </div>
       ))}
     </div>
@@ -555,12 +560,12 @@ export default function TradeJournal({ onNavigateToSMC }: Props) {
             <BookOpen className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-white">Trade Journal — Auto-Record &amp; Monitor</h2>
-            <p className="text-[10px] text-slate-500">Server-persisted · 24/7 Auto Monitoring · Telegram SL/TP Alerts · Full History</p>
+            <h2 className="text-sm font-bold text-white">Signal Performance Tracker</h2>
+            <p className="text-[10px] text-slate-500">Auto-records every trade the app sends to Telegram · Tracks if it was a WIN or LOSS · No manual input needed</p>
           </div>
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/10 border border-green-500/20">
             <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-            <span className="text-[10px] font-bold text-green-400">24/7 SERVER MONITOR</span>
+            <span className="text-[10px] font-bold text-green-400">AUTO TRACKING LIVE</span>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -578,8 +583,8 @@ export default function TradeJournal({ onNavigateToSMC }: Props) {
               <Download className="w-3 h-3" /> Export CSV
             </button>
           )}
-          <button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer hover:scale-105 transition-all" style={{ background: "linear-gradient(135deg,#06b6d4,#3b82f6)", color: "white" }}>
-            <PlusCircle className="w-3.5 h-3.5" /> Add Trade
+          <button onClick={() => setShowForm(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer hover:scale-105 transition-all" style={{ background: "rgba(255,255,255,0.05)", color: "#64748b", border: "1px solid rgba(255,255,255,0.08)" }}>
+            <PlusCircle className="w-3.5 h-3.5" /> Manual Add
           </button>
         </div>
       </div>
@@ -617,13 +622,14 @@ export default function TradeJournal({ onNavigateToSMC }: Props) {
         </div>
       )}
 
-      {/* ── Auto-alert notice ── */}
-      <div className="rounded-xl px-4 py-2.5 flex items-start gap-2.5 text-[10px]" style={{ background: "rgba(37,211,102,0.06)", border: "1px solid rgba(37,211,102,0.15)", color: "#25d366" }}>
-        <Send className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+      {/* ── How it works notice ── */}
+      <div className="rounded-xl px-4 py-3 flex items-start gap-2.5 text-[10px]" style={{ background: "rgba(6,182,212,0.06)", border: "1px solid rgba(6,182,212,0.15)", color: "#06b6d4" }}>
+        <Target className="w-3.5 h-3.5 shrink-0 mt-0.5" />
         <span>
-          <strong>24/7 Auto-Journal is ACTIVE</strong> — Every trade sent via Telegram bot is <strong>automatically recorded</strong> in this journal.
-          The server monitors SL &amp; TP every 30s and <strong>fires a Telegram alert</strong> the moment the price crosses SL or TP.
-          P&amp;L is computed and updated live. Records persist forever even when your browser is closed.
+          <strong>100% Automatic — Zero manual entry needed.</strong>{" "}
+          Every time the app's scanner sends a trade signal to your Telegram, it is <strong>automatically logged here</strong>.
+          The server then monitors that signal 24/7 and records if it was a <strong className="text-emerald-400">WIN (TP hit)</strong> or <strong className="text-red-400">LOSS (SL hit)</strong>.
+          This shows you exactly <strong>how accurate the app's signals are</strong> — profit or loss.
         </span>
       </div>
 
@@ -648,19 +654,22 @@ export default function TradeJournal({ onNavigateToSMC }: Props) {
         {displayed.length === 0 && trades.length === 0 ? (
           <div className="rounded-2xl flex flex-col items-center justify-center py-20 gap-5" style={{ background: "rgba(10,13,20,0.6)", border: "1px dashed rgba(6,182,212,0.15)" }}>
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: "rgba(6,182,212,0.08)", border: "1px solid rgba(6,182,212,0.15)" }}>
-              <BookOpen className="w-8 h-8 text-cyan-400/40" />
+              <Target className="w-8 h-8 text-cyan-400/40" />
             </div>
-            <div className="text-center space-y-2">
-              <p className="text-slate-300 font-bold text-sm">Trade Journal is Empty</p>
-              <p className="text-slate-600 text-xs max-w-xs mx-auto">
-                Add any trade you've taken. The app monitors it <strong className="text-slate-400">live every 30 seconds</strong>,
-                keeps a full history log, and sends you a <span className="text-green-400">📨 Telegram alert</span> the moment
-                <span className="text-red-400"> SL</span> or <span className="text-emerald-400"> TP</span> is hit.
+            <div className="text-center space-y-3 max-w-sm">
+              <p className="text-slate-200 font-bold text-sm">No Signal Logs Yet</p>
+              <p className="text-slate-500 text-xs leading-relaxed">
+                This tracker is <strong className="text-cyan-400">fully automatic</strong>.
+                Once the app scanner sends trade signals to your Telegram,
+                they will appear here automatically — no action needed from you.
               </p>
+              <div className="rounded-xl p-3 text-left space-y-1.5" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                <p className="text-[10px] text-slate-400 font-bold">How to get signals:</p>
+                <p className="text-[10px] text-slate-500">1. Go to <strong className="text-white">Config</strong> → enable Telegram + set your bot token &amp; chat ID</p>
+                <p className="text-[10px] text-slate-500">2. Go to <strong className="text-white">Daemon</strong> → start the scanner on symbols you want to track</p>
+                <p className="text-[10px] text-slate-500">3. When a signal fires → it appears here automatically ✅</p>
+              </div>
             </div>
-            <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold cursor-pointer hover:scale-105 transition-all" style={{ background: "linear-gradient(135deg,#06b6d4,#3b82f6)", color: "white" }}>
-              <PlusCircle className="w-4 h-4" /> Add Your First Trade
-            </button>
           </div>
         ) : displayed.length === 0 ? (
           <div className="text-center py-10 text-slate-600 text-sm">No {filter.toLowerCase()} trades.</div>
@@ -671,7 +680,7 @@ export default function TradeJournal({ onNavigateToSMC }: Props) {
 
       {trades.length > 0 && (
         <p className="text-[9px] text-slate-700 text-center pb-2">
-          All trades saved on server · History logged on every status change · Click a trade row to expand full report, history &amp; send to Telegram
+          All signals auto-saved · App accuracy tracked 24/7 · Click any row to expand full report &amp; history log
         </p>
       )}
     </div>
