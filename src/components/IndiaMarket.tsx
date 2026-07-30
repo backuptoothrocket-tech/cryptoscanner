@@ -135,7 +135,7 @@ function StockTable({ stocks, onAnalyze, loading, emptyMsg }: {
                   <td className="px-3 py-2.5 text-[11px] text-red-400/70 font-mono">{fmtPrice(s.low)}</td>
                   <td className="px-3 py-2.5">
                     <button onClick={() => onAnalyze(s)}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer opacity-0 group-hover:opacity-100"
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer opacity-100 md:opacity-0 md:group-hover:opacity-100"
                       style={{ background: "rgba(6,182,212,0.12)", color: "#06b6d4", border: "1px solid rgba(6,182,212,0.2)" }}>
                       <Target className="w-3 h-3" /> Analyze
                     </button>

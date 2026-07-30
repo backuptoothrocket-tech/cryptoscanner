@@ -195,18 +195,18 @@ export default function App() {
         </aside>
 
         {/* ── MAIN CONTENT ── */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6 space-y-5">
+        <main className="flex-1 overflow-y-auto p-3.5 sm:p-5 lg:p-6 pb-20 md:pb-6 space-y-5">
 
-          {/* Mobile nav tabs */}
-          <div className="flex md:hidden gap-1 overflow-x-auto pb-1">
+          {/* Mobile top scrollable sub-nav */}
+          <div className="flex md:hidden gap-1.5 overflow-x-auto pb-1.5 scrollbar-none">
             {NAV_ITEMS.map(item => (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold shrink-0 cursor-pointer transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 cursor-pointer transition-all ${
                   activeTab === item.id
-                    ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
-                    : "text-slate-500 hover:text-slate-300"
+                    ? "bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 shadow-sm"
+                    : "text-slate-500 hover:text-slate-300 bg-white/[0.02]"
                 }`}
               >
                 <item.icon className="w-3.5 h-3.5" />
@@ -336,6 +336,23 @@ export default function App() {
           <span className="text-[10px] font-mono text-slate-600">Binance Spot Feed</span>
         </div>
       </footer>
+
+      {/* ── MOBILE BOTTOM NATIVE TAB BAR ── */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 px-2 py-1 flex items-center justify-around"
+        style={{ background: "rgba(8,11,18,0.96)", backdropFilter: "blur(16px)", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+        {NAV_ITEMS.slice(0, 5).map(item => {
+          const active = activeTab === item.id;
+          const Icon = item.icon;
+          return (
+            <button key={item.id} onClick={() => setActiveTab(item.id)}
+              className="flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all cursor-pointer"
+              style={active ? { color: "#06b6d4" } : { color: "#64748b" }}>
+              <Icon className={`w-4 h-4 ${active ? "text-cyan-400 scale-110" : ""}`} />
+              <span className="text-[9px] font-bold mt-0.5 whitespace-nowrap">{item.label.split(" ")[0]}</span>
+            </button>
+          );
+        })}
+      </nav>
 
     </div>
   );
