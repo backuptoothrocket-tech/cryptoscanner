@@ -1417,6 +1417,80 @@ Ready to receive high-confluence swing setup alerts!`;
     res.status(400).json({ success: false, error: responseVal.error });
   }
 });
+app.post("/api/telegram/send-trade", async (req, res) => {
+  const db = readDB();
+  const { token: reqToken, chatId: reqChatId } = req.body;
+  const token = (reqToken || db.config.telegramToken || "").trim();
+  const chatId = (reqChatId || db.config.telegramChatId || "").trim();
+  if (!token || !chatId) {
+    return res.status(400).json({ success: false, error: "Telegram Bot Token and Chat ID are required. Please set them in Config \u2192 Telegram." });
+  }
+  const {
+    symbol,
+    side,
+    market,
+    entryPrice,
+    quantity,
+    sl,
+    tp1,
+    tp2,
+    currentPrice,
+    status,
+    pnl,
+    pnlPct,
+    notes,
+    entryDate,
+    rr
+  } = req.body;
+  const sideEmoji = side === "LONG" ? "\u{1F4C8}" : "\u{1F4C9}";
+  const statusEmoji = status === "SL_HIT" ? "\u274C" : status === "TP1_HIT" ? "\u2705" : status === "TP2_HIT" ? "\u{1F3AF}" : status === "HOLDING" ? "\u23F3" : status === "BREAKEVEN" ? "\u2696\uFE0F" : "\u{1F504}";
+  const pnlSign = (pnl || 0) >= 0 ? "+" : "\u2212";
+  const cur = market === "INDIAN_EQUITY" ? "\u20B9" : "$";
+  const fmt = (n) => `${cur}${Math.abs(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const fmtPct = (n) => `${n >= 0 ? "+" : ""}${(n || 0).toFixed(2)}%`;
+  const verdict = status === "SL_HIT" ? "\u26D4 Stop Loss Hit \u2014 Exit immediately if not already done. Review your trade plan." : status === "TP1_HIT" ? "\u2705 Target 1 Reached \u2014 Consider booking 50% and moving SL to Entry (risk-free)." : status === "TP2_HIT" ? "\u{1F3AF} Target 2 Reached \u2014 Full profit achieved! Book position and celebrate." : status === "BREAKEVEN" ? "\u2696\uFE0F Price at Entry \u2014 Move SL to Entry for a risk-free trade." : status === "HOLDING" ? "\u23F3 Trade Active \u2014 Hold your position. Do NOT widen SL." : "\u{1F504} Monitoring position\u2026";
+  const message = `
+${statusEmoji} <b>TRADE JOURNAL ALERT</b> ${statusEmoji}
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+
+\u{1F4CC} <b>Symbol:</b> <code>${symbol}</code> (${market.replace("_", " ")})
+${sideEmoji} <b>Direction:</b> <b>${side}</b>
+\u{1F4C5} <b>Entry Date:</b> ${entryDate ? new Date(entryDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "\u2014"}
+
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u{1F4B0} <b>PRICE LEVELS</b>
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u{1F7E2} <b>Entry Price:</b>   <code>${fmt(entryPrice)}</code>
+\u{1F534} <b>Stop Loss:</b>    <code>${fmt(sl)}</code>
+\u{1F3AF} <b>Target 1:</b>     <code>${fmt(tp1)}</code>${tp2 ? `
+\u{1F3AF} <b>Target 2:</b>     <code>${fmt(tp2)}</code>` : ""}
+\u{1F4CA} <b>Current Price:</b> <code>${currentPrice != null ? fmt(currentPrice) : "Fetching\u2026"}</code>
+\u{1F4E6} <b>Quantity:</b>     <code>${quantity}</code> shares/lots
+
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u{1F4C8} <b>LIVE P&amp;L</b>
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u{1F4B5} <b>P&amp;L:</b>       <code>${pnl != null ? `${pnlSign}${fmt(pnl)}` : "\u2014"}</code>
+\u{1F4C9} <b>P&amp;L %:</b>     <code>${pnlPct != null ? fmtPct(pnlPct) : "\u2014"}</code>
+\u2696\uFE0F <b>Risk:Reward:</b> <code>1 : ${rr ? Number(rr).toFixed(2) : "\u2014"}</code>
+\u{1F3F7} <b>Status:</b>      <b>${status?.replace("_", " ")}</b>
+
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u{1F4CB} <b>VERDICT</b>
+${verdict}${notes ? `
+
+\u{1F4DD} <i>${notes}</i>` : ""}
+
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u{1F916} <i>CryptoScanner Trade Monitor</i>
+`.trim();
+  const result = await sendTelegramNotification(token, chatId, message);
+  if (result.success) {
+    res.json({ success: true, message: "Trade report sent to Telegram!" });
+  } else {
+    res.status(400).json({ success: false, error: result.error });
+  }
+});
 var pollingLogs = [];
 var totalScansCount = 0;
 var alertsMatchedCount = 0;

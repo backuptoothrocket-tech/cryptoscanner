@@ -1716,7 +1716,91 @@ Ready to receive high-confluence swing setup alerts!`;
   }
 });
 
+// ── TRADE JOURNAL → TELEGRAM ALERT ────────────────────────────────────────────
+app.post("/api/telegram/send-trade", async (req, res) => {
+  const db = readDB();
+  const { token: reqToken, chatId: reqChatId } = req.body;
+
+  // Use request-provided creds or fall back to saved config
+  const token  = (reqToken  || db.config.telegramToken  || "").trim();
+  const chatId = (reqChatId || db.config.telegramChatId || "").trim();
+
+  if (!token || !chatId) {
+    return res.status(400).json({ success: false, error: "Telegram Bot Token and Chat ID are required. Please set them in Config → Telegram." });
+  }
+
+  const {
+    symbol, side, market, entryPrice, quantity,
+    sl, tp1, tp2, currentPrice, status, pnl, pnlPct,
+    notes, entryDate, rr
+  } = req.body;
+
+  // ── Emoji helpers ──
+  const sideEmoji   = side === "LONG" ? "📈" : "📉";
+  const statusEmoji =
+    status === "SL_HIT"    ? "❌" :
+    status === "TP1_HIT"   ? "✅" :
+    status === "TP2_HIT"   ? "🎯" :
+    status === "HOLDING"   ? "⏳" :
+    status === "BREAKEVEN" ? "⚖️" : "🔄";
+  const pnlSign = (pnl || 0) >= 0 ? "+" : "−";
+  const cur     = market === "INDIAN_EQUITY" ? "₹" : "$";
+  const fmt     = (n: number) => `${cur}${Math.abs(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const fmtPct  = (n: number) => `${n >= 0 ? "+" : ""}${(n || 0).toFixed(2)}%`;
+
+  // ── Verdict text ──
+  const verdict =
+    status === "SL_HIT"    ? "⛔ Stop Loss Hit — Exit immediately if not already done. Review your trade plan." :
+    status === "TP1_HIT"   ? "✅ Target 1 Reached — Consider booking 50% and moving SL to Entry (risk-free)." :
+    status === "TP2_HIT"   ? "🎯 Target 2 Reached — Full profit achieved! Book position and celebrate." :
+    status === "BREAKEVEN" ? "⚖️ Price at Entry — Move SL to Entry for a risk-free trade." :
+    status === "HOLDING"   ? "⏳ Trade Active — Hold your position. Do NOT widen SL." :
+                             "🔄 Monitoring position…";
+
+  // ── Build message ──
+  const message = `
+${statusEmoji} <b>TRADE JOURNAL ALERT</b> ${statusEmoji}
+━━━━━━━━━━━━━━━━━━━━━
+
+📌 <b>Symbol:</b> <code>${symbol}</code> (${market.replace("_", " ")})
+${sideEmoji} <b>Direction:</b> <b>${side}</b>
+📅 <b>Entry Date:</b> ${entryDate ? new Date(entryDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+
+━━━━━━━━━━━━━━━━━━━━━
+💰 <b>PRICE LEVELS</b>
+━━━━━━━━━━━━━━━━━━━━━
+🟢 <b>Entry Price:</b>   <code>${fmt(entryPrice)}</code>
+🔴 <b>Stop Loss:</b>    <code>${fmt(sl)}</code>
+🎯 <b>Target 1:</b>     <code>${fmt(tp1)}</code>${tp2 ? `\n🎯 <b>Target 2:</b>     <code>${fmt(tp2)}</code>` : ""}
+📊 <b>Current Price:</b> <code>${currentPrice != null ? fmt(currentPrice) : "Fetching…"}</code>
+📦 <b>Quantity:</b>     <code>${quantity}</code> shares/lots
+
+━━━━━━━━━━━━━━━━━━━━━
+📈 <b>LIVE P&amp;L</b>
+━━━━━━━━━━━━━━━━━━━━━
+💵 <b>P&amp;L:</b>       <code>${pnl != null ? `${pnlSign}${fmt(pnl)}` : "—"}</code>
+📉 <b>P&amp;L %:</b>     <code>${pnlPct != null ? fmtPct(pnlPct) : "—"}</code>
+⚖️ <b>Risk:Reward:</b> <code>1 : ${rr ? Number(rr).toFixed(2) : "—"}</code>
+🏷 <b>Status:</b>      <b>${status?.replace("_", " ")}</b>
+
+━━━━━━━━━━━━━━━━━━━━━
+📋 <b>VERDICT</b>
+${verdict}${notes ? `\n\n📝 <i>${notes}</i>` : ""}
+
+━━━━━━━━━━━━━━━━━━━━━
+🤖 <i>CryptoScanner Trade Monitor</i>
+`.trim();
+
+  const result = await sendTelegramNotification(token, chatId, message);
+  if (result.success) {
+    res.json({ success: true, message: "Trade report sent to Telegram!" });
+  } else {
+    res.status(400).json({ success: false, error: result.error });
+  }
+});
+
 // HEADLESS API POLLING SCANNER DAEMON
+
 interface PollingLog {
   id: string;
   timestamp: string;
