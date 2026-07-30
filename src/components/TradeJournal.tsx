@@ -401,21 +401,43 @@ import { Activity } from "lucide-react";
 // ─── Main Component ───────────────────────────────────────────────────────────
 interface Props { onNavigateToSMC?: (symbol: string) => void; }
 
+interface PnlAccount {
+  totalAccountPnl: number;
+  realizedPnl: number;
+  unrealizedPnl: number;
+  winRatePct: number;
+  totalTrades: number;
+  openTradesCount: number;
+  closedTradesCount: number;
+  winnersCount: number;
+  losersCount: number;
+  holdingCount: number;
+}
+
 export default function TradeJournal({ onNavigateToSMC }: Props) {
   const [trades, setTrades]         = useState<Trade[]>([]);
   const [showForm, setShowForm]     = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [countdown, setCountdown]   = useState(30);
   const [filter, setFilter]         = useState<"OPEN" | "CLOSED" | "ALL">("OPEN");
-  const [autoAlert]                 = useState(true); // always on — controlled by server config
   const [loading, setLoading]       = useState(true);
+  const [pnlAccount, setPnlAccount] = useState<PnlAccount | null>(null);
   const tradesRef = useRef<Trade[]>(trades);
   tradesRef.current = trades;
 
   // ── Load from backend on mount ────────────────────────────────────────────
+  const fetchPnlAccount = useCallback(async () => {
+    try {
+      const r = await fetch("/api/trades/pnl-account");
+      const d = await r.json();
+      setPnlAccount(d);
+    } catch {}
+  }, []);
+
   useEffect(() => {
     apiLoadTrades().then(t => { setTrades(t); setLoading(false); });
-  }, []);
+    fetchPnlAccount();
+  }, [fetchPnlAccount]);
 
   // ── Fetch live price ──────────────────────────────────────────────────────
   const fetchPrice = async (symbol: string, market: Market): Promise<number | null> => {
@@ -520,6 +542,8 @@ export default function TradeJournal({ onNavigateToSMC }: Props) {
     </div>
   );
 
+  const handleRefreshAll = () => { refreshAll(tradesRef.current); fetchPnlAccount(); };
+
   return (
     <div className="space-y-5 animate-fade-slide">
       {showForm && <AddTradeForm onAdd={addTrade} onClose={() => setShowForm(false)} />}
@@ -532,12 +556,16 @@ export default function TradeJournal({ onNavigateToSMC }: Props) {
           </div>
           <div>
             <h2 className="text-sm font-bold text-white">Trade Journal — Auto-Record &amp; Monitor</h2>
-            <p className="text-[10px] text-slate-500">Server-persisted · Auto Telegram alerts · Full history log · Refresh every 30s</p>
+            <p className="text-[10px] text-slate-500">Server-persisted · 24/7 Auto Monitoring · Telegram SL/TP Alerts · Full History</p>
+          </div>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/10 border border-green-500/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+            <span className="text-[10px] font-bold text-green-400">24/7 SERVER MONITOR</span>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-[10px] text-slate-600 flex items-center gap-1"><Clock className="w-3 h-3" />{countdown}s</span>
-          <button onClick={() => refreshAll(tradesRef.current)} disabled={refreshing} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold cursor-pointer" style={{ background: "rgba(255,255,255,0.04)", color: "#64748b", border: "1px solid rgba(255,255,255,0.08)" }}>
+          <button onClick={handleRefreshAll} disabled={refreshing} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold cursor-pointer" style={{ background: "rgba(255,255,255,0.04)", color: "#64748b", border: "1px solid rgba(255,255,255,0.08)" }}>
             <RefreshCw className={`w-3 h-3 ${refreshing ? "animate-spin" : ""}`} />{refreshing ? "Updating…" : "Refresh"}
           </button>
           {closedTrades.length > 0 && (
@@ -556,17 +584,48 @@ export default function TradeJournal({ onNavigateToSMC }: Props) {
         </div>
       </div>
 
-      {/* ── Auto-alert notice ── */}
-      {trades.length > 0 && (
-        <div className="rounded-xl px-4 py-2.5 flex items-start gap-2.5 text-[10px]" style={{ background: "rgba(37,211,102,0.06)", border: "1px solid rgba(37,211,102,0.15)", color: "#25d366" }}>
-          <Send className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-          <span>
-            <strong>Auto-Journal is ON</strong> — Every price update is recorded in each trade's history log.
-            When SL or TP is hit, the server <strong>automatically sends a Telegram alert</strong> and marks the trade as <strong>Closed</strong>.
-            All records persist on the server even if you close the browser.
-          </span>
+      {/* ── P&L Account Dashboard Card ── */}
+      {pnlAccount && (
+        <div className="rounded-2xl p-5" style={{ background: "linear-gradient(135deg, rgba(6,182,212,0.06), rgba(59,130,246,0.06))", border: "1px solid rgba(6,182,212,0.15)" }}>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">📊 P&amp;L Account — Full Summary</div>
+              <div className="text-[9px] text-slate-600">Automatically maintained by 24/7 server monitor · Updates every 30s</div>
+            </div>
+            <div className="text-right">
+              <div className="text-[10px] text-slate-500 uppercase tracking-wider">Net Account P&amp;L</div>
+              <div className={`text-2xl font-black font-mono ${pnlAccount.totalAccountPnl >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                {pnlAccount.totalAccountPnl >= 0 ? "+" : "−"}{Math.abs(pnlAccount.totalAccountPnl).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: "Realized P&L",    val: (pnlAccount.realizedPnl >= 0 ? "+" : "") + pnlAccount.realizedPnl.toFixed(2),   color: pnlAccount.realizedPnl >= 0 ? "#10b981" : "#ef4444",   icon: "✅", sub: `${pnlAccount.closedTradesCount} closed trades` },
+              { label: "Unrealized P&L",  val: (pnlAccount.unrealizedPnl >= 0 ? "+" : "") + pnlAccount.unrealizedPnl.toFixed(2), color: pnlAccount.unrealizedPnl >= 0 ? "#06b6d4" : "#f59e0b",  icon: "⏳", sub: `${pnlAccount.openTradesCount} open trades` },
+              { label: "Win Rate",         val: pnlAccount.winRatePct > 0 ? `${pnlAccount.winRatePct}%` : "—",                  color: pnlAccount.winRatePct >= 60 ? "#10b981" : pnlAccount.winRatePct >= 40 ? "#f59e0b" : "#ef4444", icon: "🏆", sub: `${pnlAccount.winnersCount}W / ${pnlAccount.losersCount}L` },
+              { label: "Holding / Total",  val: `${pnlAccount.holdingCount} / ${pnlAccount.totalTrades}`,                       color: "#94a3b8",                                              icon: "📈", sub: "All time trades" },
+            ].map(s => (
+              <div key={s.label} className="rounded-xl p-3 text-center" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                <div className="text-xl mb-1">{s.icon}</div>
+                <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-1">{s.label}</div>
+                <div className="text-sm font-black font-mono" style={{ color: s.color }}>{s.val}</div>
+                <div className="text-[9px] text-slate-600 mt-0.5">{s.sub}</div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
+
+      {/* ── Auto-alert notice ── */}
+      <div className="rounded-xl px-4 py-2.5 flex items-start gap-2.5 text-[10px]" style={{ background: "rgba(37,211,102,0.06)", border: "1px solid rgba(37,211,102,0.15)", color: "#25d366" }}>
+        <Send className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+        <span>
+          <strong>24/7 Auto-Journal is ACTIVE</strong> — Every trade sent via Telegram bot is <strong>automatically recorded</strong> in this journal.
+          The server monitors SL &amp; TP every 30s and <strong>fires a Telegram alert</strong> the moment the price crosses SL or TP.
+          P&amp;L is computed and updated live. Records persist forever even when your browser is closed.
+        </span>
+      </div>
 
       {/* ── Stats ── */}
       {trades.length > 0 && <SummaryStats trades={trades} />}

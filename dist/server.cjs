@@ -914,6 +914,193 @@ app.delete("/api/trades/resolved/all", (req, res) => {
   writeDB(db);
   res.json({ success: true, removed: before - db.trades.length });
 });
+app.get("/api/trades/pnl-account", (req, res) => {
+  const db = readDB();
+  const trades = db.trades || [];
+  const closedTrades = trades.filter((t) => t.isResolved);
+  const openTrades = trades.filter((t) => !t.isResolved);
+  const realizedPnl = closedTrades.reduce((acc, t) => acc + (t.pnl || 0), 0);
+  const unrealizedPnl = openTrades.reduce((acc, t) => acc + (t.pnl || 0), 0);
+  const totalAccountPnl = realizedPnl + unrealizedPnl;
+  const winners = trades.filter((t) => t.status === "TP1_HIT" || t.status === "TP2_HIT" || t.resolvedStatus === "TP1_HIT" || t.resolvedStatus === "TP2_HIT").length;
+  const losers = trades.filter((t) => t.status === "SL_HIT" || t.resolvedStatus === "SL_HIT").length;
+  const winRate = winners + losers > 0 ? Math.round(winners / (winners + losers) * 100) : 0;
+  res.json({
+    totalAccountPnl,
+    realizedPnl,
+    unrealizedPnl,
+    winRatePct: winRate,
+    totalTrades: trades.length,
+    openTradesCount: openTrades.length,
+    closedTradesCount: closedTrades.length,
+    winnersCount: winners,
+    losersCount: losers,
+    holdingCount: openTrades.filter((t) => t.status === "HOLDING" || t.status === "PENDING" || !t.status).length
+  });
+});
+async function getLivePriceForSymbol(symbol, market) {
+  try {
+    const rawSymb = (symbol || "").toUpperCase().trim();
+    if (market === "CRYPTO" || rawSymb.endsWith("USDT")) {
+      const sym = rawSymb.endsWith("USDT") ? rawSymb : rawSymb + "USDT";
+      const r = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${sym}`);
+      const d = await r.json();
+      return d.price ? parseFloat(d.price) : null;
+    } else {
+      let yahooSymbol = rawSymb;
+      if (market === "INDIAN_EQUITY" && !rawSymb.endsWith(".NS") && !rawSymb.startsWith("^")) {
+        yahooSymbol = `${rawSymb}.NS`;
+      } else if (market === "FOREX" && rawSymb.length === 6 && !rawSymb.endsWith("=X")) {
+        yahooSymbol = `${rawSymb}=X`;
+      }
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=1d&range=2d`;
+      const r = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
+      const d = await r.json();
+      const price = d?.chart?.result?.[0]?.meta?.regularMarketPrice;
+      return price ? parseFloat(price) : null;
+    }
+  } catch {
+    return null;
+  }
+}
+function autoLogTradeFromAlert(tradeData) {
+  const db = readDB();
+  if (!db.trades) db.trades = [];
+  const rawSymb = (tradeData.symbol || "").toUpperCase().trim();
+  if (!rawSymb || !tradeData.entryPrice) return null;
+  const market = tradeData.market || (rawSymb.endsWith(".NS") ? "INDIAN_EQUITY" : rawSymb.endsWith("USDT") ? "CRYPTO" : "FOREX");
+  const existing = db.trades.find((t) => t.symbol === rawSymb && !t.isResolved);
+  if (existing) return existing;
+  const newTrade = {
+    id: `t_auto_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    symbol: rawSymb,
+    market,
+    side: tradeData.side,
+    entryPrice: tradeData.entryPrice,
+    quantity: tradeData.quantity || (market === "INDIAN_EQUITY" ? 10 : 1),
+    sl: tradeData.sl,
+    tp1: tradeData.tp1,
+    tp2: tradeData.tp2 || 0,
+    entryDate: (/* @__PURE__ */ new Date()).toISOString(),
+    notes: tradeData.notes || "Auto-logged from Telegram Bot Signal",
+    isResolved: false,
+    status: "HOLDING",
+    history: [{
+      timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+      status: "HOLDING",
+      price: tradeData.entryPrice,
+      pnl: 0,
+      pnlPct: 0,
+      telegramSent: true,
+      note: "Auto-logged trade signal sent to Telegram \xB7 24/7 server monitoring active"
+    }]
+  };
+  db.trades.push(newTrade);
+  writeDB(db);
+  return newTrade;
+}
+function startTradeMonitorDaemon() {
+  console.log("[Daemon] 24/7 Server Trade Monitor Daemon initialized...");
+  setInterval(async () => {
+    try {
+      const db = readDB();
+      if (!db.trades || db.trades.length === 0) return;
+      const openTrades = db.trades.filter((t) => !t.isResolved);
+      if (openTrades.length === 0) return;
+      let hasChanges = false;
+      for (const trade of openTrades) {
+        const curPrice = await getLivePriceForSymbol(trade.symbol, trade.market);
+        if (!curPrice || curPrice <= 0) continue;
+        const prevStatus = trade.status || "HOLDING";
+        let newStatus = "HOLDING";
+        if (trade.side === "LONG") {
+          if (curPrice <= trade.sl) newStatus = "SL_HIT";
+          else if (trade.tp2 && curPrice >= trade.tp2) newStatus = "TP2_HIT";
+          else if (curPrice >= trade.tp1) newStatus = "TP1_HIT";
+          else if (Math.abs(curPrice - trade.entryPrice) / trade.entryPrice < 1e-3) newStatus = "BREAKEVEN";
+        } else {
+          if (curPrice >= trade.sl) newStatus = "SL_HIT";
+          else if (trade.tp2 && curPrice <= trade.tp2) newStatus = "TP2_HIT";
+          else if (curPrice <= trade.tp1) newStatus = "TP1_HIT";
+          else if (Math.abs(curPrice - trade.entryPrice) / trade.entryPrice < 1e-3) newStatus = "BREAKEVEN";
+        }
+        const pnl = trade.side === "LONG" ? (curPrice - trade.entryPrice) * trade.quantity : (trade.entryPrice - curPrice) * trade.quantity;
+        const pnlPct = pnl / (trade.entryPrice * trade.quantity) * 100;
+        const statusChanged = newStatus !== prevStatus && newStatus !== "PENDING";
+        const isResolved = ["SL_HIT", "TP2_HIT"].includes(newStatus);
+        let telegramSent = false;
+        if (statusChanged && ["SL_HIT", "TP1_HIT", "TP2_HIT"].includes(newStatus)) {
+          const token = db.config.telegramToken;
+          const chatId = db.config.telegramChatId;
+          if (token && chatId && db.config.telegramEnabled) {
+            const curSym = trade.market === "INDIAN_EQUITY" ? "\u20B9" : "$";
+            const fmt = (n) => `${curSym}${Math.abs(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            const emoji = newStatus === "SL_HIT" ? "\u274C" : newStatus === "TP1_HIT" ? "\u2705" : "\u{1F3AF}";
+            const verdict = newStatus === "SL_HIT" ? "\u26D4 Stop Loss Hit \u2014 Position closed." : newStatus === "TP1_HIT" ? "\u2705 Target 1 Reached \u2014 Book 50% profit, move SL to entry." : "\u{1F3AF} Target 2 Reached \u2014 Position closed with full profit.";
+            const msg = `
+${emoji} <b>AUTO TRADE MONITOR ALERT \u2014 ${newStatus.replace("_", " ")}</b> ${emoji}
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+
+\u{1F4CC} <b>Symbol:</b> <code>${trade.symbol}</code> (${trade.market.replace("_", " ")})
+${trade.side === "LONG" ? "\u{1F4C8}" : "\u{1F4C9}"} <b>Direction:</b> <b>${trade.side}</b>
+
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u{1F4B0} <b>PRICE LEVELS</b>
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u{1F7E2} <b>Entry:</b>     <code>${fmt(trade.entryPrice)}</code>
+\u{1F534} <b>Stop Loss:</b> <code>${fmt(trade.sl)}</code>
+\u{1F3AF} <b>Target 1:</b>  <code>${fmt(trade.tp1)}</code>${trade.tp2 ? `
+\u{1F3AF} <b>Target 2:</b>  <code>${fmt(trade.tp2)}</code>` : ""}
+\u{1F4CA} <b>Live Price:</b><code>${fmt(curPrice)}</code>
+
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u{1F4C8} <b>P&amp;L ACCOUNT SUMMARY</b>
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u{1F4B5} <b>Trade P&amp;L:</b> <code>${pnl >= 0 ? "+" : "\u2212"}${fmt(pnl)}</code> (${pnlPct >= 0 ? "+" : ""}${pnlPct.toFixed(2)}%)
+\u{1F3F7} <b>Status:</b>     <b>${newStatus.replace(/_/g, " ")}</b>
+
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u{1F4CB} <b>VERDICT</b>
+${verdict}
+
+\u{1F916} <i>CryptoScanner 24/7 Auto Journal Monitor</i>
+`.trim();
+            const resVal = await sendTelegramNotification(token, chatId, msg);
+            telegramSent = resVal.success;
+          }
+        }
+        trade.currentPrice = curPrice;
+        trade.status = newStatus;
+        trade.pnl = pnl;
+        trade.pnlPct = pnlPct;
+        trade.lastUpdated = (/* @__PURE__ */ new Date()).toISOString();
+        if (statusChanged || !trade.history || trade.history.length === 0) {
+          if (!trade.history) trade.history = [];
+          trade.history.push({
+            timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+            status: newStatus,
+            price: curPrice,
+            pnl,
+            pnlPct,
+            telegramSent,
+            note: statusChanged ? `Status changed: ${prevStatus} \u2192 ${newStatus}${telegramSent ? " \xB7 \u2705 Telegram alert sent" : ""}` : "Live monitor price update"
+          });
+        }
+        if (isResolved && !trade.isResolved) {
+          trade.isResolved = true;
+          trade.resolvedAt = (/* @__PURE__ */ new Date()).toISOString();
+          trade.resolvedStatus = newStatus;
+        }
+        hasChanges = true;
+      }
+      if (hasChanges) {
+        writeDB(db);
+      }
+    } catch (e) {
+      console.error("Trade monitor daemon error:", e);
+    }
+  }, 3e4);
+}
 function calculateRiskManagement(side, entryPrice, timeframe, symbol, atrValue) {
   let slDistance;
   if (atrValue && atrValue > 0) {
@@ -1385,6 +1572,17 @@ async function handleSignalPipeline(payload, isSimulation = false) {
       logEntry.telegramSent = true;
       lastAlertTimes[symbol] = now;
       lastGlobalAlertTime = now;
+      if (logEntry.tradePlan) {
+        autoLogTradeFromAlert({
+          symbol: logEntry.symbol,
+          side: logEntry.side || "LONG",
+          entryPrice: logEntry.tradePlan.entry || logEntry.payload?.price || 0,
+          sl: logEntry.tradePlan.stopLoss || 0,
+          tp1: logEntry.tradePlan.target1 || 0,
+          tp2: logEntry.tradePlan.target2 || 0,
+          notes: `Auto-logged from scanner signal (Confidence: ${logEntry.aiDecision?.confidence || "N/A"}%)`
+        });
+      }
     } else {
       logEntry.telegramSent = false;
       logEntry.telegramError = telegramRawResult.error;
@@ -1624,7 +1822,18 @@ ${verdict}${notes ? `
 `.trim();
   const result = await sendTelegramNotification(token, chatId, message);
   if (result.success) {
-    res.json({ success: true, message: "Trade report sent to Telegram!" });
+    autoLogTradeFromAlert({
+      symbol,
+      side: side || "LONG",
+      market,
+      entryPrice: parseFloat(entryPrice) || 0,
+      sl: parseFloat(sl) || 0,
+      tp1: parseFloat(tp1) || 0,
+      tp2: parseFloat(tp2) || 0,
+      quantity: parseFloat(quantity) || 1,
+      notes: notes || "Trade sent via Telegram Bot"
+    });
+    res.json({ success: true, message: "Trade report sent to Telegram & auto-logged in Trade Journal!" });
   } else {
     res.status(400).json({ success: false, error: result.error });
   }
@@ -2828,6 +3037,7 @@ async function setupVite() {
 setupVite().then(() => {
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server is listening on http://0.0.0.0:${PORT}`);
+    startTradeMonitorDaemon();
   });
 });
 //# sourceMappingURL=server.cjs.map
