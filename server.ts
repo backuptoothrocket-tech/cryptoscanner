@@ -2127,39 +2127,324 @@ function parseNSEStocks(raw: any[]): IndiaStock[] {
   })).filter(s => s.symbol && s.price > 0);
 }
 
-// ── Yahoo Finance Indian ETF / screener fetch ──
-async function fetchYahooIndiaStocks(scrId: string, count = 25): Promise<IndiaStock[]> {
+// ── Angel One Tradable Indian Stock Catalog (250+ stocks, all major sectors) ──
+const ANGEL_ONE_NSE_CATALOG: { symbol: string; name: string; sector: string }[] = [
+  // ── NIFTY 50 ──
+  { symbol: "RELIANCE.NS",    name: "Reliance Industries",        sector: "Energy" },
+  { symbol: "TCS.NS",         name: "Tata Consultancy Services",  sector: "IT" },
+  { symbol: "HDFCBANK.NS",    name: "HDFC Bank",                  sector: "Banking" },
+  { symbol: "BHARTIARTL.NS",  name: "Bharti Airtel",              sector: "Telecom" },
+  { symbol: "ICICIBANK.NS",   name: "ICICI Bank",                 sector: "Banking" },
+  { symbol: "INFY.NS",        name: "Infosys",                    sector: "IT" },
+  { symbol: "SBIN.NS",        name: "State Bank of India",        sector: "Banking" },
+  { symbol: "LT.NS",          name: "Larsen & Toubro",            sector: "Infra" },
+  { symbol: "HINDUNILVR.NS",  name: "Hindustan Unilever",         sector: "FMCG" },
+  { symbol: "ITC.NS",         name: "ITC Ltd",                    sector: "FMCG" },
+  { symbol: "KOTAKBANK.NS",   name: "Kotak Mahindra Bank",        sector: "Banking" },
+  { symbol: "BAJFINANCE.NS",  name: "Bajaj Finance",              sector: "Finance" },
+  { symbol: "AXISBANK.NS",    name: "Axis Bank",                  sector: "Banking" },
+  { symbol: "ASIANPAINT.NS",  name: "Asian Paints",               sector: "Consumer" },
+  { symbol: "MARUTI.NS",      name: "Maruti Suzuki",              sector: "Auto" },
+  { symbol: "SUNPHARMA.NS",   name: "Sun Pharma",                 sector: "Pharma" },
+  { symbol: "TATAMOTORS.NS",  name: "Tata Motors",                sector: "Auto" },
+  { symbol: "TITAN.NS",       name: "Titan Company",              sector: "Consumer" },
+  { symbol: "NTPC.NS",        name: "NTPC",                       sector: "Energy" },
+  { symbol: "POWERGRID.NS",   name: "Power Grid Corp",            sector: "Energy" },
+  { symbol: "WIPRO.NS",       name: "Wipro",                      sector: "IT" },
+  { symbol: "ULTRACEMCO.NS",  name: "UltraTech Cement",           sector: "Cement" },
+  { symbol: "ONGC.NS",        name: "ONGC",                       sector: "Energy" },
+  { symbol: "M&M.NS",         name: "Mahindra & Mahindra",        sector: "Auto" },
+  { symbol: "TATASTEEL.NS",   name: "Tata Steel",                 sector: "Metals" },
+  { symbol: "ADANIENT.NS",    name: "Adani Enterprises",          sector: "Conglomerate" },
+  { symbol: "HINDALCO.NS",    name: "Hindalco Industries",        sector: "Metals" },
+  { symbol: "COALINDIA.NS",   name: "Coal India",                 sector: "Mining" },
+  { symbol: "BAJAJFINSV.NS",  name: "Bajaj Finserv",              sector: "Finance" },
+  { symbol: "GRASIM.NS",      name: "Grasim Industries",          sector: "Cement" },
+  { symbol: "BPCL.NS",        name: "Bharat Petroleum",           sector: "Energy" },
+  { symbol: "TECHM.NS",       name: "Tech Mahindra",              sector: "IT" },
+  { symbol: "HDFCLIFE.NS",    name: "HDFC Life Insurance",        sector: "Insurance" },
+  { symbol: "DIVISLAB.NS",    name: "Divi's Laboratories",        sector: "Pharma" },
+  { symbol: "EICHERMOT.NS",   name: "Eicher Motors",              sector: "Auto" },
+  { symbol: "SBILIFE.NS",     name: "SBI Life Insurance",         sector: "Insurance" },
+  { symbol: "CIPLA.NS",       name: "Cipla",                      sector: "Pharma" },
+  { symbol: "TATACONSUM.NS",  name: "Tata Consumer Products",     sector: "FMCG" },
+  { symbol: "APOLLOHOSP.NS",  name: "Apollo Hospitals",           sector: "Healthcare" },
+  { symbol: "HEROMOTOCO.NS",  name: "Hero MotoCorp",              sector: "Auto" },
+  { symbol: "BRITANNIA.NS",   name: "Britannia Industries",       sector: "FMCG" },
+  { symbol: "JIOFIN.NS",      name: "Jio Financial Services",     sector: "Finance" },
+  { symbol: "SHRIRAMFIN.NS",  name: "Shriram Finance",            sector: "Finance" },
+  { symbol: "TRENT.NS",       name: "Trent Ltd",                  sector: "Retail" },
+  { symbol: "BEL.NS",         name: "Bharat Electronics",         sector: "Defence" },
+  { symbol: "HAL.NS",         name: "Hindustan Aeronautics",      sector: "Defence" },
+  { symbol: "ZOMATO.NS",      name: "Zomato",                     sector: "Consumer" },
+  { symbol: "ADANIPORTS.NS",  name: "Adani Ports",                sector: "Infra" },
+  { symbol: "DRREDDY.NS",     name: "Dr Reddy's Laboratories",    sector: "Pharma" },
+  { symbol: "NESTLEIND.NS",   name: "Nestle India",               sector: "FMCG" },
+
+  // ── NIFTY NEXT 50 ──
+  { symbol: "ADANIGREEN.NS",  name: "Adani Green Energy",         sector: "Energy" },
+  { symbol: "ADANIPOWER.NS",  name: "Adani Power",                sector: "Energy" },
+  { symbol: "AMBUJACEM.NS",   name: "Ambuja Cements",             sector: "Cement" },
+  { symbol: "BAJAJ-AUTO.NS",  name: "Bajaj Auto",                 sector: "Auto" },
+  { symbol: "BANKBARODA.NS",  name: "Bank of Baroda",             sector: "Banking" },
+  { symbol: "BERGEPAINT.NS",  name: "Berger Paints",              sector: "Consumer" },
+  { symbol: "BHEL.NS",        name: "Bharat Heavy Electricals",   sector: "Infra" },
+  { symbol: "BOSCHLTD.NS",    name: "Bosch Ltd",                  sector: "Auto" },
+  { symbol: "CANBK.NS",       name: "Canara Bank",                sector: "Banking" },
+  { symbol: "CHOLAFIN.NS",    name: "Cholamandalam Finance",      sector: "Finance" },
+  { symbol: "COLPAL.NS",      name: "Colgate-Palmolive",          sector: "FMCG" },
+  { symbol: "DABUR.NS",       name: "Dabur India",                sector: "FMCG" },
+  { symbol: "DLF.NS",         name: "DLF Ltd",                    sector: "Real Estate" },
+  { symbol: "GAIL.NS",        name: "GAIL India",                 sector: "Energy" },
+  { symbol: "GODREJCP.NS",    name: "Godrej Consumer Products",   sector: "FMCG" },
+  { symbol: "HAVELLS.NS",     name: "Havells India",              sector: "Consumer" },
+  { symbol: "ICICIPRULI.NS",  name: "ICICI Prudential Life",      sector: "Insurance" },
+  { symbol: "INDUSINDBK.NS",  name: "IndusInd Bank",              sector: "Banking" },
+  { symbol: "INDUSTOWER.NS",  name: "Indus Towers",               sector: "Telecom" },
+  { symbol: "IRFC.NS",        name: "Indian Railway Finance",     sector: "Finance" },
+  { symbol: "JSWENERGY.NS",   name: "JSW Energy",                 sector: "Energy" },
+  { symbol: "JSWSTEEL.NS",    name: "JSW Steel",                  sector: "Metals" },
+  { symbol: "JUBLFOOD.NS",    name: "Jubilant Foodworks",         sector: "Consumer" },
+  { symbol: "LICI.NS",        name: "LIC of India",               sector: "Insurance" },
+  { symbol: "LUPIN.NS",       name: "Lupin",                      sector: "Pharma" },
+  { symbol: "MARICO.NS",      name: "Marico",                     sector: "FMCG" },
+  { symbol: "MOTHERSON.NS",   name: "Motherson Sumi Systems",     sector: "Auto" },
+  { symbol: "MUTHOOTFIN.NS",  name: "Muthoot Finance",            sector: "Finance" },
+  { symbol: "NAUKRI.NS",      name: "Info Edge (Naukri)",         sector: "IT" },
+  { symbol: "NHPC.NS",        name: "NHPC",                       sector: "Energy" },
+  { symbol: "NMDC.NS",        name: "NMDC",                       sector: "Mining" },
+  { symbol: "OFSS.NS",        name: "Oracle Financial Services",  sector: "IT" },
+  { symbol: "PERSISTENT.NS",  name: "Persistent Systems",         sector: "IT" },
+  { symbol: "PETRONET.NS",    name: "Petronet LNG",               sector: "Energy" },
+  { symbol: "PIDILITIND.NS",  name: "Pidilite Industries",        sector: "Chemicals" },
+  { symbol: "PNB.NS",         name: "Punjab National Bank",       sector: "Banking" },
+  { symbol: "PNBHOUSING.NS",  name: "PNB Housing Finance",        sector: "Finance" },
+  { symbol: "RECLTD.NS",      name: "REC Ltd",                    sector: "Finance" },
+  { symbol: "SIEMENS.NS",     name: "Siemens",                    sector: "Infra" },
+  { symbol: "SRF.NS",         name: "SRF Ltd",                    sector: "Chemicals" },
+  { symbol: "SUPREMEIND.NS",  name: "Supreme Industries",         sector: "Consumer" },
+  { symbol: "TORNTPHARM.NS",  name: "Torrent Pharmaceuticals",    sector: "Pharma" },
+  { symbol: "TVSMOTOR.NS",    name: "TVS Motor Company",          sector: "Auto" },
+  { symbol: "UBL.NS",         name: "United Breweries",           sector: "FMCG" },
+  { symbol: "UNIONBANK.NS",   name: "Union Bank of India",        sector: "Banking" },
+  { symbol: "VBL.NS",         name: "Varun Beverages",            sector: "FMCG" },
+  { symbol: "VEDL.NS",        name: "Vedanta Ltd",                sector: "Metals" },
+  { symbol: "VOLTAS.NS",      name: "Voltas",                     sector: "Consumer" },
+  { symbol: "WHIRLPOOL.NS",   name: "Whirlpool of India",         sector: "Consumer" },
+  { symbol: "ZYDUSLIFE.NS",   name: "Zydus Lifesciences",         sector: "Pharma" },
+
+  // ── BANKING & FINANCE ──
+  { symbol: "AUBANK.NS",      name: "AU Small Finance Bank",      sector: "Banking" },
+  { symbol: "BANDHANBNK.NS",  name: "Bandhan Bank",               sector: "Banking" },
+  { symbol: "FEDERALBNK.NS",  name: "Federal Bank",               sector: "Banking" },
+  { symbol: "HDFCAMC.NS",     name: "HDFC Asset Management",      sector: "Finance" },
+  { symbol: "IDFCFIRSTB.NS",  name: "IDFC First Bank",            sector: "Banking" },
+  { symbol: "IIFL.NS",        name: "IIFL Finance",               sector: "Finance" },
+  { symbol: "INDIANB.NS",     name: "Indian Bank",                sector: "Banking" },
+  { symbol: "IOB.NS",         name: "Indian Overseas Bank",       sector: "Banking" },
+  { symbol: "M&MFIN.NS",      name: "M&M Financial Services",     sector: "Finance" },
+  { symbol: "MANAPPURAM.NS",  name: "Manappuram Finance",         sector: "Finance" },
+  { symbol: "PFC.NS",         name: "Power Finance Corp",         sector: "Finance" },
+  { symbol: "RBLBANK.NS",     name: "RBL Bank",                   sector: "Banking" },
+  { symbol: "SBICARD.NS",     name: "SBI Cards",                  sector: "Finance" },
+  { symbol: "STAR.NS",        name: "Star Health Insurance",      sector: "Insurance" },
+  { symbol: "YESBANK.NS",     name: "Yes Bank",                   sector: "Banking" },
+
+  // ── IT & TECH ──
+  { symbol: "COFORGE.NS",     name: "Coforge",                    sector: "IT" },
+  { symbol: "CYIENT.NS",      name: "Cyient",                     sector: "IT" },
+  { symbol: "HCLTECH.NS",     name: "HCL Technologies",           sector: "IT" },
+  { symbol: "HEXAWARE.NS",    name: "Hexaware Technologies",      sector: "IT" },
+  { symbol: "LTIM.NS",        name: "LTIMindtree",                sector: "IT" },
+  { symbol: "LTTS.NS",        name: "L&T Technology Services",    sector: "IT" },
+  { symbol: "MPHASIS.NS",     name: "Mphasis",                    sector: "IT" },
+  { symbol: "NIITLTD.NS",     name: "NIIT Ltd",                   sector: "IT" },
+  { symbol: "TATAELXSI.NS",   name: "Tata Elxsi",                 sector: "IT" },
+  { symbol: "WIPRO.NS",       name: "Wipro",                      sector: "IT" },
+
+  // ── PHARMA & HEALTHCARE ──
+  { symbol: "ABBOTINDIA.NS",  name: "Abbott India",               sector: "Pharma" },
+  { symbol: "ALKEM.NS",       name: "Alkem Laboratories",         sector: "Pharma" },
+  { symbol: "AUROPHARMA.NS",  name: "Aurobindo Pharma",           sector: "Pharma" },
+  { symbol: "BIOCON.NS",      name: "Biocon",                     sector: "Pharma" },
+  { symbol: "FORTIS.NS",      name: "Fortis Healthcare",          sector: "Healthcare" },
+  { symbol: "GLENMARK.NS",    name: "Glenmark Pharmaceuticals",   sector: "Pharma" },
+  { symbol: "IPCALAB.NS",     name: "IPCA Laboratories",          sector: "Pharma" },
+  { symbol: "LAURUSLABS.NS",  name: "Laurus Labs",                sector: "Pharma" },
+  { symbol: "MAXHEALTH.NS",   name: "Max Healthcare",             sector: "Healthcare" },
+  { symbol: "NATCOPHARM.NS",  name: "Natco Pharma",               sector: "Pharma" },
+  { symbol: "PIRAMALENT.NS",  name: "Piramal Enterprises",        sector: "Pharma" },
+  { symbol: "SANOFI.NS",      name: "Sanofi India",               sector: "Pharma" },
+  { symbol: "TORNTPHARM.NS",  name: "Torrent Pharma",             sector: "Pharma" },
+
+  // ── AUTO & ANCILLARIES ──
+  { symbol: "AMARAJABAT.NS",  name: "Amara Raja Energy",          sector: "Auto" },
+  { symbol: "APOLLOTYRE.NS",  name: "Apollo Tyres",               sector: "Auto" },
+  { symbol: "ASHOKLEY.NS",    name: "Ashok Leyland",              sector: "Auto" },
+  { symbol: "BALKRISIND.NS",  name: "Balkrishna Industries",      sector: "Auto" },
+  { symbol: "BHARATFORG.NS",  name: "Bharat Forge",               sector: "Auto" },
+  { symbol: "CEAT.NS",        name: "CEAT",                       sector: "Auto" },
+  { symbol: "ESCORTS.NS",     name: "Escorts Kubota",             sector: "Auto" },
+  { symbol: "EXIDEIND.NS",    name: "Exide Industries",           sector: "Auto" },
+  { symbol: "FORCEMOT.NS",    name: "Force Motors",               sector: "Auto" },
+  { symbol: "MAHINDCIE.NS",   name: "Mahindra CIE Automotive",    sector: "Auto" },
+  { symbol: "MRF.NS",         name: "MRF",                        sector: "Auto" },
+  { symbol: "SONACOMS.NS",    name: "Sona BLW Precision",         sector: "Auto" },
+  { symbol: "SAMVARDHANA.NS", name: "Samvardhana Motherson",      sector: "Auto" },
+
+  // ── ENERGY & OIL ──
+  { symbol: "ADANITRANS.NS",  name: "Adani Transmission",         sector: "Energy" },
+  { symbol: "CESC.NS",        name: "CESC",                       sector: "Energy" },
+  { symbol: "HNGSNGBEES.NS",  name: "Hang Seng BeES",             sector: "ETF" },
+  { symbol: "IOC.NS",         name: "Indian Oil Corp",            sector: "Energy" },
+  { symbol: "IGL.NS",         name: "Indraprastha Gas",           sector: "Energy" },
+  { symbol: "MGL.NS",         name: "Mahanagar Gas",              sector: "Energy" },
+  { symbol: "SJVN.NS",        name: "SJVN Ltd",                   sector: "Energy" },
+  { symbol: "TATAPOWER.NS",   name: "Tata Power",                 sector: "Energy" },
+  { symbol: "TORNTPOWER.NS",  name: "Torrent Power",              sector: "Energy" },
+
+  // ── METALS & MINING ──
+  { symbol: "APL.NS",         name: "APL Apollo Tubes",           sector: "Metals" },
+  { symbol: "JINDALSTEL.NS",  name: "Jindal Steel & Power",       sector: "Metals" },
+  { symbol: "JSWSTEEL.NS",    name: "JSW Steel",                  sector: "Metals" },
+  { symbol: "NATIONALUM.NS",  name: "National Aluminium",         sector: "Metals" },
+  { symbol: "RATNAMANI.NS",   name: "Ratnamani Metals",           sector: "Metals" },
+  { symbol: "SAIL.NS",        name: "Steel Authority of India",   sector: "Metals" },
+  { symbol: "WELCORP.NS",     name: "Welspun Corp",               sector: "Metals" },
+
+  // ── INFRA & REAL ESTATE ──
+  { symbol: "BRIGADE.NS",     name: "Brigade Enterprises",        sector: "Real Estate" },
+  { symbol: "GODREJPROP.NS",  name: "Godrej Properties",          sector: "Real Estate" },
+  { symbol: "GMRINFRA.NS",    name: "GMR Airports Infra",         sector: "Infra" },
+  { symbol: "IRB.NS",         name: "IRB Infrastructure",         sector: "Infra" },
+  { symbol: "MAHLIFE.NS",     name: "Mahindra Lifespace Dev",     sector: "Real Estate" },
+  { symbol: "NCLIND.NS",      name: "NCL Industries",             sector: "Cement" },
+  { symbol: "OBEROIRLTY.NS",  name: "Oberoi Realty",              sector: "Real Estate" },
+  { symbol: "PRESTIGE.NS",    name: "Prestige Estates",           sector: "Real Estate" },
+  { symbol: "SOBHA.NS",       name: "Sobha Ltd",                  sector: "Real Estate" },
+  { symbol: "SUNCLAYLTD.NS",  name: "Sunclay Ltd",                sector: "Chemicals" },
+
+  // ── FMCG & CONSUMER ──
+  { symbol: "BALRAMCHIN.NS",  name: "Balrampur Chini Mills",      sector: "FMCG" },
+  { symbol: "EMAMILTD.NS",    name: "Emami",                      sector: "FMCG" },
+  { symbol: "GODREJIND.NS",   name: "Godrej Industries",          sector: "FMCG" },
+  { symbol: "KANSAINER.NS",   name: "Kansai Nerolac Paints",      sector: "Consumer" },
+  { symbol: "MCDOWELL-N.NS",  name: "United Spirits",             sector: "FMCG" },
+  { symbol: "PATANJALI.NS",   name: "Patanjali Foods",            sector: "FMCG" },
+  { symbol: "RADICO.NS",      name: "Radico Khaitan",             sector: "FMCG" },
+  { symbol: "TATACOMM.NS",    name: "Tata Communications",        sector: "Telecom" },
+  { symbol: "UNITDSPR.NS",    name: "United Spirits",             sector: "FMCG" },
+
+  // ── CHEMICALS & SPECIALTY ──
+  { symbol: "AAPL.NS",        name: "Aditya Birla Fashion",       sector: "Retail" },
+  { symbol: "ATUL.NS",        name: "Atul Ltd",                   sector: "Chemicals" },
+  { symbol: "CLEAN.NS",       name: "Clean Science & Tech",       sector: "Chemicals" },
+  { symbol: "DEEPAKNTR.NS",   name: "Deepak Nitrite",             sector: "Chemicals" },
+  { symbol: "FINEORG.NS",     name: "Fine Organic Industries",    sector: "Chemicals" },
+  { symbol: "GNFC.NS",        name: "GNFC",                       sector: "Chemicals" },
+  { symbol: "NAVINFLUOR.NS",  name: "Navin Fluorine Intl",        sector: "Chemicals" },
+  { symbol: "PCBL.NS",        name: "PCBL Ltd",                   sector: "Chemicals" },
+  { symbol: "ROSSARI.NS",     name: "Rossari Biotech",            sector: "Chemicals" },
+  { symbol: "TATACHEM.NS",    name: "Tata Chemicals",             sector: "Chemicals" },
+
+  // ── DEFENCE & AEROSPACE ──
+  { symbol: "BDL.NS",         name: "Bharat Dynamics",            sector: "Defence" },
+  { symbol: "COCHINSHIP.NS",  name: "Cochin Shipyard",            sector: "Defence" },
+  { symbol: "GRSE.NS",        name: "Garden Reach Shipbuilders",  sector: "Defence" },
+  { symbol: "MAZDOCK.NS",     name: "Mazagon Dock Shipbuilders",  sector: "Defence" },
+  { symbol: "PARAS.NS",       name: "Paras Defence",              sector: "Defence" },
+
+  // ── RETAIL & ECOMMERCE ──
+  { symbol: "DMART.NS",       name: "Avenue Supermarts (DMart)",  sector: "Retail" },
+  { symbol: "NYKAA.NS",       name: "Nykaa (FSN E-Commerce)",     sector: "Retail" },
+  { symbol: "PAYTM.NS",       name: "Paytm (One97 Comms)",        sector: "Fintech" },
+  { symbol: "POLICYBZR.NS",   name: "PB Fintech (Policybazaar)",  sector: "Fintech" },
+
+  // ── MEDIA & ENTERTAINMENT ──
+  { symbol: "NETWORK18.NS",   name: "Network18 Media",            sector: "Media" },
+  { symbol: "PVRINOX.NS",     name: "PVR INOX",                   sector: "Media" },
+  { symbol: "SUNTV.NS",       name: "Sun TV Network",             sector: "Media" },
+  { symbol: "ZEEL.NS",        name: "Zee Entertainment",          sector: "Media" },
+
+  // ── TEXTILE ──
+  { symbol: "ARVIND.NS",      name: "Arvind Ltd",                 sector: "Textile" },
+  { symbol: "PAGEIND.NS",     name: "Page Industries",            sector: "Textile" },
+  { symbol: "RAYMOND.NS",     name: "Raymond",                    sector: "Textile" },
+  { symbol: "WELSPUNIND.NS",  name: "Welspun India",              sector: "Textile" },
+
+  // ── AGRICULTURE & FERTILIZERS ──
+  { symbol: "CHAMBLFERT.NS",  name: "Chambal Fertilisers",        sector: "Agriculture" },
+  { symbol: "COROMANDEL.NS",  name: "Coromandel International",   sector: "Agriculture" },
+  { symbol: "GODREJAGRO.NS",  name: "Godrej Agrovet",             sector: "Agriculture" },
+  { symbol: "PIIND.NS",       name: "PI Industries",              sector: "Agriculture" },
+  { symbol: "RALLIS.NS",      name: "Rallis India",               sector: "Agriculture" },
+  { symbol: "UPL.NS",         name: "UPL Ltd",                    sector: "Agriculture" },
+
+  // ── TELECOM & TECH INFRA ──
+  { symbol: "HFCL.NS",        name: "HFCL Ltd",                   sector: "Telecom" },
+  { symbol: "RAILTEL.NS",     name: "Railtel Corp of India",      sector: "Telecom" },
+  { symbol: "TATACOMM.NS",    name: "Tata Communications",        sector: "Telecom" },
+
+  // ── CEMENT ──
+  { symbol: "ACC.NS",         name: "ACC Ltd",                    sector: "Cement" },
+  { symbol: "HEIDELBERG.NS",  name: "HeidelbergCement India",     sector: "Cement" },
+  { symbol: "JKCEMENT.NS",    name: "JK Cement",                  sector: "Cement" },
+  { symbol: "RAMCOCEM.NS",    name: "Ramco Cements",              sector: "Cement" },
+  { symbol: "SHREECEM.NS",    name: "Shree Cement",               sector: "Cement" },
+
+  // ── POPULAR SMALL & MIDCAP ──
+  { symbol: "ANGELONE.NS",    name: "Angel One",                  sector: "Finance" },
+  { symbol: "BSE.NS",         name: "BSE Ltd",                    sector: "Finance" },
+  { symbol: "CDSL.NS",        name: "CDSL",                       sector: "Finance" },
+  { symbol: "CAMS.NS",        name: "CAMS",                       sector: "Finance" },
+  { symbol: "HUDCO.NS",       name: "HUDCO",                      sector: "Finance" },
+  { symbol: "IDEA.NS",        name: "Vodafone Idea",              sector: "Telecom" },
+  { symbol: "RVNL.NS",        name: "Rail Vikas Nigam",           sector: "Infra" },
+  { symbol: "SUZLON.NS",      name: "Suzlon Energy",              sector: "Energy" },
+  { symbol: "TIINDIA.NS",     name: "Tube Investments of India",  sector: "Auto" },
+  { symbol: "TRIDENT.NS",     name: "Trident Ltd",                sector: "Textile" },
+  { symbol: "UTIAMC.NS",      name: "UTI AMC",                    sector: "Finance" },
+];
+
+async function fetchAngelOneNSEQuotes(): Promise<IndiaStock[]> {
   try {
-    const url = `https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?formatted=true&lang=en-US&region=IN&scrIds=${scrId}&count=${count}&corsDomain=in.finance.yahoo.com`;
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 10000);
-    const res = await fetch(url, {
-      signal: ctrl.signal,
-      headers: { "User-Agent": NSE_HEADERS["User-Agent"], "Accept": "application/json" }
+    const results = await Promise.allSettled(
+      ANGEL_ONE_NSE_CATALOG.map(item =>
+        fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(item.symbol)}?interval=1d&range=2d`, {
+          headers: { "User-Agent": NSE_HEADERS["User-Agent"] }
+        }).then(r => r.json())
+      )
+    );
+
+    const stocks: IndiaStock[] = [];
+    results.forEach((r, idx) => {
+      if (r.status !== "fulfilled") return;
+      const meta = r.value?.chart?.result?.[0]?.meta;
+      if (!meta?.regularMarketPrice) return;
+
+      const curPrice = parseFloat(meta.regularMarketPrice.toFixed(2));
+      const prevClose = parseFloat((meta.previousClose || meta.chartPreviousClose || curPrice).toFixed(2));
+      const change = parseFloat((curPrice - prevClose).toFixed(2));
+      const changePct = prevClose > 0 ? parseFloat(((change / prevClose) * 100).toFixed(2)) : 0;
+      const cleanSym = ANGEL_ONE_NSE_CATALOG[idx].symbol.replace(".NS", "");
+
+      stocks.push({
+        symbol: cleanSym,
+        name: ANGEL_ONE_NSE_CATALOG[idx].name,
+        price: curPrice,
+        change,
+        changePct,
+        volume: meta.regularMarketVolume || 0,
+        high: parseFloat((meta.regularMarketDayHigh || curPrice).toFixed(2)),
+        low: parseFloat((meta.regularMarketDayLow || curPrice).toFixed(2)),
+        open: parseFloat((meta.regularMarketOpen || curPrice).toFixed(2)),
+        prevClose,
+        yearHigh: parseFloat((meta.fiftyTwoWeekHigh || curPrice).toFixed(2)),
+        yearLow: parseFloat((meta.fiftyTwoWeekLow || curPrice).toFixed(2)),
+        series: "EQ"
+      });
     });
-    clearTimeout(t);
-    if (!res.ok) throw new Error(`Yahoo ${scrId} HTTP ${res.status}`);
-    const json = await res.json();
-    const quotes = json?.finance?.result?.[0]?.quotes || [];
-    return quotes.map((q: any) => ({
-      symbol: (q.symbol || "").replace(".NS", "").replace(".BO", ""),
-      name: q.longName || q.shortName || q.symbol || "",
-      price: q.regularMarketPrice?.raw ?? q.regularMarketPrice ?? 0,
-      change: q.regularMarketChange?.raw ?? 0,
-      changePct: q.regularMarketChangePercent?.raw ?? 0,
-      volume: q.regularMarketVolume?.raw ?? 0,
-      high: q.regularMarketDayHigh?.raw ?? 0,
-      low: q.regularMarketDayLow?.raw ?? 0,
-      open: q.regularMarketOpen?.raw ?? 0,
-      prevClose: q.regularMarketPreviousClose?.raw ?? 0,
-      yearHigh: q.fiftyTwoWeekHigh?.raw ?? 0,
-      yearLow: q.fiftyTwoWeekLow?.raw ?? 0,
-      marketCap: q.marketCap?.raw ?? 0,
-      sector: q.sector || "",
-      series: "EQ",
-      isin: "",
-      pe: q.forwardPE?.raw ?? 0,
-    })).filter((s: IndiaStock) => s.price > 0);
+    return stocks;
   } catch {
     return [];
   }
@@ -2203,9 +2488,9 @@ app.get("/api/india/gainers", async (req, res) => {
   const cached = fromCache("gainers");
   if (cached) return res.json(cached);
   try {
-    const [nse, yahoo] = await Promise.allSettled([
+    const [nse, angelQuotes] = await Promise.allSettled([
       nseGet("/api/live-analysis-variations?index=gainers"),
-      fetchYahooIndiaStocks("day_gainers", 25)
+      fetchAngelOneNSEQuotes()
     ]);
 
     let stocks: IndiaStock[] = [];
@@ -2215,13 +2500,12 @@ app.get("/api/india/gainers", async (req, res) => {
       stocks = parseNSEStocks(nse.value.data);
     }
 
-    // Merge Yahoo data if NSE returned nothing
-    if (stocks.length === 0 && yahoo.status === "fulfilled") {
-      stocks = yahoo.value;
+    if (stocks.length === 0 && angelQuotes.status === "fulfilled") {
+      stocks = angelQuotes.value.filter(s => s.changePct > 0);
     }
 
     stocks = stocks.sort((a, b) => b.changePct - a.changePct).slice(0, 25);
-    const result = { stocks, source: stocks.length > 0 ? "NSE_LIVE" : "EMPTY", timestamp: new Date().toISOString() };
+    const result = { stocks, source: "NSE_ANGEL_ONE_LIVE", timestamp: new Date().toISOString() };
     setCache("gainers", result, 60000); // 1 min cache
     res.json(result);
   } catch (e: any) {
@@ -2234,9 +2518,9 @@ app.get("/api/india/losers", async (req, res) => {
   const cached = fromCache("losers");
   if (cached) return res.json(cached);
   try {
-    const [nse, yahoo] = await Promise.allSettled([
+    const [nse, angelQuotes] = await Promise.allSettled([
       nseGet("/api/live-analysis-variations?index=loosers"),
-      fetchYahooIndiaStocks("day_losers", 25)
+      fetchAngelOneNSEQuotes()
     ]);
 
     let stocks: IndiaStock[] = [];
@@ -2245,10 +2529,12 @@ app.get("/api/india/losers", async (req, res) => {
     } else if (nse.status === "fulfilled" && Array.isArray(nse.value?.data)) {
       stocks = parseNSEStocks(nse.value.data);
     }
-    if (stocks.length === 0 && yahoo.status === "fulfilled") stocks = yahoo.value;
+    if (stocks.length === 0 && angelQuotes.status === "fulfilled") {
+      stocks = angelQuotes.value.filter(s => s.changePct < 0);
+    }
 
     stocks = stocks.sort((a, b) => a.changePct - b.changePct).slice(0, 25);
-    const result = { stocks, source: "NSE_LIVE", timestamp: new Date().toISOString() };
+    const result = { stocks, source: "NSE_ANGEL_ONE_LIVE", timestamp: new Date().toISOString() };
     setCache("losers", result, 60000);
     res.json(result);
   } catch (e: any) {
@@ -2261,9 +2547,10 @@ app.get("/api/india/most-active", async (req, res) => {
   const cached = fromCache("most-active");
   if (cached) return res.json(cached);
   try {
-    const [byVol, byVal] = await Promise.allSettled([
+    const [byVol, byVal, angelQuotes] = await Promise.allSettled([
       nseGet("/api/live-analysis-most-active-securities?index=volume&limit=25"),
-      nseGet("/api/live-analysis-most-active-securities?index=value&limit=25")
+      nseGet("/api/live-analysis-most-active-securities?index=value&limit=25"),
+      fetchAngelOneNSEQuotes()
     ]);
 
     let byVolume: IndiaStock[] = [];
@@ -2278,10 +2565,15 @@ app.get("/api/india/most-active", async (req, res) => {
       byValue = parseNSEStocks(Array.isArray(d) ? d : (d?.data || []));
     }
 
+    if (byVolume.length === 0 && angelQuotes.status === "fulfilled") {
+      byVolume = [...angelQuotes.value].sort((a, b) => b.volume - a.volume);
+      byValue = [...angelQuotes.value].sort((a, b) => (b.volume * b.price) - (a.volume * a.price));
+    }
+
     const result = {
       byVolume: byVolume.slice(0, 25),
       byValue: byValue.slice(0, 25),
-      source: "NSE_LIVE",
+      source: "NSE_ANGEL_ONE_LIVE",
       timestamp: new Date().toISOString()
     };
     setCache("most-active", result, 60000);

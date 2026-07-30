@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+ï»¿import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   TrendingUp, TrendingDown, Activity, Zap, Search, RefreshCw,
   BarChart2, Star, Globe, IndianRupee, ChevronUp, ChevronDown,
@@ -37,11 +37,12 @@ interface NiftyIndex {
 type SubTab = "gainers" | "losers" | "most-active" | "etfs" | "top-performers" | "all-stocks";
 
 function fmtPrice(n: number) {
-  if (!n) return "—";
-  return "?" + n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (!n) return "-";
+  return "â‚¹" + n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
+
 function fmtVol(n: number) {
-  if (!n) return "—";
+  if (!n) return "â€”";
   if (n >= 1e7) return (n / 1e7).toFixed(2) + " Cr";
   if (n >= 1e5) return (n / 1e5).toFixed(2) + " L";
   if (n >= 1e3) return (n / 1e3).toFixed(1) + "K";
@@ -87,7 +88,7 @@ function StockTable({ stocks, onAnalyze, loading, emptyMsg }: {
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-20 gap-3">
       <div className="w-8 h-8 border-2 border-cyan-500/30 border-t-cyan-400 rounded-full animate-spin" />
-      <p className="text-xs text-slate-500">Fetching live NSE data…</p>
+      <p className="text-xs text-slate-500">Fetching live NSE dataâ€¦</p>
     </div>
   );
 
@@ -97,7 +98,7 @@ function StockTable({ stocks, onAnalyze, loading, emptyMsg }: {
         <div className="mb-3 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
           <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Filter by name or symbol…"
+            placeholder="Filter by name or symbolâ€¦"
             className="w-full pl-9 pr-4 py-2 rounded-lg text-xs text-white outline-none placeholder-slate-600"
             style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }} />
         </div>
@@ -127,7 +128,7 @@ function StockTable({ stocks, onAnalyze, loading, emptyMsg }: {
                   <td className="px-3 py-2.5 text-[10px] text-slate-600 font-mono">{i + 1}</td>
                   <td className="px-3 py-2.5">
                     <div className="font-bold text-white text-xs">{s.symbol}</div>
-                    <div className="text-[10px] text-slate-500 truncate max-w-[140px]">{s.name || "—"}</div>
+                    <div className="text-[10px] text-slate-500 truncate max-w-[140px]">{s.name || "â€”"}</div>
                   </td>
                   <td className="px-3 py-2.5 font-mono font-bold text-white text-xs whitespace-nowrap">{fmtPrice(s.price)}</td>
                   <td className="px-3 py-2.5"><PctBadge val={s.changePct} /></td>
@@ -186,7 +187,7 @@ function AllStocksTab({ onAnalyze }: { onAnalyze: (s: IndiaStock) => void }) {
         <div>
           <p className="text-xs font-bold text-cyan-300">NSE Listed Equities Database</p>
           <p className="text-[10px] text-slate-500">
-            {total > 0 ? `${total.toLocaleString()} EQ-series stocks loaded` : "Loading…"} · Updated daily from NSE Archives
+            {total > 0 ? `${total.toLocaleString()} EQ-series stocks loaded` : "Loadingâ€¦"} Â· Updated daily from NSE Archives
           </p>
         </div>
       </div>
@@ -194,7 +195,7 @@ function AllStocksTab({ onAnalyze }: { onAnalyze: (s: IndiaStock) => void }) {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
         {loading && <div className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 border border-cyan-500/30 border-t-cyan-400 rounded-full animate-spin" />}
         <input value={query} onChange={e => setQuery(e.target.value)}
-          placeholder="Search any Indian stock — RELIANCE, Tata, HDFC, Infosys…"
+          placeholder="Search any Indian stock â€” RELIANCE, Tata, HDFC, Infosysâ€¦"
           className="w-full pl-10 pr-10 py-3 rounded-xl text-sm text-white outline-none placeholder-slate-600"
           style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }} />
       </div>
@@ -222,7 +223,7 @@ function AllStocksTab({ onAnalyze }: { onAnalyze: (s: IndiaStock) => void }) {
                   style={{ borderColor: "rgba(255,255,255,0.04)" }}>
                   <td className="px-4 py-3 font-bold text-cyan-300 text-xs">{s.symbol}</td>
                   <td className="px-4 py-3 text-xs text-white">{s.name}</td>
-                  <td className="px-4 py-3 text-[10px] text-slate-500 font-mono">{s.isin || "—"}</td>
+                  <td className="px-4 py-3 text-[10px] text-slate-500 font-mono">{s.isin || "â€”"}</td>
                   <td className="px-4 py-3">
                     <button
                       onClick={() => onAnalyze({ symbol: s.symbol, name: s.name, price: 0, change: 0, changePct: 0, volume: 0, high: 0, low: 0, open: 0, prevClose: 0 })}
@@ -373,7 +374,7 @@ export default function IndiaMarket({ onNavigateToSMC }: Props) {
           </div>
           <div>
             <h2 className="text-sm font-bold text-white">India Market Hub</h2>
-            <p className="text-[10px] text-slate-500">Live Data · {source}</p>
+            <p className="text-[10px] text-slate-500">Live Data Â· {source}</p>
           </div>
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
             style={{ background: marketOpen ? "rgba(16,185,129,0.08)" : "rgba(239,68,68,0.08)", border: `1px solid ${marketOpen ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.2)"}` }}>
@@ -387,7 +388,7 @@ export default function IndiaMarket({ onNavigateToSMC }: Props) {
           {lastRefresh && (
             <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
               <Clock className="w-3 h-3" />
-              {lastRefresh.toLocaleTimeString()} · next in {countdown}s
+              {lastRefresh.toLocaleTimeString()} Â· next in {countdown}s
             </div>
           )}
           <button onClick={refreshAll}
@@ -463,8 +464,10 @@ export default function IndiaMarket({ onNavigateToSMC }: Props) {
       </div>
 
       <p className="text-[10px] text-slate-700 text-center">
-        Sourced from NSE India Official API + Yahoo Finance · Click <strong className="text-slate-600">Analyze</strong> on any stock ? opens SMC Report with live prices
+        Sourced from NSE India Official API + Yahoo Finance Â· Click <strong className="text-slate-600">Analyze</strong> on any stock ? opens SMC Report with live prices
       </p>
     </div>
   );
 }
+
+
