@@ -1058,6 +1058,10 @@ const DEFAULT_FILTERS = {
   requireStructureConfirmation: false
 };
 
+const DEFAULT_USER_CAPITAL_USD = 100;
+const DEFAULT_TRADE_RISK_PCT = 0.10;
+const MAX_OPEN_TRADES = 10;
+
 const DEFAULT_CONFIG = {
   openAiKey: "",
   activeSymbols: [
@@ -1224,6 +1228,10 @@ app.get("/api/trades", (req, res) => {
 app.post("/api/trades", (req, res) => {
   const db = readDB();
   if (!db.trades) db.trades = [];
+  const openTrades = db.trades.filter(t => !t.isResolved);
+  if (openTrades.length >= MAX_OPEN_TRADES) {
+    return res.status(400).json({ success: false, error: `Maximum open trade limit reached (${MAX_OPEN_TRADES}). Close an existing trade before adding another.` });
+  }
   const trade: TradeRecord = {
     id:            req.body.id || `t_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,
     symbol:        (req.body.symbol || "").toUpperCase(),
@@ -1554,11 +1562,18 @@ function autoLogTradeFromAlert(tradeData: {
   const rawSymb = (tradeData.symbol || "").toUpperCase().trim();
   if (!rawSymb || !tradeData.entryPrice) return null;
 
+  const openTrades = dbToUse.trades.filter(t => !t.isResolved);
+  if (openTrades.length >= MAX_OPEN_TRADES) return null;
+
   const market = tradeData.market || (rawSymb.endsWith(".NS") ? "INDIAN_EQUITY" : rawSymb.endsWith("USDT") ? "CRYPTO" : "FOREX");
 
   // Prevent duplicate open trades for exact same symbol
   const existing = dbToUse.trades.find(t => t.symbol === rawSymb && !t.isResolved);
   if (existing) return existing;
+
+  const perTradeCapital = DEFAULT_USER_CAPITAL_USD * DEFAULT_TRADE_RISK_PCT;
+  const calculatedQty = parseFloat((perTradeCapital / tradeData.entryPrice).toFixed(6));
+  const quantity = tradeData.quantity || calculatedQty;
 
   const newTrade: TradeRecord = {
     id: `t_auto_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
@@ -1566,7 +1581,7 @@ function autoLogTradeFromAlert(tradeData: {
     market,
     side: tradeData.side,
     entryPrice: tradeData.entryPrice,
-    quantity: tradeData.quantity || (market === "INDIAN_EQUITY" ? 10 : 1),
+    quantity,
     sl: tradeData.sl,
     tp1: tradeData.tp1,
     tp2: tradeData.tp2 || 0,
@@ -4196,9 +4211,9 @@ app.get("/api/smc-report/:symbol", async (req, res) => {
       });
     }
 
-    // Capital Sizing Calculation (User Capital Default: ₹5,00,000 for INR, $10,000 for USD)
-    const userCapital = meta.currency === "INR" ? 500000 : 10000;
-    const riskPerTradePct = 0.02; // 2% max risk per trade
+    // Capital Sizing Calculation (User Capital Default: $100, 10% margin per trade)
+    const userCapital = 100;
+    const riskPerTradePct = 0.10; // 10% max margin per trade
     const maxRiskAmt = userCapital * riskPerTradePct;
 
     // Intraday Capital Sizing (MIS leverage multiplier 5x for Indian equities, 1x for crypto/FX)
