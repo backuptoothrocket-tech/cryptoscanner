@@ -1121,6 +1121,36 @@ function writeDB(db: DB) {
   }
 }
 
+function backfillTradesFromLogs() {
+  try {
+    const db = readDB();
+    if (!db.trades) db.trades = [];
+    let count = 0;
+    for (const log of db.logs || []) {
+      if (log.passedFilters && log.tradePlan && log.symbol) {
+        const existing = db.trades.find(t => t.symbol === log.symbol && !t.isResolved);
+        if (!existing) {
+          autoLogTradeFromAlert({
+            symbol: log.symbol,
+            side: (log.side || "LONG") as "LONG" | "SHORT",
+            entryPrice: log.tradePlan.entry || log.payload?.price || 0,
+            sl: log.tradePlan.stopLoss || 0,
+            tp1: log.tradePlan.target1 || 0,
+            tp2: log.tradePlan.target2 || 0,
+            notes: `Auto-logged from historical scan (Confidence: ${log.aiDecision?.confidence || "N/A"}%)`
+          });
+          count++;
+        }
+      }
+    }
+    if (count > 0) {
+      console.log(`[Journal] Backfilled ${count} trade signals into Trade Journal.`);
+    }
+  } catch (e) {
+    console.error("[Journal] Error backfilling trades:", e);
+  }
+}
+
 // REST Endpoints
 app.get("/api/config", (req, res) => {
   const db = readDB();
@@ -2271,18 +2301,6 @@ async function handleSignalPipeline(payload: any, isSimulation: boolean = false)
       logEntry.telegramSent = true;
       lastAlertTimes[symbol] = now;
       lastGlobalAlertTime = now;
-      // Auto-log trade to persistent Trade Journal
-      if (logEntry.tradePlan) {
-        autoLogTradeFromAlert({
-          symbol: logEntry.symbol,
-          side: (logEntry.side || "LONG") as "LONG" | "SHORT",
-          entryPrice: logEntry.tradePlan.entry || logEntry.payload?.price || 0,
-          sl: logEntry.tradePlan.stopLoss || 0,
-          tp1: logEntry.tradePlan.target1 || 0,
-          tp2: logEntry.tradePlan.target2 || 0,
-          notes: `Auto-logged from scanner signal (Confidence: ${logEntry.aiDecision?.confidence || "N/A"}%)`
-        });
-      }
     } else {
       logEntry.telegramSent = false;
       logEntry.telegramError = telegramRawResult.error;
@@ -2305,6 +2323,20 @@ async function handleSignalPipeline(payload: any, isSimulation: boolean = false)
     } else if (blockReason) {
       logEntry.telegramError = blockReason;
     }
+  }
+
+  // ── AUTO-LOG TO TRADE JOURNAL ─────────────────────────────────────────────
+  // Always log passed trade signals into the Trade Journal (regardless of Telegram status)
+  if (logEntry.passedFilters && logEntry.tradePlan) {
+    autoLogTradeFromAlert({
+      symbol: logEntry.symbol,
+      side: (logEntry.side || "LONG") as "LONG" | "SHORT",
+      entryPrice: logEntry.tradePlan.entry || logEntry.payload?.price || 0,
+      sl: logEntry.tradePlan.stopLoss || 0,
+      tp1: logEntry.tradePlan.target1 || 0,
+      tp2: logEntry.tradePlan.target2 || 0,
+      notes: `Auto-logged from scanner signal (Confidence: ${logEntry.aiDecision?.confidence || "N/A"}%)`
+    });
   }
 
   db.logs.push(logEntry);
@@ -4294,6 +4326,8 @@ async function setupVite() {
 setupVite().then(() => {
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server is listening on http://0.0.0.0:${PORT}`);
+    // Auto-backfill any valid scan signals into Trade Journal
+    backfillTradesFromLogs();
     // Start 24/7 server-side Trade Monitor Daemon
     startTradeMonitorDaemon();
     // Start Telegram bot /trade command listener
