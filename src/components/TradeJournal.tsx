@@ -438,6 +438,11 @@ export default function TradeJournal({ onNavigateToSMC }: Props) {
   const [filter, setFilter]         = useState<"OPEN" | "CLOSED" | "ALL">("OPEN");
   const [loading, setLoading]       = useState(true);
   const [pnlAccount, setPnlAccount] = useState<PnlAccount | null>(null);
+
+  // Read capital config shared with SMCReport widget
+  const savedCapital  = parseFloat(localStorage.getItem("capital_value")    || "100");
+  const savedCurrency = (localStorage.getItem("capital_currency") || "USD") as "USD" | "INR";
+  const capitalSym    = savedCurrency === "USD" ? "$" : "₹";
   const tradesRef = useRef<Trade[]>(trades);
   tradesRef.current = trades;
 
@@ -605,6 +610,16 @@ export default function TradeJournal({ onNavigateToSMC }: Props) {
             <div>
               <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">📊 P&amp;L Account — Full Summary</div>
               <div className="text-[9px] text-slate-600">Automatically maintained by 24/7 server monitor · Updates every 30s</div>
+              <div className="text-[9px] text-cyan-600 mt-0.5">
+                Capital: <span className="font-mono font-bold text-cyan-400">{capitalSym}{savedCapital.toLocaleString("en-IN")}</span>
+                {savedCapital > 0 && (
+                  <span className="ml-2 text-slate-500">
+                    Unrealized exposure: <span className={`font-mono font-bold ${Math.abs(pnlAccount.unrealizedPnl / savedCapital) > 0.20 ? "text-rose-400" : "text-slate-300"}`}>
+                      {((Math.abs(pnlAccount.unrealizedPnl) / savedCapital) * 100).toFixed(1)}% of capital
+                    </span>
+                  </span>
+                )}
+              </div>
             </div>
             <div className="text-right">
               <div className="text-[10px] text-slate-500 uppercase tracking-wider">Net Account P&amp;L</div>

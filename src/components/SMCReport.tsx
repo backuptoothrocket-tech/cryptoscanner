@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { BotConfig, SMCDualReport, AssetClass } from "../types";
 import {
   TrendingUp,
@@ -19,7 +19,10 @@ import {
   Sparkles,
   Layers,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Edit2,
+  Check,
+  X
 } from "lucide-react";
 
 interface SMCReportProps {
@@ -83,23 +86,47 @@ export default function SMCReportView({ config, initialSymbol }: SMCReportProps)
     }
   }, [initialSymbol]);
   const [activeMarketTab, setActiveMarketTab] = useState<"ALL" | AssetClass>("ALL");
-  const [userCapitalInput, setUserCapitalInput] = useState<number>(500000);
+
+  // ── Dynamic Capital State ────────────────────────────────────────────────
+  const [capital, setCapital]               = useState<number>(() => {
+    const stored = localStorage.getItem("capital_value");
+    return stored ? parseFloat(stored) : 100;
+  });
+  const [currency, setCurrency]             = useState<"USD" | "INR">(() => {
+    return (localStorage.getItem("capital_currency") as "USD" | "INR") || "USD";
+  });
+  const [capitalEditing, setCapitalEditing] = useState<boolean>(false);
+  const [capitalDraft,   setCapitalDraft]   = useState<string>("");
+
+  const saveCapital = useCallback((val: number, cur: "USD" | "INR") => {
+    const safe = Math.max(cur === "USD" ? 1 : 100, val);
+    setCapital(safe);
+    setCurrency(cur);
+    localStorage.setItem("capital_value",    String(safe));
+    localStorage.setItem("capital_currency", cur);
+    setCapitalEditing(false);
+    // Re-fetch report so position sizes recalculate with new capital
+    if (selectedSymbol) fetchReport(selectedSymbol, safe, cur);
+  }, [selectedSymbol]);
+
+  const handleCurrencySwitch = (cur: "USD" | "INR") => {
+    const defaultVal = cur === "USD" ? 100 : 8000;
+    saveCapital(defaultVal, cur);
+  };
+
   const [report, setReport] = useState<SMCDualReport | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>("");
 
-  const fetchReport = async (sym: string) => {
+  const fetchReport = async (sym: string, cap?: number, cur?: "USD" | "INR") => {
     setLoading(true);
+    const capitalParam  = cap  ?? capital;
+    const currencyParam = cur  ?? currency;
     try {
-      const res = await fetch(`/api/smc-report/${sym}`);
+      const res = await fetch(`/api/smc-report/${sym}?capital=${capitalParam}&currency=${currencyParam}`);
       if (res.ok) {
         const data = await res.json();
         setReport(data);
-        if (data.currency === "INR" && userCapitalInput < 100000) {
-          setUserCapitalInput(500000);
-        } else if (data.currency === "USD" && userCapitalInput > 200000) {
-          setUserCapitalInput(10000);
-        }
       }
     } catch (e) {
       console.error("Failed to fetch SMC Report", e);
@@ -244,20 +271,68 @@ export default function SMCReportView({ config, initialSymbol }: SMCReportProps)
                   </span>
                 </div>
 
-                {/* Capital Input */}
-                <div className="bg-slate-950/80 px-3 py-2 rounded-lg border border-cyan-500/30 flex items-center gap-2">
-                  <div>
-                    <span className="text-[9px] text-cyan-400 uppercase font-mono block font-bold">Your Capital</span>
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs font-mono text-cyan-400">{report.currencySymbol}</span>
-                      <input
-                        type="number"
-                        value={userCapitalInput}
-                        onChange={e => setUserCapitalInput(Math.max(1000, parseInt(e.target.value) || 0))}
-                        className="w-24 bg-transparent text-xs font-mono font-bold text-white outline-none"
-                      />
-                    </div>
+                {/* ── Capital Widget ── */}
+                <div className="bg-slate-950/80 px-3 py-2.5 rounded-xl border border-cyan-500/30 space-y-2 min-w-[170px]">
+                  <span className="text-[9px] text-cyan-400 uppercase font-mono font-bold tracking-widest">Your Capital</span>
+
+                  {/* Currency Toggle Pills */}
+                  <div className="flex items-center gap-1">
+                    {(["USD", "INR"] as const).map(cur => (
+                      <button
+                        key={cur}
+                        onClick={() => handleCurrencySwitch(cur)}
+                        className={`px-2 py-0.5 rounded text-[9px] font-bold font-mono uppercase transition-all ${
+                          currency === cur
+                            ? "bg-cyan-500 text-black"
+                            : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+                        }`}
+                      >
+                        {cur === "USD" ? "$ USD" : "₹ INR"}
+                      </button>
+                    ))}
                   </div>
+
+                  {/* Editable Amount */}
+                  {capitalEditing ? (
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs font-mono text-cyan-400">{currency === "USD" ? "$" : "₹"}</span>
+                      <input
+                        autoFocus
+                        type="number"
+                        value={capitalDraft}
+                        onChange={e => setCapitalDraft(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") saveCapital(parseFloat(capitalDraft) || capital, currency);
+                          if (e.key === "Escape") setCapitalEditing(false);
+                        }}
+                        className="w-20 bg-slate-800 border border-cyan-500/50 rounded px-1.5 py-0.5 text-xs font-mono font-bold text-white outline-none focus:border-cyan-400"
+                      />
+                      <button
+                        onClick={() => saveCapital(parseFloat(capitalDraft) || capital, currency)}
+                        className="p-0.5 text-emerald-400 hover:text-emerald-300"
+                        title="Confirm"
+                      >
+                        <Check className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => setCapitalEditing(false)}
+                        className="p-0.5 text-slate-500 hover:text-slate-300"
+                        title="Cancel"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      className="flex items-center gap-1.5 group"
+                      onClick={() => { setCapitalDraft(String(capital)); setCapitalEditing(true); }}
+                    >
+                      <span className="text-base font-black font-mono text-white group-hover:text-cyan-300 transition-colors">
+                        {currency === "USD" ? "$" : "₹"}{capital.toLocaleString("en-IN")}
+                      </span>
+                      <Edit2 className="w-3 h-3 text-slate-500 group-hover:text-cyan-400 transition-colors" />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -447,19 +522,29 @@ export default function SMCReportView({ config, initialSymbol }: SMCReportProps)
 
           {/* ── 2. CAPITAL SIZING & RISK MANAGEMENT TABLE ── */}
           <div className="rounded-xl p-5 border bg-slate-900/80 border-slate-800 space-y-4">
-            <div className="flex items-center justify-between">
+              {/* Margin Safety Banner */}
+              {report.capitalSizing.some((r: any) => r.marginWarning) && (
+                <div className="flex items-start gap-2.5 p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400">
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <p className="text-xs font-medium">
+                    <strong>Margin Warning:</strong> One or more positions exceeds <strong>20% of your {currency === "USD" ? `$${capital}` : `₹${capital.toLocaleString("en-IN")}`} capital</strong> — risk of margin call. Consider reducing position size or increasing capital.
+                  </p>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
                   <BarChart2 className="w-4 h-4 text-cyan-400" />
-                  2. Capital Sizing & Risk Management Calculator
+                  2. Capital Sizing &amp; Risk Management Calculator
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Calculated based on your available capital of <span className="font-mono text-cyan-400">{fmtPrice(userCapitalInput, report.currencySymbol)}</span>
+                  Calculated based on your available capital of <span className="font-mono text-cyan-400">{currency === "USD" ? "$" : "₹"}{capital.toLocaleString("en-IN")}</span>
                 </p>
               </div>
 
               <span className="text-[10px] font-mono text-slate-400 bg-slate-800 px-2.5 py-1 rounded border border-slate-700">
-                Max Risk Per Trade: 2.0% ({fmtPrice(userCapitalInput * 0.02, report.currencySymbol)})
+                Max Risk / Trade: 1–2% ({currency === "USD" ? `$${(capital * 0.01).toFixed(2)}–$${(capital * 0.02).toFixed(2)}` : `₹${(capital * 0.01).toFixed(0)}–₹${(capital * 0.02).toFixed(0)}`})
               </span>
             </div>
 
@@ -477,15 +562,16 @@ export default function SMCReportView({ config, initialSymbol }: SMCReportProps)
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60">
-                  {report.capitalSizing.map((row, idx) => (
-                    <tr key={row.tradeMode} className="hover:bg-slate-800/30 transition-colors">
+                  {report.capitalSizing.map((row: any, idx: number) => (
+                    <tr key={row.tradeMode} className={`hover:bg-slate-800/30 transition-colors ${row.marginWarning ? "ring-1 ring-inset ring-rose-500/30" : ""}`}>
                       <td className="py-3 px-3 font-bold text-white flex items-center gap-2">
                         <span className={`w-2 h-2 rounded-full ${idx === 0 ? "bg-emerald-400" : "bg-cyan-400"}`} />
                         {row.tradeMode}
+                        {row.marginWarning && <span className="text-[8px] font-bold text-rose-400 bg-rose-500/10 px-1 py-0.5 rounded">MARGIN ⚠</span>}
                       </td>
                       <td className="py-3 px-3 text-cyan-400 font-bold">{row.productType}</td>
                       <td className="py-3 px-3 text-slate-200">{fmtPrice(row.executionEntry, row.currencySymbol)}</td>
-                      <td className="py-3 px-3 text-white font-bold">{row.maxShares.toLocaleString()} Units</td>
+                      <td className="py-3 px-3 text-white font-bold">{typeof row.maxShares === 'number' && row.maxShares < 1 ? row.maxShares.toFixed(6) : row.maxShares.toLocaleString()} Units</td>
                       <td className="py-3 px-3 text-slate-300">{fmtPrice(row.capitalUsed, row.currencySymbol)}</td>
                       <td className="py-3 px-3 text-rose-400 font-bold">-{fmtPrice(row.maxRisk, row.currencySymbol)}</td>
                       <td className="py-3 px-3 text-emerald-400 font-bold">+{fmtPrice(row.target1Profit, row.currencySymbol)}</td>

@@ -4,7 +4,7 @@ import fs from "fs";
 import { OpenAI } from "openai";
 import WebSocket from "ws";
 import { Config, Log, Trade, connectDatabase } from "./src/models/Database.js";
-import { calcPnL, calcPnLPct, formatPrecision } from "./src/utils/precisionMath.js";
+import { calcPnL, calcPnLPct, formatPrecision, calculateCryptoPositionSize, calculateForexLots, isMarginSafe } from "./src/utils/precisionMath.js";
 
 // Programmatic environment detection
 if (!process.env.NODE_ENV) {
@@ -1100,8 +1100,8 @@ const DEFAULT_FILTERS = {
 };
 
 const DEFAULT_USER_CAPITAL_USD = 100;
-const DEFAULT_TRADE_RISK_PCT = 0.10;
-const MAX_OPEN_TRADES = 10;
+const DEFAULT_TRADE_RISK_PCT = 0.02;   // 2% risk per trade on micro-account
+const MAX_OPEN_TRADES = 2;             // Max concurrent positions for $100 account
 
 const DEFAULT_CONFIG = {
   openAiKey: "",
@@ -1658,8 +1658,19 @@ async function autoLogTradeFromAlert(tradeData: {
   const existing = dbToUse.trades.find(t => t.symbol === rawSymb && !t.isResolved);
   if (existing) return existing;
 
-  const perTradeCapital = DEFAULT_USER_CAPITAL_USD * DEFAULT_TRADE_RISK_PCT;
-  const calculatedQty = parseFloat((perTradeCapital / tradeData.entryPrice).toFixed(6));
+  // Precise position sizing: risk $ / |entry - sl| gives exact qty with no rounding errors
+  const riskAmt = DEFAULT_USER_CAPITAL_USD * DEFAULT_TRADE_RISK_PCT; // e.g. $2 on $100
+  const slDist = Math.abs(tradeData.entryPrice - (tradeData.sl || 0));
+  const isForex = market === "FOREX";
+  let calculatedQty: number;
+  if (slDist > 0) {
+    calculatedQty = isForex
+      ? calculateForexLots(DEFAULT_USER_CAPITAL_USD, DEFAULT_TRADE_RISK_PCT, tradeData.entryPrice, tradeData.sl || 0)
+      : calculateCryptoPositionSize(DEFAULT_USER_CAPITAL_USD, DEFAULT_TRADE_RISK_PCT, tradeData.entryPrice, tradeData.sl || 0);
+  } else {
+    // Fallback: 2% capital / entry price, minimum 0.000001
+    calculatedQty = Math.max(0.000001, parseFloat((riskAmt / tradeData.entryPrice).toFixed(6)));
+  }
   const quantity = tradeData.quantity && tradeData.quantity > 0 ? tradeData.quantity : calculatedQty;
 
   const newTrade: TradeRecord = {
@@ -4072,6 +4083,9 @@ app.get("/api/india/nifty-indices", async (req, res) => {
 
 app.get("/api/smc-report/:symbol", async (req, res) => {
   try {
+    // Read optional capital & currency query params from the frontend
+    const userCapital  = parseFloat(req.query.capital as string)  || DEFAULT_USER_CAPITAL_USD;
+    const userCurrency = ((req.query.currency as string) || "USD").toUpperCase() as "USD" | "INR";
     let rawSymb = (req.params.symbol || "RELIANCE.NS").toUpperCase().trim();
     // Normalize Indian stock symbol names e.g. RELIANCE -> RELIANCE.NS
     if (!rawSymb.endsWith(".NS") && !rawSymb.startsWith("^") && rawSymb.length <= 12 && !["EURUSD", "GBPUSD", "USDJPY", "XAUUSD", "XAUUSDT", "BTCUSDT", "ETHUSDT", "SOLUSDT"].includes(rawSymb)) {
@@ -4353,52 +4367,116 @@ app.get("/api/smc-report/:symbol", async (req, res) => {
       });
     }
 
-    // Capital Sizing Calculation (User Capital Default: $100, 10% margin per trade)
-    const userCapital = 100;
-    const riskPerTradePct = 0.10; // 10% max margin per trade
+    // ── CAPITAL SIZING ENGINE ─────────────────────────────────────────────────
+    // Uses userCapital from query params (default $100 for micro-accounts)
+    // Risk per trade: 1%–2% ($1–$2 on a $100 account)
+    const riskPerTradePct = DEFAULT_TRADE_RISK_PCT; // 0.02 = 2%
     const maxRiskAmt = userCapital * riskPerTradePct;
 
-    // Intraday Capital Sizing (MIS leverage multiplier 5x for Indian equities, 1x for crypto/FX)
-    const intradayLeverage = meta.assetClass === "INDIAN_EQUITY" ? 5 : 1;
-    const intradayRiskPerShare = livePrice - intradaySl;
-    const intradayQtyByRisk = Math.floor(maxRiskAmt / (intradayRiskPerShare || 1));
-    const intradayMaxCapitalQty = Math.floor((userCapital * intradayLeverage) / livePrice);
-    const intradayQty = Math.max(1, Math.min(intradayQtyByRisk, intradayMaxCapitalQty));
-    const intradayCapitalUsed = parseFloat((intradayQty * livePrice / intradayLeverage).toFixed(2));
-    const intradayMaxRisk = parseFloat((intradayQty * intradayRiskPerShare).toFixed(2));
-    const intradayTarget1Profit = parseFloat((intradayQty * (intradayTp1 - livePrice)).toFixed(2));
+    let capitalSizing: Array<{
+      tradeMode: string;
+      productType: string;
+      executionEntry: number;
+      maxShares: number;
+      capitalUsed: number;
+      maxRisk: number;
+      target1Profit: number;
+      currencySymbol: string;
+      marginWarning: boolean;
+    }>;
 
-    // Swing Capital Sizing (CNC / Delivery - 1x cash only)
-    const swingRiskPerShare = livePrice - swingSl;
-    const swingQtyByRisk = Math.floor(maxRiskAmt / (swingRiskPerShare || 1));
-    const swingMaxCapitalQty = Math.floor(userCapital / livePrice);
-    const swingQty = Math.max(1, Math.min(swingQtyByRisk, swingMaxCapitalQty));
-    const swingCapitalUsed = parseFloat((swingQty * livePrice).toFixed(2));
-    const swingMaxRisk = parseFloat((swingQty * swingRiskPerShare).toFixed(2));
-    const swingTarget1Profit = parseFloat((swingQty * (swingTp1 - livePrice)).toFixed(2));
+    if (meta.assetClass === "INDIAN_EQUITY") {
+      // Indian Equity: MIS (5x leverage intraday) and CNC (1x delivery)
+      const intradayLeverage = 5;
+      const intradayRiskPerShare = Math.abs(livePrice - intradaySl);
+      const intradayQtyByRisk   = Math.floor(maxRiskAmt / (intradayRiskPerShare || 1));
+      const intradayMaxCapQty   = Math.floor((userCapital * intradayLeverage) / livePrice);
+      const intradayQty         = Math.max(1, Math.min(intradayQtyByRisk, intradayMaxCapQty));
+      const intradayCapitalUsed = parseFloat((intradayQty * livePrice / intradayLeverage).toFixed(2));
+      const intradayMaxRisk     = parseFloat((intradayQty * intradayRiskPerShare).toFixed(2));
+      const intradayT1Profit    = parseFloat((intradayQty * Math.abs(intradayTp1 - livePrice)).toFixed(2));
 
-    const capitalSizing = [
-      {
-        tradeMode: "Intraday" as const,
-        productType: "MIS" as const,
-        executionEntry: livePrice,
-        maxShares: intradayQty,
-        capitalUsed: intradayCapitalUsed,
-        maxRisk: intradayMaxRisk,
-        target1Profit: intradayTarget1Profit,
-        currencySymbol: meta.currencySymbol
-      },
-      {
-        tradeMode: "Swing" as const,
-        productType: "CNC/Delivery" as const,
-        executionEntry: livePrice,
-        maxShares: swingQty,
-        capitalUsed: swingCapitalUsed,
-        maxRisk: swingMaxRisk,
-        target1Profit: swingTarget1Profit,
-        currencySymbol: meta.currencySymbol
-      }
-    ];
+      const swingRiskPerShare = Math.abs(livePrice - swingSl);
+      const swingQtyByRisk    = Math.floor(maxRiskAmt / (swingRiskPerShare || 1));
+      const swingMaxCapQty    = Math.floor(userCapital / livePrice);
+      const swingQty          = Math.max(1, Math.min(swingQtyByRisk, swingMaxCapQty));
+      const swingCapitalUsed  = parseFloat((swingQty * livePrice).toFixed(2));
+      const swingMaxRisk      = parseFloat((swingQty * swingRiskPerShare).toFixed(2));
+      const swingT1Profit     = parseFloat((swingQty * Math.abs(swingTp1 - livePrice)).toFixed(2));
+
+      capitalSizing = [
+        {
+          tradeMode: "Intraday", productType: "MIS", executionEntry: livePrice,
+          maxShares: intradayQty, capitalUsed: intradayCapitalUsed,
+          maxRisk: intradayMaxRisk, target1Profit: intradayT1Profit,
+          currencySymbol: meta.currencySymbol,
+          marginWarning: !isMarginSafe(intradayCapitalUsed, userCapital)
+        },
+        {
+          tradeMode: "Swing", productType: "CNC/Delivery", executionEntry: livePrice,
+          maxShares: swingQty, capitalUsed: swingCapitalUsed,
+          maxRisk: swingMaxRisk, target1Profit: swingT1Profit,
+          currencySymbol: meta.currencySymbol,
+          marginWarning: !isMarginSafe(swingCapitalUsed, userCapital)
+        }
+      ];
+    } else if (meta.assetClass === "FOREX") {
+      // Forex: micro-lot sizing (0.01 lot = 1,000 units)
+      const intradayLots = calculateForexLots(userCapital, riskPerTradePct, livePrice, intradaySl);
+      const intradayCapUsed = parseFloat((intradayLots * 100000 * livePrice).toFixed(2));
+      const intradayMaxRisk = parseFloat((maxRiskAmt).toFixed(2));
+      const intradayT1Profit = parseFloat((intradayLots * 100000 * Math.abs(intradayTp1 - livePrice)).toFixed(2));
+
+      const swingLots = calculateForexLots(userCapital, riskPerTradePct, livePrice, swingSl);
+      const swingCapUsed = parseFloat((swingLots * 100000 * livePrice).toFixed(2));
+      const swingMaxRisk = parseFloat((maxRiskAmt).toFixed(2));
+      const swingT1Profit = parseFloat((swingLots * 100000 * Math.abs(swingTp1 - livePrice)).toFixed(2));
+
+      capitalSizing = [
+        {
+          tradeMode: "Intraday", productType: "Micro-Lot (0.01)", executionEntry: livePrice,
+          maxShares: intradayLots, capitalUsed: intradayCapUsed,
+          maxRisk: intradayMaxRisk, target1Profit: intradayT1Profit,
+          currencySymbol: "$",
+          marginWarning: !isMarginSafe(intradayCapUsed, userCapital)
+        },
+        {
+          tradeMode: "Swing", productType: "Micro-Lot (0.01)", executionEntry: livePrice,
+          maxShares: swingLots, capitalUsed: swingCapUsed,
+          maxRisk: swingMaxRisk, target1Profit: swingT1Profit,
+          currencySymbol: "$",
+          marginWarning: !isMarginSafe(swingCapUsed, userCapital)
+        }
+      ];
+    } else {
+      // Crypto: token-based sizing (Linear Perpetuals / Spot)
+      const intradayQty     = calculateCryptoPositionSize(userCapital, riskPerTradePct, livePrice, intradaySl);
+      const intradayCapUsed = parseFloat((intradayQty * livePrice).toFixed(2));
+      const intradayMaxRisk = parseFloat((maxRiskAmt).toFixed(2));
+      const intradayT1Profit = parseFloat((intradayQty * Math.abs(intradayTp1 - livePrice)).toFixed(2));
+
+      const swingQty     = calculateCryptoPositionSize(userCapital, riskPerTradePct, livePrice, swingSl);
+      const swingCapUsed = parseFloat((swingQty * livePrice).toFixed(2));
+      const swingMaxRisk = parseFloat((maxRiskAmt).toFixed(2));
+      const swingT1Profit = parseFloat((swingQty * Math.abs(swingTp1 - livePrice)).toFixed(2));
+
+      capitalSizing = [
+        {
+          tradeMode: "Intraday", productType: "Spot / Perp", executionEntry: livePrice,
+          maxShares: intradayQty, capitalUsed: intradayCapUsed,
+          maxRisk: intradayMaxRisk, target1Profit: intradayT1Profit,
+          currencySymbol: "$",
+          marginWarning: !isMarginSafe(intradayCapUsed, userCapital)
+        },
+        {
+          tradeMode: "Swing", productType: "Spot / Perp", executionEntry: livePrice,
+          maxShares: swingQty, capitalUsed: swingCapUsed,
+          maxRisk: swingMaxRisk, target1Profit: swingT1Profit,
+          currencySymbol: "$",
+          marginWarning: !isMarginSafe(swingCapUsed, userCapital)
+        }
+      ];
+    }
 
     const report = {
       symbol: meta.symbol,
