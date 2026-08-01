@@ -535,8 +535,10 @@ function analyzePriceAction(opens: number[], highs: number[], lows: number[], cl
 // Maps frontend symbol codes → Yahoo Finance tickers
 const YAHOO_SYMBOL_MAP: Record<string, string> = {
   // Commodities
-  XAUUSD: "GC=F",
-  XAGUSD: "SI=F",
+  XAUUSD: "XAUUSD=X",
+  XAUUSDT: "XAUUSD=X",
+  XAGUSD: "XAGUSD=X",
+  XAGUSDT: "XAGUSD=X",
   "CL=F":  "CL=F",
   "BZ=F":  "BZ=F",
   "NG=F":  "NG=F",
@@ -1417,6 +1419,8 @@ app.get("/api/trades/pnl-account", (req, res) => {
 // ─── BATCH LIVE PRICE FETCHING ENGINE ─────────────────────────────────────────
 const livePriceCache: Record<string, { price: number; change: number; changePct: number; timestamp: number }> = {};
 
+const FOREX_USDT_SYMBS = new Set(["XAUUSDT", "XAGUSDT"]);
+
 async function getLivePricesBatch(
   symbols: string[]
 ): Promise<Record<string, { price: number; change: number; changePct: number }>> {
@@ -1438,9 +1442,10 @@ async function getLivePricesBatch(
 
   // ── CRYPTO: Binance 24hr ticker (price + change) ───────────────────────────
   const cryptoSyms = missing.filter(s =>
-    s.endsWith("USDT") ||
+    !FOREX_USDT_SYMBS.has(s) &&
+    (s.endsWith("USDT") ||
     (!s.includes(".") && !s.includes("=") && !s.endsWith("=F") &&
-      ["BTC","ETH","SOL","BNB","XRP","DOGE","ADA","AVAX","LINK","DOT","NEAR","SHIB","PEPE","SUI","UNI","WLD","OP","ARB","MATIC","FTM","ALGO","ATOM","FIL","INJ","SEI","TIA","APT","SUI"].some(c => s.startsWith(c)))
+      ["BTC","ETH","SOL","BNB","XRP","DOGE","ADA","AVAX","LINK","DOT","NEAR","SHIB","PEPE","SUI","UNI","WLD","OP","ARB","MATIC","FTM","ALGO","ATOM","FIL","INJ","SEI","TIA","APT","SUI"].some(c => s.startsWith(c))))
   );
   const otherSyms = missing.filter(s => !cryptoSyms.includes(s));
 
@@ -2897,7 +2902,9 @@ async function handleTradeBotCommand(text: string, token: string, chatId: string
 
     // Auto-detect market
     if (!market) {
-      if (symbol.endsWith(".NS") || (!symbol.endsWith("USDT") && symbol.length <= 12 && !["EURUSD","GBPUSD","USDJPY","AUDUSD","USDCAD","USDCHF","NZDUSD","EURGBP","EURJPY","GBPJPY","XAUUSD","XAGUSD"].includes(symbol))) {
+      if (symbol === "XAUUSDT" || symbol === "XAGUSDT") {
+        market = "FOREX";
+      } else if (symbol.endsWith(".NS") || (!symbol.endsWith("USDT") && symbol.length <= 12 && !["EURUSD","GBPUSD","USDJPY","AUDUSD","USDCAD","USDCHF","NZDUSD","EURGBP","EURJPY","GBPJPY","XAUUSD","XAGUSD"].includes(symbol))) {
         market = "INDIAN_EQUITY";
       } else if (symbol.endsWith("USDT") || ["BTC","ETH","SOL","BNB","XRP","DOGE","ADA","AVAX","LINK","DOT","NEAR","SHIB","PEPE","SUI","UNI"].some(c => symbol.startsWith(c))) {
         market = "CRYPTO";
