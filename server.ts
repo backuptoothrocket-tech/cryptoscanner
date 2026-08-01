@@ -1158,16 +1158,21 @@ function backfillTradesFromLogs() {
     if (!db.trades) db.trades = [];
     let count = 0;
     for (const log of db.logs || []) {
-      if (log.passedFilters && log.tradePlan && log.symbol) {
+      const hasPassedFilters = typeof log.passedFilters === "undefined" ? true : log.passedFilters;
+      if (hasPassedFilters && log.tradePlan && log.symbol) {
         const existing = db.trades.find(t => t.symbol === log.symbol && !t.isResolved);
         if (!existing) {
+          const entryPrice = log.tradePlan.entry || log.tradePlan.entryMin || log.tradePlan.entryMax || log.payload?.price || 0;
+          const tp1 = log.tradePlan.target1 ?? log.tradePlan.takeProfit1 ?? 0;
+          const tp2 = log.tradePlan.target2 ?? log.tradePlan.takeProfit2 ?? 0;
+
           autoLogTradeFromAlert({
             symbol: log.symbol,
-            side: (log.side || "LONG") as "LONG" | "SHORT",
-            entryPrice: log.tradePlan.entry || log.payload?.price || 0,
-            sl: log.tradePlan.stopLoss || 0,
-            tp1: log.tradePlan.target1 || 0,
-            tp2: log.tradePlan.target2 || 0,
+            side: (log.side || log.payload?.side || "LONG") as "LONG" | "SHORT",
+            entryPrice,
+            sl: log.tradePlan.stopLoss || log.tradePlan.sl || 0,
+            tp1,
+            tp2,
             notes: `Auto-logged from historical scan (Confidence: ${log.aiDecision?.confidence || "N/A"}%)`
           });
           count++;
