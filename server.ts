@@ -642,6 +642,39 @@ async function fetchYahooKlines(symbol: string, interval: string = "1h", range: 
   return null;
 }
 
+async function fetchYahooIndiaStocks(category: string, limit: number = 30): Promise<IndiaStock[]> {
+  try {
+    const url = `https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?formatted=true&scrIds=${encodeURIComponent(category)}&count=${limit}`;
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json",
+        "Referer": "https://finance.yahoo.com"
+      }
+    });
+    if (!res.ok) return [];
+    const json = await res.json();
+    const quotes = json?.finance?.result?.[0]?.quotes || [];
+    return quotes.map((item: any) => ({
+      symbol: item.symbol || "",
+      name: item.longName || item.shortName || item.symbol || "",
+      price: parseFloat(item.regularMarketPrice?.raw || item.regularMarketPrice || 0) || 0,
+      change: parseFloat(item.regularMarketChange?.raw || item.regularMarketChange || 0) || 0,
+      changePct: parseFloat(item.regularMarketChangePercent?.raw || item.regularMarketChangePercent || 0) || 0,
+      volume: parseFloat(item.regularMarketVolume?.raw || item.regularMarketVolume || 0) || 0,
+      high: parseFloat(item.regularMarketDayHigh?.raw || item.regularMarketDayHigh || 0) || 0,
+      low: parseFloat(item.regularMarketDayLow?.raw || item.regularMarketDayLow || 0) || 0,
+      open: parseFloat(item.regularMarketOpen?.raw || item.regularMarketOpen || 0) || 0,
+      prevClose: parseFloat(item.regularMarketPreviousClose?.raw || item.regularMarketPreviousClose || 0) || 0,
+      marketCap: parseFloat(item.marketCap?.raw || item.marketCap || 0) || undefined,
+      series: item.exchange || item.quoteType || undefined,
+      isin: item.isin || undefined
+    }));
+  } catch {
+    return [];
+  }
+}
+
 // Fetch candles and compute swing/scalp indicators for Crypto, Indian Equities, and Forex
 async function fetchRecentKlinesAndTrend(symbol: string): Promise<RealIndicators> {
   const cleanSymbol = symbol.replace(".P", "").toUpperCase();
@@ -847,9 +880,11 @@ async function fetchRecentKlinesAndTrend(symbol: string): Promise<RealIndicators
 
   const currentPrice = fallbackPrice;
   const trendDir: "bullish" | "bearish" = "bullish";
-  const utbot: "buy" | "sell" | "hold" = "hold";
+  let utbot: "buy" | "sell" | "hold";
+  utbot = "hold";
   const volumeLevel: "high" | "normal" | "low" = "normal";
-  const rsi: "oversold" | "overbought" | "neutral" = "neutral";
+  let rsi: "oversold" | "overbought" | "neutral";
+  rsi = "neutral";
   const rsiValue = 50.0;
   const macd: "bullish_cross" | "bearish_cross" | "neutral" = Math.random() > 0.8 ? (trendDir === "bullish" ? "bullish_cross" : "bearish_cross") : "neutral";
   const marketStructure: "BOS" | "CHOCH" | "" = Math.random() > 0.8 ? "BOS" : "";
@@ -861,11 +896,11 @@ async function fetchRecentKlinesAndTrend(symbol: string): Promise<RealIndicators
   const obvTrend: "rising" | "falling" | "flat" = trendDir === "bullish" ? "rising" : "falling";
   const atrPct = 1.5 + Math.random() * 3;
 
-  const evaluation = evaluateTraderInsight(symbol, simulatedPrice, trendDir, utbot, volumeLevel, rsi, macd, marketStructure);
+  const evaluation = evaluateTraderInsight(symbol, currentPrice, trendDir, utbot, volumeLevel, rsi, macd, marketStructure);
 
   const db = readDB();
   const fallbackPayload = {
-    symbol, price: simulatedPrice, utbot, ema_crossover: trendDir, rsi, macd,
+    symbol, price: currentPrice, utbot, ema_crossover: trendDir, rsi, macd,
     market_structure: marketStructure, volume: volumeLevel,
     adx, adxTrending, stochRsiSignal, obvTrend,
     priceActionPattern: "NONE", priceActionBias: "NEUTRAL"
@@ -873,11 +908,11 @@ async function fetchRecentKlinesAndTrend(symbol: string): Promise<RealIndicators
   const scoredResult = processSignalPayload(fallbackPayload, db.config);
 
   const fallbackResult: RealIndicators = {
-    price: simulatedPrice, trendDir, utbot, volumeLevel, marketStructure,
+    price: currentPrice, trendDir, utbot, volumeLevel, marketStructure,
     rsi, rsiValue, macd, macdHistogram: 0, adx, adxTrending,
     stochRsiK, stochRsiD, stochRsiSignal, obvTrend, atrPct,
     priceActionPattern: "NONE", priceActionBias: "NEUTRAL", priceActionDesc: "No patterns detected on simulated feed.",
-    isBuySignalReady: trendDir === "bullish" && adxTrending && (utbot === "buy" || rsi === "oversold"),
+    isBuySignalReady: false,
     timestamp: now, traderEvaluation: evaluation,
     changePercent: (Math.random() - 0.5) * 8,
     score: scoredResult.score, scoreBreakdown: scoredResult.scoreBreakdown,
@@ -1570,7 +1605,7 @@ function autoLogTradeFromAlert(tradeData: {
   const openTrades = dbToUse.trades.filter(t => !t.isResolved);
   if (openTrades.length >= MAX_OPEN_TRADES) return null;
 
-  const market = tradeData.market || (rawSymb.endsWith(".NS") ? "INDIAN_EQUITY" : rawSymb.endsWith("USDT") ? "CRYPTO" : "FOREX");
+  const market = tradeData.market || (rawSymb === "XAUUSDT" || rawSymb === "XAGUSDT" ? "FOREX" : rawSymb.endsWith(".NS") ? "INDIAN_EQUITY" : rawSymb.endsWith("USDT") ? "CRYPTO" : "FOREX");
 
   // Prevent duplicate open trades for exact same symbol
   const existing = dbToUse.trades.find(t => t.symbol === rawSymb && !t.isResolved);
@@ -1578,7 +1613,7 @@ function autoLogTradeFromAlert(tradeData: {
 
   const perTradeCapital = DEFAULT_USER_CAPITAL_USD * DEFAULT_TRADE_RISK_PCT;
   const calculatedQty = parseFloat((perTradeCapital / tradeData.entryPrice).toFixed(6));
-  const quantity = tradeData.quantity || calculatedQty;
+  const quantity = tradeData.quantity && tradeData.quantity > 0 ? tradeData.quantity : calculatedQty;
 
   const newTrade: TradeRecord = {
     id: `t_auto_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
@@ -2302,16 +2337,20 @@ async function handleSignalPipeline(payload: any, isSimulation: boolean = false)
   const atrValue = payload.atrPct && scored.price ? (payload.atrPct / 100) * scored.price : undefined;
   const tradePlan = calculateRiskManagement(side, scored.price, scored.timeframe, symbol, atrValue);
 
+  const shouldLogSignal = isSimulation ? true : (passedFilters && aiResult.decision === "SEND");
+  const canSendTelegram = config.telegramEnabled && config.telegramToken && config.telegramChatId && shouldLogSignal && !cooldownActive;
+
   const logEntry: any = {
     id: entryId,
     timestamp,
     symbol: scored.symbol,
+    side,
     timeframe: scored.timeframe || "Composite Swing",
     price: scored.price,
     payload: { ...payload, side, multiTimeframe: mtfAnalyses },
     score: scored.score,
     maxScore: scored.maxScore,
-    passedFilters: isSimulation ? true : (passedFilters && aiResult.decision === "SEND"),
+    passedFilters: shouldLogSignal,
     filterResults: {
       ...scored.filterResults
     },
@@ -2325,7 +2364,8 @@ async function handleSignalPipeline(payload: any, isSimulation: boolean = false)
   const formattedMsg = formatTelegramAlert(logEntry, aiResult.confidence, aiResult.reason);
   logEntry.formattedAlert = formattedMsg;
 
-  if (config.telegramEnabled && config.telegramToken && config.telegramChatId && logEntry.passedFilters && !cooldownActive) {
+  if (canSendTelegram) {
+    const telegramQuantity = Math.max(1, parseFloat((DEFAULT_USER_CAPITAL_USD * DEFAULT_TRADE_RISK_PCT / (logEntry.tradePlan.entry || logEntry.payload?.price || 1)).toFixed(6)));
     const telegramRawResult = await sendTelegramNotification(
       config.telegramToken,
       config.telegramChatId,
@@ -2338,6 +2378,7 @@ async function handleSignalPipeline(payload: any, isSimulation: boolean = false)
         sl: logEntry.tradePlan.stopLoss || 0,
         tp1: logEntry.tradePlan.target1 || 0,
         tp2: logEntry.tradePlan.target2 || 0,
+        quantity: telegramQuantity,
         notes: `Auto-logged from Telegram alert (Confidence: ${aiResult.confidence || "N/A"}%)`
       },
       db
@@ -2356,15 +2397,14 @@ async function handleSignalPipeline(payload: any, isSimulation: boolean = false)
     } else if (!config.telegramToken || !config.telegramChatId) {
       logEntry.telegramError = "Telegram token or chat ID is missing in Config.";
     } else if (cooldownActive) {
-      logEntry.passedFilters = false;
       logEntry.telegramError = blockReason;
       logEntry.formattedAlert = `[BLOCKED BY COOLDOWN FILTER]\n` + formattedMsg;
     } else if (!mtfCheck.passed) {
-      logEntry.passedFilters = false;
       logEntry.telegramError = blockReason;
       logEntry.formattedAlert = `[BLOCKED BY MULTI-TIMEFRAME FILTER]\n` + formattedMsg;
     } else if (aiResult.decision !== "SEND") {
       logEntry.telegramError = `AI rejected signal: ${aiResult.reason}`;
+      logEntry.passedFilters = false;
     } else if (blockReason) {
       logEntry.telegramError = blockReason;
     }
@@ -2720,13 +2760,15 @@ async function parseAnyTelegramSignalText(text: string, token: string, chatId: s
     ]);
 
     const qty = findNum([
-      /(?:QTY|QUANTITY|LOTS|SIZE)\s*:?\s*(\d+(?:\.\d+)?)/i
+      /(?:QTY|QUANTITY|LOTS|SIZE|AMOUNT|AMT)\s*:?\s*(\d+(?:\.\d+)?)/i
     ]);
 
     if (!entry || !sl || (!tp1 && !tp2)) return false;
 
     let market = "";
-    if (symbol.endsWith(".NS") || (!symbol.endsWith("USDT") && symbol.length <= 12 && !["EURUSD","GBPUSD","USDJPY","AUDUSD","USDCAD","USDCHF","NZDUSD","EURGBP","EURJPY","GBPJPY","XAUUSD","XAGUSD"].includes(symbol))) {
+    if (symbol === "XAUUSDT" || symbol === "XAGUSDT") {
+      market = "FOREX";
+    } else if (symbol.endsWith(".NS") || (!symbol.endsWith("USDT") && symbol.length <= 12 && !["EURUSD","GBPUSD","USDJPY","AUDUSD","USDCAD","USDCHF","NZDUSD","EURGBP","EURJPY","GBPJPY","XAUUSD","XAGUSD"].includes(symbol))) {
       market = "INDIAN_EQUITY";
     } else if (symbol.endsWith("USDT") || ["BTC","ETH","SOL","BNB","XRP","DOGE","ADA","AVAX","LINK","DOT","NEAR","SHIB","PEPE","SUI","UNI"].some(c => symbol.startsWith(c))) {
       market = "CRYPTO";
@@ -3128,6 +3170,7 @@ const MULTI_MARKET_CATALOG: Record<string, SymbolMeta> = {
   "GBPUSD": { symbol: "GBPUSD", name: "British Pound / US Dollar", assetClass: "FOREX", currency: "USD", currencySymbol: "$", tradingViewSymbol: "FX:GBPUSD", basePrice: 1.2950 },
   "USDJPY": { symbol: "USDJPY", name: "US Dollar / Japanese Yen", assetClass: "FOREX", currency: "USD", currencySymbol: "$", tradingViewSymbol: "FX:USDJPY", basePrice: 154.20 },
   "XAUUSD": { symbol: "XAUUSD", name: "Gold Spot / US Dollar", assetClass: "FOREX", currency: "USD", currencySymbol: "$", tradingViewSymbol: "OANDA:XAUUSD", basePrice: 2420.50 },
+  "XAUUSDT": { symbol: "XAUUSDT", name: "Gold Spot / US Dollar", assetClass: "FOREX", currency: "USD", currencySymbol: "$", tradingViewSymbol: "OANDA:XAUUSD", basePrice: 2420.50 },
 
   // Crypto
   "BTCUSDT": { symbol: "BTCUSDT", name: "Bitcoin / USDT", assetClass: "CRYPTO", currency: "USD", currencySymbol: "$", tradingViewSymbol: "BINANCE:BTCUSDT", basePrice: 65400.00 },
@@ -3939,7 +3982,7 @@ app.get("/api/smc-report/:symbol", async (req, res) => {
   try {
     let rawSymb = (req.params.symbol || "RELIANCE.NS").toUpperCase().trim();
     // Normalize Indian stock symbol names e.g. RELIANCE -> RELIANCE.NS
-    if (!rawSymb.endsWith(".NS") && !rawSymb.startsWith("^") && rawSymb.length <= 12 && !["EURUSD", "GBPUSD", "USDJPY", "XAUUSD", "BTCUSDT", "ETHUSDT", "SOLUSDT"].includes(rawSymb)) {
+    if (!rawSymb.endsWith(".NS") && !rawSymb.startsWith("^") && rawSymb.length <= 12 && !["EURUSD", "GBPUSD", "USDJPY", "XAUUSD", "XAUUSDT", "BTCUSDT", "ETHUSDT", "SOLUSDT"].includes(rawSymb)) {
       if (MULTI_MARKET_CATALOG[`${rawSymb}.NS`]) {
         rawSymb = `${rawSymb}.NS`;
       }

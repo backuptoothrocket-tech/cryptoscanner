@@ -21,8 +21,8 @@ type SubTab = "all" | "commodities" | "forex-majors" | "forex-crosses" | "gainer
 
 const FOREX_CATALOG: { symbol: string; name: string; category: "COMMODITY" | "MAJOR_FOREX" | "CROSS_PAIR" }[] = [
   // Commodities
-  { symbol: "XAUUSD", name: "Gold Spot / US Dollar", category: "COMMODITY" },
-  { symbol: "XAGUSD", name: "Silver Spot / US Dollar", category: "COMMODITY" },
+  { symbol: "XAUUSDT", name: "Gold Spot / US Dollar", category: "COMMODITY" },
+  { symbol: "XAGUSDT", name: "Silver Spot / US Dollar", category: "COMMODITY" },
   { symbol: "CL=F",   name: "WTI Crude Oil", category: "COMMODITY" },
   { symbol: "BZ=F",   name: "Brent Crude Oil", category: "COMMODITY" },
   { symbol: "NG=F",   name: "Natural Gas", category: "COMMODITY" },
@@ -262,7 +262,7 @@ export default function ForexMarket({ onNavigateToSMC }: Props) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
           <input
             value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search (XAUUSD, EURUSD, Crude)…"
+            placeholder="Search (XAUUSDT, EURUSD, Crude)…"
             className="w-full pl-9 pr-3 py-1.5 rounded-lg text-xs text-white outline-none placeholder-slate-600"
             style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }} />
         </div>

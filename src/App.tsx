@@ -81,7 +81,7 @@ export default function App() {
 
   const fetchLiveTickerPrices = async () => {
     try {
-      const symbols = ["XAUUSD", "BTCUSDT", "ETHUSDT", "^NSEI", "RELIANCE.NS", "EURUSD", "CL=F", "SOLUSDT", "GBPUSD", "TATAMOTORS.NS"];
+      const symbols = ["XAUUSDT", "BTCUSDT", "ETHUSDT", "^NSEI", "RELIANCE.NS", "EURUSD", "CL=F", "SOLUSDT", "GBPUSD", "TATAMOTORS.NS"];
       const r = await fetch("/api/market-prices/batch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -96,7 +96,7 @@ export default function App() {
 
   useEffect(() => {
     fetchLiveTickerPrices();
-    const interval = setInterval(fetchLiveTickerPrices, 10000);
+    const interval = setInterval(fetchLiveTickerPrices, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -237,7 +237,7 @@ export default function App() {
           <div className="ticker-track gap-3 items-center py-1">
             {(() => {
               const tickerItemsConfig = [
-                { key: "XAUUSD", label: "GOLD", icon: "🥇", prefix: "$" },
+                { key: "XAUUSDT", label: "GOLD", icon: "🥇", prefix: "$" },
                 { key: "BTCUSDT", label: "BTC/USDT", icon: "₿", prefix: "$" },
                 { key: "ETHUSDT", label: "ETH/USDT", icon: "Ξ", prefix: "$" },
                 { key: "^NSEI", label: "NIFTY 50", icon: "🇮🇳", prefix: "₹" },

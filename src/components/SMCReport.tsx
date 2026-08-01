@@ -37,7 +37,7 @@ const PRESET_MARKETS = [
   { symbol: "HDFCBANK.NS", name: "HDFC Bank", assetClass: "INDIAN_EQUITY" as const, flag: "🇮🇳" },
   { symbol: "EURUSD", name: "EUR / USD", assetClass: "FOREX" as const, flag: "🌍" },
   { symbol: "GBPUSD", name: "GBP / USD", assetClass: "FOREX" as const, flag: "🌍" },
-  { symbol: "XAUUSD", name: "Gold Spot", assetClass: "FOREX" as const, flag: "🥇" },
+  { symbol: "XAUUSDT", name: "Gold Spot", assetClass: "FOREX" as const, flag: "🥇" },
   { symbol: "BTCUSDT", name: "Bitcoin", assetClass: "CRYPTO" as const, flag: "🪙" },
   { symbol: "ETHUSDT", name: "Ethereum", assetClass: "CRYPTO" as const, flag: "🪙" },
   { symbol: "SOLUSDT", name: "Solana", assetClass: "CRYPTO" as const, flag: "🪙" },
