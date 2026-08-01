@@ -532,20 +532,51 @@ function analyzePriceAction(opens: number[], highs: number[], lows: number[], cl
   return { pattern: "NONE", bias: "NEUTRAL", description: "No clear price action patterns detected." };
 }
 
+// Maps frontend symbol codes → Yahoo Finance tickers
+const YAHOO_SYMBOL_MAP: Record<string, string> = {
+  // Commodities
+  XAUUSD: "GC=F",
+  XAGUSD: "SI=F",
+  "CL=F":  "CL=F",
+  "BZ=F":  "BZ=F",
+  "NG=F":  "NG=F",
+  "HG=F":  "HG=F",
+  "PL=F":  "PL=F",
+  // Forex Majors
+  EURUSD: "EURUSD=X",
+  GBPUSD: "GBPUSD=X",
+  USDJPY: "USDJPY=X",
+  AUDUSD: "AUDUSD=X",
+  USDCAD: "USDCAD=X",
+  USDCHF: "USDCHF=X",
+  NZDUSD: "NZDUSD=X",
+  // Forex Crosses
+  EURGBP: "EURGBP=X",
+  EURJPY: "EURJPY=X",
+  GBPJPY: "GBPJPY=X",
+  AUDJPY: "AUDJPY=X",
+  EURAUD: "EURAUD=X",
+  GBPCAD: "GBPCAD=X",
+  AUDCAD: "AUDCAD=X",
+  CHFJPY: "CHFJPY=X",
+  // Indian Indices
+  "^NSEI": "^NSEI",
+  "^BSESN": "^BSESN"
+};
+
+function toYahooSymbol(sym: string): string {
+  const clean = (sym || "").toUpperCase().trim();
+  if (YAHOO_SYMBOL_MAP[clean]) return YAHOO_SYMBOL_MAP[clean];
+  if (clean.endsWith(".NS") || clean.endsWith("=X") || clean.endsWith("=F") || clean.startsWith("^")) return clean;
+  // 6-char all-alpha → Forex pair
+  if (/^[A-Z]{6}$/.test(clean)) return `${clean}=X`;
+  // Otherwise assume Indian stock
+  return `${clean}.NS`;
+}
+
 // Fetch candles from Yahoo Finance for Indian Equities & Forex/Commodities
 async function fetchYahooKlines(symbol: string, interval: string = "1h", range: string = "5d") {
-  let yahooSymbol = (symbol || "").toUpperCase().trim();
-  if (yahooSymbol.endsWith(".NS") || yahooSymbol.startsWith("^")) {
-    // already formatted
-  } else if (yahooSymbol.length === 6 && !yahooSymbol.endsWith("=X") && !yahooSymbol.endsWith("USDT")) {
-    yahooSymbol = `${yahooSymbol}=X`;
-  } else if (yahooSymbol === "XAUUSD" || yahooSymbol === "XAUUSDT") {
-    yahooSymbol = "GC=F";
-  } else if (yahooSymbol === "XAGUSD" || yahooSymbol === "XAGUSDT") {
-    yahooSymbol = "SI=F";
-  } else if (!yahooSymbol.endsWith("USDT") && !yahooSymbol.includes(".")) {
-    yahooSymbol = `${yahooSymbol}.NS`;
-  }
+  const yahooSymbol = toYahooSymbol(symbol);
 
   const yfInterval = interval === "15m" ? "15m" : interval === "5m" ? "5m" : interval === "4h" ? "60m" : "1h";
   const yfRange = range || (interval === "5m" ? "1d" : interval === "15m" ? "5d" : "1mo");
@@ -803,21 +834,21 @@ async function fetchRecentKlinesAndTrend(symbol: string): Promise<RealIndicators
     console.error(`[Yahoo API] Unable to fetch klines for ${symbol}:`, e);
   }
 
-  // Fallback simulator — used only when external market feeds are offline
-  const fallbackPrice = symbol.includes("BTC") ? 97200 
-                      : symbol.includes("ETH") ? 3350 
-                      : symbol.includes("SOL") ? 198.50 
-                      : symbol.includes("RELIANCE") ? 1275.0
-                      : symbol.includes("INFY") ? 1850.0
-                      : symbol.includes("TATA") ? 980.0
-                      : 100.0;
+  // Fallback engine — uses real live price from batch price engine if candle API is down
+  let fallbackPrice = 100.0;
+  try {
+    const liveBatch = await getLivePricesBatch([symbol]);
+    if (liveBatch[symbol]?.price > 0) {
+      fallbackPrice = liveBatch[symbol].price;
+    }
+  } catch {}
 
-  const simulatedPrice = parseFloat((fallbackPrice + (Math.random() - 0.5) * (fallbackPrice * 0.02)).toFixed(fallbackPrice > 1000 ? 1 : fallbackPrice > 10 ? 3 : 5));
-  const trendDir: "bullish" | "bearish" = Math.random() > 0.4 ? "bullish" : "bearish";
-  const utbot: "buy" | "sell" | "hold" = Math.random() > 0.88 ? (trendDir === "bullish" ? "buy" : "sell") : "hold";
-  const volumeLevel: "high" | "normal" | "low" = Math.random() > 0.6 ? "high" : "normal";
-  const rsi: "oversold" | "overbought" | "neutral" = Math.random() > 0.85 ? (trendDir === "bullish" ? "oversold" : "overbought") : "neutral";
-  const rsiValue = rsi === "oversold" ? 25 + Math.random() * 5 : rsi === "overbought" ? 72 + Math.random() * 5 : 45 + Math.random() * 10;
+  const currentPrice = fallbackPrice;
+  const trendDir: "bullish" | "bearish" = "bullish";
+  const utbot: "buy" | "sell" | "hold" = "hold";
+  const volumeLevel: "high" | "normal" | "low" = "normal";
+  const rsi: "oversold" | "overbought" | "neutral" = "neutral";
+  const rsiValue = 50.0;
   const macd: "bullish_cross" | "bearish_cross" | "neutral" = Math.random() > 0.8 ? (trendDir === "bullish" ? "bullish_cross" : "bearish_cross") : "neutral";
   const marketStructure: "BOS" | "CHOCH" | "" = Math.random() > 0.8 ? "BOS" : "";
   const adx = 15 + Math.random() * 25;
@@ -1373,47 +1404,6 @@ app.get("/api/trades/pnl-account", (req, res) => {
 // ─── BATCH LIVE PRICE FETCHING ENGINE ─────────────────────────────────────────
 const livePriceCache: Record<string, { price: number; change: number; changePct: number; timestamp: number }> = {};
 
-// Maps frontend symbol codes → Yahoo Finance tickers
-const YAHOO_SYMBOL_MAP: Record<string, string> = {
-  // Commodities
-  XAUUSD: "GC=F",
-  XAGUSD: "SI=F",
-  "CL=F":  "CL=F",
-  "BZ=F":  "BZ=F",
-  "NG=F":  "NG=F",
-  "HG=F":  "HG=F",
-  "PL=F":  "PL=F",
-  // Forex Majors
-  EURUSD: "EURUSD=X",
-  GBPUSD: "GBPUSD=X",
-  USDJPY: "USDJPY=X",
-  AUDUSD: "AUDUSD=X",
-  USDCAD: "USDCAD=X",
-  USDCHF: "USDCHF=X",
-  NZDUSD: "NZDUSD=X",
-  // Forex Crosses
-  EURGBP: "EURGBP=X",
-  EURJPY: "EURJPY=X",
-  GBPJPY: "GBPJPY=X",
-  AUDJPY: "AUDJPY=X",
-  EURAUD: "EURAUD=X",
-  GBPCAD: "GBPCAD=X",
-  AUDCAD: "AUDCAD=X",
-  CHFJPY: "CHFJPY=X",
-  // Indian Indices
-  "^NSEI": "^NSEI",
-  "^BSESN": "^BSESN"
-};
-
-function toYahooSymbol(sym: string): string {
-  if (YAHOO_SYMBOL_MAP[sym]) return YAHOO_SYMBOL_MAP[sym];
-  if (sym.endsWith(".NS") || sym.endsWith("=X") || sym.endsWith("=F") || sym.startsWith("^")) return sym;
-  // 6-char all-alpha → likely a Forex pair
-  if (/^[A-Z]{6}$/.test(sym)) return `${sym}=X`;
-  // Otherwise assume Indian stock
-  return `${sym}.NS`;
-}
-
 async function getLivePricesBatch(
   symbols: string[]
 ): Promise<Record<string, { price: number; change: number; changePct: number }>> {
@@ -1552,9 +1542,9 @@ function autoLogTradeFromAlert(tradeData: {
   tp2?: number;
   quantity?: number;
   notes?: string;
-}) {
-  const db = readDB();
-  if (!db.trades) db.trades = [];
+}, db?: DB) {
+  const dbToUse = db ?? readDB();
+  if (!dbToUse.trades) dbToUse.trades = [];
 
   const rawSymb = (tradeData.symbol || "").toUpperCase().trim();
   if (!rawSymb || !tradeData.entryPrice) return null;
@@ -1562,7 +1552,7 @@ function autoLogTradeFromAlert(tradeData: {
   const market = tradeData.market || (rawSymb.endsWith(".NS") ? "INDIAN_EQUITY" : rawSymb.endsWith("USDT") ? "CRYPTO" : "FOREX");
 
   // Prevent duplicate open trades for exact same symbol
-  const existing = db.trades.find(t => t.symbol === rawSymb && !t.isResolved);
+  const existing = dbToUse.trades.find(t => t.symbol === rawSymb && !t.isResolved);
   if (existing) return existing;
 
   const newTrade: TradeRecord = {
@@ -1590,8 +1580,8 @@ function autoLogTradeFromAlert(tradeData: {
     }]
   };
 
-  db.trades.push(newTrade);
-  writeDB(db);
+  dbToUse.trades.push(newTrade);
+  if (!db) writeDB(dbToUse);
   return newTrade;
 }
 
@@ -2033,7 +2023,24 @@ ${aiReason || "Multi-indicator confluence confirmed across scalp timeframes. Hig
 
 
 
-async function sendTelegramNotification(token: string, chatId: string, message: string, proxyUrl?: string) {
+async function sendTelegramNotification(
+  token: string,
+  chatId: string,
+  message: string,
+  proxyUrl?: string,
+  autoLogTradeData?: {
+    symbol: string;
+    side: "LONG" | "SHORT";
+    market?: string;
+    entryPrice: number;
+    sl: number;
+    tp1: number;
+    tp2?: number;
+    quantity?: number;
+    notes?: string;
+  },
+  sharedDb?: DB
+) {
   if (!token || !chatId) {
     return { success: false, error: "Credentials missing" };
   }
@@ -2073,6 +2080,9 @@ async function sendTelegramNotification(token: string, chatId: string, message: 
       }
 
       if (response.ok && resValue.ok) {
+        if (autoLogTradeData) {
+          autoLogTradeFromAlert(autoLogTradeData, sharedDb);
+        }
         return { success: true };
       }
 
@@ -2295,7 +2305,17 @@ async function handleSignalPipeline(payload: any, isSimulation: boolean = false)
       config.telegramToken,
       config.telegramChatId,
       formattedMsg,
-      config.telegramApiUrl
+      config.telegramApiUrl,
+      {
+        symbol: logEntry.symbol,
+        side,
+        entryPrice: logEntry.tradePlan.entry || logEntry.payload?.price || 0,
+        sl: logEntry.tradePlan.stopLoss || 0,
+        tp1: logEntry.tradePlan.target1 || 0,
+        tp2: logEntry.tradePlan.target2 || 0,
+        notes: `Auto-logged from Telegram alert (Confidence: ${aiResult.confidence || "N/A"}%)`
+      },
+      db
     );
     if (telegramRawResult.success) {
       logEntry.telegramSent = true;
@@ -2937,132 +2957,104 @@ async function runHeadlessScannerTick() {
   const config = db.config;
   if (!config.pollingEnabled) return;
 
-  const now = Date.now();
-  if (pollingCooldownUntil > 0 && now >= pollingCooldownUntil) {
-    pollingCooldownUntil = 0;
-    pollingLogs.unshift({
-      id: "resume_" + Math.random().toString(36).substring(2, 9),
-      timestamp: new Date().toISOString(),
-      symbol: "SYS",
-      price: 0,
-      status: "SCANNING",
-      message: "🟢 Scalp cooldown finished. Scanning assets."
-    });
-  }
-
-  if (now < pollingCooldownUntil) return;
-
   const symbols = config.activeSymbols || [];
   if (symbols.length === 0) return;
 
-  totalScansCount++;
-  const indexToScan = (totalScansCount - 1) % symbols.length;
-  const symbol = symbols[indexToScan];
+  // Scan 3 active symbols in parallel per tick for fast, continuous coverage
+  for (let i = 0; i < 3; i++) {
+    totalScansCount++;
+    const indexToScan = (totalScansCount - 1) % symbols.length;
+    const symbol = symbols[indexToScan];
 
-  try {
-    const realInds = await fetchRecentKlinesAndTrend(symbol);
-    const roundedPrice = parseFloat(realInds.price.toFixed(symbol.includes("BTC") ? 1 : 4));
+    try {
+      const realInds = await fetchRecentKlinesAndTrend(symbol);
+      const roundedPrice = parseFloat(realInds.price.toFixed(symbol.includes("BTC") ? 1 : 4));
 
-    const isBuy = determineIsBuy(realInds);
-    const mtfAnalyses = await generateMultiTimeframeAnalysis(symbol, isBuy, realInds.trendDir, realInds);
-    const mtfCheck = checkMultiTimeframeConfluence(mtfAnalyses, isBuy);
+      const isBuy = determineIsBuy(realInds);
+      const mtfAnalyses = await generateMultiTimeframeAnalysis(symbol, isBuy, realInds.trendDir, realInds);
+      const mtfCheck = checkMultiTimeframeConfluence(mtfAnalyses, isBuy);
 
-    // Compute ATR-based risk in real price units (atrPct * price / 100)
-    const atrAbsolute = (realInds.atrPct / 100) * roundedPrice;
+      const payload = {
+        symbol,
+        timeframe: "1H",
+        price: roundedPrice,
+        utbot: realInds.utbot,
+        ema_crossover: realInds.trendDir,
+        rsi: realInds.rsi,
+        rsiValue: realInds.rsiValue,
+        macd: realInds.macd,
+        market_structure: realInds.marketStructure,
+        volume: realInds.volumeLevel,
+        adx: realInds.adx,
+        adxTrending: realInds.adxTrending,
+        stochRsiSignal: realInds.stochRsiSignal,
+        obvTrend: realInds.obvTrend,
+        atrPct: realInds.atrPct,
+        priceActionPattern: realInds.priceActionPattern,
+        priceActionBias: realInds.priceActionBias,
+        priceActionDesc: realInds.priceActionDesc,
+        multiTimeframe: mtfAnalyses
+      };
 
-    const payload = {
-      symbol,
-      timeframe: "1H",
-      price: roundedPrice,
-      utbot: realInds.utbot,
-      ema_crossover: realInds.trendDir,
-      rsi: realInds.rsi,
-      rsiValue: realInds.rsiValue,
-      macd: realInds.macd,
-      market_structure: realInds.marketStructure,
-      volume: realInds.volumeLevel,
-      adx: realInds.adx,
-      adxTrending: realInds.adxTrending,
-      stochRsiSignal: realInds.stochRsiSignal,
-      obvTrend: realInds.obvTrend,
-      atrPct: realInds.atrPct,
-      priceActionPattern: realInds.priceActionPattern,
-      priceActionBias: realInds.priceActionBias,
-      priceActionDesc: realInds.priceActionDesc,
-      multiTimeframe: mtfAnalyses
-    };
+      const scoredCheck = processSignalPayload(payload, config);
+      let status: "SCANNING" | "TRIGGERED" | "BLOCKED" | "AI_FILTERED" = "SCANNING";
+      let message = `Market scanning active: score=${scoredCheck.score}/${scoredCheck.maxScore} | ADX=${Math.round(realInds.adx)} | ${mtfCheck.summary}`;
 
-    const scoredCheck = processSignalPayload(payload, config);
-    let status: "SCANNING" | "TRIGGERED" | "BLOCKED" | "AI_FILTERED" = "SCANNING";
-    let message = `Market scanning stable: score=${scoredCheck.score}/${scoredCheck.maxScore} | ADX=${Math.round(realInds.adx)} | ${mtfCheck.summary}`;
-
-    // Trigger if any meaningful signal is detected (not just UT Bot — also StochRSI and RSI extremes)
-    if (realInds.isBuySignalReady || realInds.utbot !== "hold" || realInds.rsi !== "neutral" || realInds.stochRsiSignal !== "neutral") {
-      if (!scoredCheck.passedFilters || !mtfCheck.passed) {
-        status = "BLOCKED";
-        const reasons = [];
-        if (!mtfCheck.passed) {
-          reasons.push(...mtfCheck.reasons);
-        } else {
-          const fileR = scoredCheck.filterResults;
-          if (fileR.lowVolume) reasons.push("Low Volume");
-          if (fileR.againstTrend) reasons.push("Opposing Trend");
-          if (fileR.rsiOverbought) reasons.push("RSI Overbought");
-          if (scoredCheck.score < config.confidenceThreshold) {
-            reasons.push(`Score < Threshold (${scoredCheck.score}/${config.confidenceThreshold})`);
+      if (realInds.isBuySignalReady || realInds.utbot !== "hold" || realInds.rsi !== "neutral" || realInds.stochRsiSignal !== "neutral") {
+        if (!scoredCheck.passedFilters || !mtfCheck.passed) {
+          status = "BLOCKED";
+          const reasons = [];
+          if (!mtfCheck.passed) {
+            reasons.push(...mtfCheck.reasons);
+          } else {
+            const fileR = scoredCheck.filterResults;
+            if (fileR.lowVolume) reasons.push("Low Volume");
+            if (fileR.againstTrend) reasons.push("Opposing Trend");
+            if (fileR.rsiOverbought) reasons.push("RSI Overbought");
+            if (scoredCheck.score < config.confidenceThreshold) {
+              reasons.push(`Score < Threshold (${scoredCheck.score}/${config.confidenceThreshold})`);
+            }
           }
-        }
-        message = `Scalp setup blocked: [${reasons.join(", ")}]`;
-      } else {
-        status = "TRIGGERED";
-        alertsMatchedCount++;
-        message = `High-confluence scalp trade setup detected! ${mtfCheck.summary}`;
+          message = `Scalp setup blocked: [${reasons.join(", ")}]`;
+        } else {
+          status = "TRIGGERED";
+          alertsMatchedCount++;
+          message = `High-confluence scalp trade setup detected! ${mtfCheck.summary}`;
 
-        handleSignalPipeline(payload).catch(err => {
-          console.error("Polling pipeline failure:", err);
-        });
-
-        // Scalp trading takes less time; cool off polling alerts for 10 minutes to prevent duplications
-        pollingCooldownUntil = Date.now() + 10 * 60 * 1000;
-
-        setTimeout(() => {
-          pollingLogs.unshift({
-            id: "break_" + Math.random().toString(36).substring(2, 9),
-            timestamp: new Date(Date.now() + 500).toISOString(),
-            symbol: "SYS",
-            price: 0,
-            status: "SCANNING",
-            message: `🔴 High-Confluence Scalp Trade Triggered! Poller taking a 10-min break. Resuming at ${new Date(pollingCooldownUntil).toLocaleTimeString()}`
+          // Immediately process trade signal & log to Trade Journal
+          handleSignalPipeline(payload).catch(err => {
+            console.error("Polling pipeline failure:", err);
           });
-        }, 500);
+        }
       }
-    }
 
-    pollingLogs.unshift({
-      id: "scan_" + Math.random().toString(36).substring(2, 9),
-      timestamp: new Date().toISOString(),
-      symbol,
-      price: roundedPrice,
-      status,
-      message,
-      traderEvaluation: realInds.traderEvaluation
-    });
+      pollingLogs.unshift({
+        id: "scan_" + Math.random().toString(36).substring(2, 9),
+        timestamp: new Date().toISOString(),
+        symbol,
+        price: roundedPrice,
+        status,
+        message,
+        traderEvaluation: realInds.traderEvaluation
+      });
 
-    if (pollingLogs.length > 50) {
-      pollingLogs = pollingLogs.slice(0, 50);
+      if (pollingLogs.length > 50) {
+        pollingLogs = pollingLogs.slice(0, 50);
+      }
+    } catch (err) {
+      console.error(`Headless error polling symbol ${symbol}:`, err);
     }
-  } catch (err) {
-    console.error(`Headless error polling symbol ${symbol}:`, err);
   }
 }
 
+// Continuous 2-second background scanner tick
 setInterval(() => {
   try {
     runHeadlessScannerTick();
   } catch (err) {
     console.error("Daemon polling tick handler failure:", err);
   }
-}, 5000);
+}, 2000);
 
 app.get("/api/polling-logs", (req, res) => {
   res.json({

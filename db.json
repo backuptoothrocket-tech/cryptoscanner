@@ -2813,7 +2813,1958 @@
       ],
       "formattedAlert": "🔴 <b>SCALP SHORT SIGNAL</b>\n━━━━━━━━━━━━━━━━━━━━\n📌 <b>NEARUSDT</b>  |  Scalp 1H/15M\n🕐 Wed, 29 Jul 2026 20:15:46 UTC\n━━━━━━━━━━━━━━━━━━━━\n\n🤖 <b>AI Confidence:</b> 50%  |  Score: <b>50/100</b>\n\n📈 <b>CONFLUENCE SIGNALS</b>\n✅ UT Bot ATR: <b>SELL</b>\n✅ EMA 50/200: <b>BEARISH</b>\n✅ ADX Strength: <b>47 (TRENDING)</b>\n✅ OBV Flow: <b>FALLING</b>\n✅ Volume: <b>NORMAL</b>\n\n📊 <b>Multi-Timeframe Confluence</b>\n  🔴 <b>4H</b>: BEARISH • RSI: oversold\n  🔴 <b>1H</b>: BEARISH\n  🔴 <b>15M</b>: BEARISH • CHOCH\n  🟢 <b>5M</b>: BULLISH • CHOCH\n\n💰 <b>TRADE PLAN</b>\n  Entry:      <code>1.586</code>\n  Stop Loss:  <code>1.613</code>  ⛔\n  TP1 (1.0R): <code>1.559</code>  🎯 ← Scalp target (Lock 50% / Break-even)\n  TP2 (2.0R): <code>1.53201</code>  🎯 ← Main target\n  TP3 (3.0R): <code>1.50501</code>  🎯 ← Runner\n\n  📐 R:R  1:2.0 Scalp (ATR=0.0225 | SL=1.2×ATR)\n💼 <b>Position Sizing Guide (1-2% risk per trade)</b>\n  $1,000 acct → Risk $10-20 | $5,000 → $50-100\n\n🧠 <b>AI Analysis</b>\nScalp evaluation complete: 50/100 confluence on NEARUSDT. OpenAI temporarily unavailable.\n\n⚠️ <i>This is not financial advice. Always manage risk.</i>",
       "telegramError": "Telegram delivery failed. https://api.telegram.org: Connection timed out after 10 seconds"
+    },
+    {
+      "id": "alert_e9vzbv4",
+      "timestamp": "2026-08-01T09:40:48.233Z",
+      "symbol": "NEARUSDT",
+      "timeframe": "1H",
+      "price": 1.646,
+      "payload": {
+        "symbol": "NEARUSDT",
+        "timeframe": "1H",
+        "price": 1.646,
+        "utbot": "sell",
+        "ema_crossover": "bearish",
+        "rsi": "neutral",
+        "rsiValue": 40.321984112572196,
+        "macd": "neutral",
+        "market_structure": "CHOCH",
+        "volume": "normal",
+        "adx": 14.798062859626581,
+        "adxTrending": false,
+        "stochRsiSignal": "neutral",
+        "obvTrend": "falling",
+        "atrPct": 0.9819626839775877,
+        "priceActionPattern": "NONE",
+        "priceActionBias": "NEUTRAL",
+        "priceActionDesc": "No clear price action patterns detected.",
+        "multiTimeframe": [
+          {
+            "timeframe": "4H",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "low"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bearish",
+            "utbot": "sell",
+            "structure": "CHOCH",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "15M",
+            "trend": "bullish",
+            "utbot": "sell",
+            "structure": "CHOCH",
+            "rsi": "oversold",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "5M",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "CHOCH",
+            "rsi": "oversold",
+            "macd": "neutral",
+            "volume": "normal"
+          }
+        ],
+        "side": "SHORT"
+      },
+      "score": 45,
+      "maxScore": 100,
+      "passedFilters": true,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": false
+      },
+      "scoreBreakdown": {
+        "UT Bot SHORT Trigger": 10,
+        "EMA 50/200 Trend Aligned": 15,
+        "ADX Ranging (15)": 0,
+        "Stoch RSI Neutral": 0,
+        "MACD Neutral/Counter": 0,
+        "OBV Money Flow Aligned": 10,
+        "Swing Structure Confirm (CHOCH)": 10,
+        "Price Action: No Pattern": 0
+      },
+      "aiDecision": {
+        "decision": "SEND",
+        "confidence": 45,
+        "reason": "Scalp evaluation complete: 45/100 confluence on NEARUSDT. OpenAI temporarily unavailable."
+      },
+      "tradePlan": {
+        "entry": 1.646,
+        "stopLoss": 1.6654,
+        "takeProfit1": 1.6266,
+        "takeProfit2": 1.60721,
+        "takeProfit3": 1.58781,
+        "riskRewardRatio": "1:2.0 Scalp (ATR=0.01616 | SL=1.2×ATR)"
+      },
+      "telegramSent": false,
+      "multiTimeframe": [
+        {
+          "timeframe": "4H",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "low"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bearish",
+          "utbot": "sell",
+          "structure": "CHOCH",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "15M",
+          "trend": "bullish",
+          "utbot": "sell",
+          "structure": "CHOCH",
+          "rsi": "oversold",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "5M",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "CHOCH",
+          "rsi": "oversold",
+          "macd": "neutral",
+          "volume": "normal"
+        }
+      ],
+      "formattedAlert": "🔴 <b>SCALP SHORT SIGNAL</b>\n━━━━━━━━━━━━━━━━━━━━\n📌 <b>NEARUSDT</b>  |  Scalp 1H/15M\n🕐 Sat, 01 Aug 2026 09:40:48 UTC\n━━━━━━━━━━━━━━━━━━━━\n\n🤖 <b>AI Confidence:</b> 45%  |  Score: <b>45/100</b>\n\n📈 <b>CONFLUENCE SIGNALS</b>\n✅ UT Bot ATR: <b>SELL</b>\n✅ EMA 50/200: <b>BEARISH</b>\n✅ ADX Strength: <b>15 (RANGING)</b>\n✅ OBV Flow: <b>FALLING</b>\n✅ Structure: <b>CHOCH</b>\n✅ Volume: <b>NORMAL</b>\n\n📊 <b>Multi-Timeframe Confluence</b>\n  🔴 <b>4H</b>: BEARISH\n  🔴 <b>1H</b>: BEARISH • CHOCH\n  🟢 <b>15M</b>: BULLISH • RSI: oversold • CHOCH\n  🔴 <b>5M</b>: BEARISH • RSI: oversold • CHOCH\n\n💰 <b>TRADE PLAN</b>\n  Entry:      <code>1.646</code>\n  Stop Loss:  <code>1.6654</code>  ⛔\n  TP1 (1.0R): <code>1.6266</code>  🎯 ← Scalp target (Lock 50% / Break-even)\n  TP2 (2.0R): <code>1.60721</code>  🎯 ← Main target\n  TP3 (3.0R): <code>1.58781</code>  🎯 ← Runner\n\n  📐 R:R  1:2.0 Scalp (ATR=0.01616 | SL=1.2×ATR)\n💼 <b>Position Sizing Guide (1-2% risk per trade)</b>\n  $1,000 acct → Risk $10-20 | $5,000 → $50-100\n\n🧠 <b>AI Analysis</b>\nScalp evaluation complete: 45/100 confluence on NEARUSDT. OpenAI temporarily unavailable.\n\n⚠️ <i>This is not financial advice. Always manage risk.</i>",
+      "telegramError": "Telegram delivery failed. https://api.telegram.org: Connection timed out after 10 seconds"
+    },
+    {
+      "id": "alert_wizep2o",
+      "timestamp": "2026-08-01T10:03:30.930Z",
+      "symbol": "TATAMOTORS.NS",
+      "timeframe": "1H",
+      "price": 987.831,
+      "payload": {
+        "symbol": "TATAMOTORS.NS",
+        "timeframe": "1H",
+        "price": 987.831,
+        "utbot": "buy",
+        "ema_crossover": "bullish",
+        "rsi": "neutral",
+        "rsiValue": 46.68485749222157,
+        "macd": "neutral",
+        "market_structure": "",
+        "volume": "normal",
+        "adx": 21.776887948073256,
+        "adxTrending": true,
+        "stochRsiSignal": "neutral",
+        "obvTrend": "rising",
+        "atrPct": 2.3933997160300775,
+        "priceActionPattern": "NONE",
+        "priceActionBias": "NEUTRAL",
+        "priceActionDesc": "No patterns detected on simulated feed.",
+        "multiTimeframe": [
+          {
+            "timeframe": "4H",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bullish",
+            "utbot": "buy",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "15M",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "5M",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          }
+        ],
+        "side": "LONG"
+      },
+      "score": 50,
+      "maxScore": 100,
+      "passedFilters": true,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": true
+      },
+      "scoreBreakdown": {
+        "UT Bot LONG Trigger": 10,
+        "EMA 50/200 Trend Aligned": 15,
+        "ADX Trending (22)": 15,
+        "Stoch RSI Neutral": 0,
+        "MACD Neutral/Counter": 0,
+        "OBV Money Flow Aligned": 10,
+        "No Structure Pivot Broken": 0,
+        "Price Action: No Pattern": 0
+      },
+      "aiDecision": {
+        "decision": "SEND",
+        "confidence": 50,
+        "reason": "Scalp evaluation complete: 50/100 confluence on TATAMOTORS.NS. OpenAI temporarily unavailable."
+      },
+      "tradePlan": {
+        "entry": 987.831,
+        "stopLoss": 959.46,
+        "takeProfit1": 1016.202,
+        "takeProfit2": 1044.574,
+        "takeProfit3": 1072.945,
+        "riskRewardRatio": "1:2.0 Scalp (ATR=23.643 | SL=1.2×ATR)"
+      },
+      "telegramSent": false,
+      "multiTimeframe": [
+        {
+          "timeframe": "4H",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bullish",
+          "utbot": "buy",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "15M",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "5M",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        }
+      ],
+      "formattedAlert": "🟢 <b>SCALP LONG SIGNAL</b>\n━━━━━━━━━━━━━━━━━━━━\n📌 <b>TATAMOTORS.NS</b>  |  Scalp 1H/15M\n🕐 Sat, 01 Aug 2026 10:03:30 UTC\n━━━━━━━━━━━━━━━━━━━━\n\n🤖 <b>AI Confidence:</b> 50%  |  Score: <b>50/100</b>\n\n📈 <b>CONFLUENCE SIGNALS</b>\n✅ UT Bot ATR: <b>BUY</b>\n✅ EMA 50/200: <b>BULLISH</b>\n✅ ADX Strength: <b>22 (TRENDING)</b>\n✅ OBV Flow: <b>RISING</b>\n✅ Volume: <b>NORMAL</b>\n\n📊 <b>Multi-Timeframe Confluence</b>\n  🟢 <b>4H</b>: BULLISH\n  🟢 <b>1H</b>: BULLISH\n  🟢 <b>15M</b>: BULLISH\n  🟢 <b>5M</b>: BULLISH\n\n💰 <b>TRADE PLAN</b>\n  Entry:      <code>987.831</code>\n  Stop Loss:  <code>959.46</code>  ⛔\n  TP1 (1.0R): <code>1016.202</code>  🎯 ← Scalp target (Lock 50% / Break-even)\n  TP2 (2.0R): <code>1044.574</code>  🎯 ← Main target\n  TP3 (3.0R): <code>1072.945</code>  🎯 ← Runner\n\n  📐 R:R  1:2.0 Scalp (ATR=23.643 | SL=1.2×ATR)\n💼 <b>Position Sizing Guide (1-2% risk per trade)</b>\n  $1,000 acct → Risk $10-20 | $5,000 → $50-100\n\n🧠 <b>AI Analysis</b>\nScalp evaluation complete: 50/100 confluence on TATAMOTORS.NS. OpenAI temporarily unavailable.\n\n⚠️ <i>This is not financial advice. Always manage risk.</i>",
+      "telegramError": "Telegram delivery failed. https://api.telegram.org: Connection timed out after 10 seconds"
+    },
+    {
+      "id": "alert_27xoxuf",
+      "timestamp": "2026-08-01T10:17:46.021Z",
+      "symbol": "TATAMOTORS.NS",
+      "timeframe": "1H",
+      "price": 974.067,
+      "payload": {
+        "symbol": "TATAMOTORS.NS",
+        "timeframe": "1H",
+        "price": 974.067,
+        "utbot": "buy",
+        "ema_crossover": "bullish",
+        "rsi": "neutral",
+        "rsiValue": 50.113443634016285,
+        "macd": "neutral",
+        "market_structure": "",
+        "volume": "high",
+        "adx": 30.853433689101468,
+        "adxTrending": true,
+        "stochRsiSignal": "neutral",
+        "obvTrend": "rising",
+        "atrPct": 2.3397898775335775,
+        "priceActionPattern": "NONE",
+        "priceActionBias": "NEUTRAL",
+        "priceActionDesc": "No patterns detected on simulated feed.",
+        "multiTimeframe": [
+          {
+            "timeframe": "4H",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bullish",
+            "utbot": "buy",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "high"
+          },
+          {
+            "timeframe": "15M",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "5M",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          }
+        ],
+        "side": "LONG"
+      },
+      "score": 50,
+      "maxScore": 100,
+      "passedFilters": true,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": true
+      },
+      "scoreBreakdown": {
+        "UT Bot LONG Trigger": 10,
+        "EMA 50/200 Trend Aligned": 15,
+        "ADX Trending (31)": 15,
+        "Stoch RSI Neutral": 0,
+        "MACD Neutral/Counter": 0,
+        "OBV Money Flow Aligned": 10,
+        "No Structure Pivot Broken": 0,
+        "Price Action: No Pattern": 0
+      },
+      "aiDecision": {
+        "decision": "SEND",
+        "confidence": 50,
+        "reason": "Scalp evaluation complete: 50/100 confluence on TATAMOTORS.NS. OpenAI temporarily unavailable."
+      },
+      "tradePlan": {
+        "entry": 974.067,
+        "stopLoss": 946.718,
+        "takeProfit1": 1001.416,
+        "takeProfit2": 1028.766,
+        "takeProfit3": 1056.115,
+        "riskRewardRatio": "1:2.0 Scalp (ATR=22.791 | SL=1.2×ATR)"
+      },
+      "telegramSent": false,
+      "multiTimeframe": [
+        {
+          "timeframe": "4H",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bullish",
+          "utbot": "buy",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "high"
+        },
+        {
+          "timeframe": "15M",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "5M",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        }
+      ],
+      "formattedAlert": "🟢 <b>SCALP LONG SIGNAL</b>\n━━━━━━━━━━━━━━━━━━━━\n📌 <b>TATAMOTORS.NS</b>  |  Scalp 1H/15M\n🕐 Sat, 01 Aug 2026 10:17:46 UTC\n━━━━━━━━━━━━━━━━━━━━\n\n🤖 <b>AI Confidence:</b> 50%  |  Score: <b>50/100</b>\n\n📈 <b>CONFLUENCE SIGNALS</b>\n✅ UT Bot ATR: <b>BUY</b>\n✅ EMA 50/200: <b>BULLISH</b>\n✅ ADX Strength: <b>31 (TRENDING)</b>\n✅ OBV Flow: <b>RISING</b>\n✅ Volume: <b>HIGH</b>\n\n📊 <b>Multi-Timeframe Confluence</b>\n  🟢 <b>4H</b>: BULLISH\n  🟢 <b>1H</b>: BULLISH\n  🟢 <b>15M</b>: BULLISH\n  🟢 <b>5M</b>: BULLISH\n\n💰 <b>TRADE PLAN</b>\n  Entry:      <code>974.067</code>\n  Stop Loss:  <code>946.718</code>  ⛔\n  TP1 (1.0R): <code>1001.416</code>  🎯 ← Scalp target (Lock 50% / Break-even)\n  TP2 (2.0R): <code>1028.766</code>  🎯 ← Main target\n  TP3 (3.0R): <code>1056.115</code>  🎯 ← Runner\n\n  📐 R:R  1:2.0 Scalp (ATR=22.791 | SL=1.2×ATR)\n💼 <b>Position Sizing Guide (1-2% risk per trade)</b>\n  $1,000 acct → Risk $10-20 | $5,000 → $50-100\n\n🧠 <b>AI Analysis</b>\nScalp evaluation complete: 50/100 confluence on TATAMOTORS.NS. OpenAI temporarily unavailable.\n\n⚠️ <i>This is not financial advice. Always manage risk.</i>",
+      "telegramError": "Telegram delivery failed. https://api.telegram.org: Connection timed out after 10 seconds"
+    },
+    {
+      "id": "alert_ejy9zi0",
+      "timestamp": "2026-08-01T10:29:52.988Z",
+      "symbol": "TATAMOTORS.NS",
+      "timeframe": "1H",
+      "price": 970.362,
+      "payload": {
+        "symbol": "TATAMOTORS.NS",
+        "timeframe": "1H",
+        "price": 970.362,
+        "utbot": "hold",
+        "ema_crossover": "bullish",
+        "rsi": "oversold",
+        "rsiValue": 27.589730464172508,
+        "macd": "bullish_cross",
+        "market_structure": "BOS",
+        "volume": "high",
+        "adx": 22.11881926097923,
+        "adxTrending": true,
+        "stochRsiSignal": "neutral",
+        "obvTrend": "rising",
+        "atrPct": 1.6797060179379149,
+        "priceActionPattern": "NONE",
+        "priceActionBias": "NEUTRAL",
+        "priceActionDesc": "No patterns detected on simulated feed.",
+        "multiTimeframe": [
+          {
+            "timeframe": "4H",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "BOS",
+            "rsi": "oversold",
+            "macd": "bullish_cross",
+            "volume": "high"
+          },
+          {
+            "timeframe": "15M",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "5M",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          }
+        ],
+        "side": "LONG"
+      },
+      "score": 65,
+      "maxScore": 100,
+      "passedFilters": true,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": false
+      },
+      "scoreBreakdown": {
+        "UT Bot Neutral": 0,
+        "EMA 50/200 Trend Aligned": 15,
+        "ADX Trending (22)": 15,
+        "Stoch RSI Neutral": 0,
+        "MACD Cross Aligned": 15,
+        "OBV Money Flow Aligned": 10,
+        "Swing Structure Confirm (BOS)": 10,
+        "Price Action: No Pattern": 0
+      },
+      "aiDecision": {
+        "decision": "SEND",
+        "confidence": 65,
+        "reason": "Scalp evaluation complete: 65/100 confluence on TATAMOTORS.NS. OpenAI temporarily unavailable."
+      },
+      "tradePlan": {
+        "entry": 970.362,
+        "stopLoss": 950.803,
+        "takeProfit1": 989.921,
+        "takeProfit2": 1009.48,
+        "takeProfit3": 1029.039,
+        "riskRewardRatio": "1:2.0 Scalp (ATR=16.299 | SL=1.2×ATR)"
+      },
+      "telegramSent": false,
+      "multiTimeframe": [
+        {
+          "timeframe": "4H",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "BOS",
+          "rsi": "oversold",
+          "macd": "bullish_cross",
+          "volume": "high"
+        },
+        {
+          "timeframe": "15M",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "5M",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        }
+      ],
+      "formattedAlert": "🟢 <b>SCALP LONG SIGNAL</b>\n━━━━━━━━━━━━━━━━━━━━\n📌 <b>TATAMOTORS.NS</b>  |  Scalp 1H/15M\n🕐 Sat, 01 Aug 2026 10:29:52 UTC\n━━━━━━━━━━━━━━━━━━━━\n\n🤖 <b>AI Confidence:</b> 65%  |  Score: <b>65/100</b>\n\n📈 <b>CONFLUENCE SIGNALS</b>\n✅ EMA 50/200: <b>BULLISH</b>\n✅ ADX Strength: <b>22 (TRENDING)</b>\n✅ MACD: <b>BULLISH CROSS</b>\n✅ OBV Flow: <b>RISING</b>\n✅ Structure: <b>BOS</b>\n✅ RSI(14): <b>OVERSOLD (28)</b>\n✅ Volume: <b>HIGH</b>\n\n📊 <b>Multi-Timeframe Confluence</b>\n  🟢 <b>4H</b>: BULLISH\n  🟢 <b>1H</b>: BULLISH • RSI: oversold • MACD: bullish cross • BOS\n  🟢 <b>15M</b>: BULLISH\n  🟢 <b>5M</b>: BULLISH\n\n💰 <b>TRADE PLAN</b>\n  Entry:      <code>970.362</code>\n  Stop Loss:  <code>950.803</code>  ⛔\n  TP1 (1.0R): <code>989.921</code>  🎯 ← Scalp target (Lock 50% / Break-even)\n  TP2 (2.0R): <code>1009.48</code>  🎯 ← Main target\n  TP3 (3.0R): <code>1029.039</code>  🎯 ← Runner\n\n  📐 R:R  1:2.0 Scalp (ATR=16.299 | SL=1.2×ATR)\n💼 <b>Position Sizing Guide (1-2% risk per trade)</b>\n  $1,000 acct → Risk $10-20 | $5,000 → $50-100\n\n🧠 <b>AI Analysis</b>\nScalp evaluation complete: 65/100 confluence on TATAMOTORS.NS. OpenAI temporarily unavailable.\n\n⚠️ <i>This is not financial advice. Always manage risk.</i>",
+      "telegramError": "Telegram delivery failed. https://api.telegram.org: Connection timed out after 10 seconds"
+    },
+    {
+      "id": "alert_sbb7f7w",
+      "timestamp": "2026-08-01T11:10:16.445Z",
+      "symbol": "TATAMOTORS.NS",
+      "timeframe": "1H",
+      "price": 978.709,
+      "payload": {
+        "symbol": "TATAMOTORS.NS",
+        "timeframe": "1H",
+        "price": 978.709,
+        "utbot": "buy",
+        "ema_crossover": "bullish",
+        "rsi": "neutral",
+        "rsiValue": 52.89460779920564,
+        "macd": "neutral",
+        "market_structure": "",
+        "volume": "high",
+        "adx": 25.211155832592745,
+        "adxTrending": true,
+        "stochRsiSignal": "neutral",
+        "obvTrend": "rising",
+        "atrPct": 1.8829269975742566,
+        "priceActionPattern": "NONE",
+        "priceActionBias": "NEUTRAL",
+        "priceActionDesc": "No patterns detected on simulated feed.",
+        "multiTimeframe": [
+          {
+            "timeframe": "4H",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bullish",
+            "utbot": "buy",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "high"
+          },
+          {
+            "timeframe": "15M",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "5M",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          }
+        ],
+        "side": "LONG"
+      },
+      "score": 50,
+      "maxScore": 100,
+      "passedFilters": true,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": true
+      },
+      "scoreBreakdown": {
+        "UT Bot LONG Trigger": 10,
+        "EMA 50/200 Trend Aligned": 15,
+        "ADX Trending (25)": 15,
+        "Stoch RSI Neutral": 0,
+        "MACD Neutral/Counter": 0,
+        "OBV Money Flow Aligned": 10,
+        "No Structure Pivot Broken": 0,
+        "Price Action: No Pattern": 0
+      },
+      "aiDecision": {
+        "decision": "SEND",
+        "confidence": 50,
+        "reason": "Scalp evaluation complete: 50/100 confluence on TATAMOTORS.NS. OpenAI temporarily unavailable."
+      },
+      "tradePlan": {
+        "entry": 978.709,
+        "stopLoss": 956.595,
+        "takeProfit1": 1000.823,
+        "takeProfit2": 1022.937,
+        "takeProfit3": 1045.051,
+        "riskRewardRatio": "1:2.0 Scalp (ATR=18.428 | SL=1.2×ATR)"
+      },
+      "telegramSent": false,
+      "multiTimeframe": [
+        {
+          "timeframe": "4H",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bullish",
+          "utbot": "buy",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "high"
+        },
+        {
+          "timeframe": "15M",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "5M",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        }
+      ],
+      "formattedAlert": "🟢 <b>SCALP LONG SIGNAL</b>\n━━━━━━━━━━━━━━━━━━━━\n📌 <b>TATAMOTORS.NS</b>  |  Scalp 1H/15M\n🕐 Sat, 01 Aug 2026 11:10:16 UTC\n━━━━━━━━━━━━━━━━━━━━\n\n🤖 <b>AI Confidence:</b> 50%  |  Score: <b>50/100</b>\n\n📈 <b>CONFLUENCE SIGNALS</b>\n✅ UT Bot ATR: <b>BUY</b>\n✅ EMA 50/200: <b>BULLISH</b>\n✅ ADX Strength: <b>25 (TRENDING)</b>\n✅ OBV Flow: <b>RISING</b>\n✅ Volume: <b>HIGH</b>\n\n📊 <b>Multi-Timeframe Confluence</b>\n  🟢 <b>4H</b>: BULLISH\n  🟢 <b>1H</b>: BULLISH\n  🟢 <b>15M</b>: BULLISH\n  🟢 <b>5M</b>: BULLISH\n\n💰 <b>TRADE PLAN</b>\n  Entry:      <code>978.709</code>\n  Stop Loss:  <code>956.595</code>  ⛔\n  TP1 (1.0R): <code>1000.823</code>  🎯 ← Scalp target (Lock 50% / Break-even)\n  TP2 (2.0R): <code>1022.937</code>  🎯 ← Main target\n  TP3 (3.0R): <code>1045.051</code>  🎯 ← Runner\n\n  📐 R:R  1:2.0 Scalp (ATR=18.428 | SL=1.2×ATR)\n💼 <b>Position Sizing Guide (1-2% risk per trade)</b>\n  $1,000 acct → Risk $10-20 | $5,000 → $50-100\n\n🧠 <b>AI Analysis</b>\nScalp evaluation complete: 50/100 confluence on TATAMOTORS.NS. OpenAI temporarily unavailable.\n\n⚠️ <i>This is not financial advice. Always manage risk.</i>",
+      "telegramError": "Telegram delivery failed. https://api.telegram.org: Connection timed out after 10 seconds"
+    },
+    {
+      "id": "alert_thfvpae",
+      "timestamp": "2026-08-01T12:26:23.283Z",
+      "symbol": "XAUUSD",
+      "timeframe": "1H",
+      "price": 99.175,
+      "payload": {
+        "symbol": "XAUUSD",
+        "timeframe": "1H",
+        "price": 99.175,
+        "utbot": "buy",
+        "ema_crossover": "bullish",
+        "rsi": "neutral",
+        "rsiValue": 45.75280136180138,
+        "macd": "neutral",
+        "market_structure": "",
+        "volume": "high",
+        "adx": 39.02109784328935,
+        "adxTrending": true,
+        "stochRsiSignal": "neutral",
+        "obvTrend": "rising",
+        "atrPct": 3.7959104638763295,
+        "priceActionPattern": "NONE",
+        "priceActionBias": "NEUTRAL",
+        "priceActionDesc": "No patterns detected on simulated feed.",
+        "multiTimeframe": [
+          {
+            "timeframe": "4H",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bullish",
+            "utbot": "buy",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "high"
+          },
+          {
+            "timeframe": "15M",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "5M",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          }
+        ],
+        "side": "LONG"
+      },
+      "score": 50,
+      "maxScore": 100,
+      "passedFilters": true,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": true
+      },
+      "scoreBreakdown": {
+        "UT Bot LONG Trigger": 10,
+        "EMA 50/200 Trend Aligned": 15,
+        "ADX Trending (39)": 15,
+        "Stoch RSI Neutral": 0,
+        "MACD Neutral/Counter": 0,
+        "OBV Money Flow Aligned": 10,
+        "No Structure Pivot Broken": 0,
+        "Price Action: No Pattern": 0
+      },
+      "aiDecision": {
+        "decision": "SEND",
+        "confidence": 50,
+        "reason": "Scalp evaluation complete: 50/100 confluence on XAUUSD. OpenAI temporarily unavailable."
+      },
+      "tradePlan": {
+        "entry": 99.175,
+        "stopLoss": 94.657,
+        "takeProfit1": 103.693,
+        "takeProfit2": 108.21,
+        "takeProfit3": 112.728,
+        "riskRewardRatio": "1:2.0 Scalp (ATR=3.765 | SL=1.2×ATR)"
+      },
+      "telegramSent": false,
+      "multiTimeframe": [
+        {
+          "timeframe": "4H",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bullish",
+          "utbot": "buy",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "high"
+        },
+        {
+          "timeframe": "15M",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "5M",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        }
+      ],
+      "formattedAlert": "🟢 <b>SCALP LONG SIGNAL</b>\n━━━━━━━━━━━━━━━━━━━━\n📌 <b>XAUUSD</b>  |  Scalp 1H/15M\n🕐 Sat, 01 Aug 2026 12:26:23 UTC\n━━━━━━━━━━━━━━━━━━━━\n\n🤖 <b>AI Confidence:</b> 50%  |  Score: <b>50/100</b>\n\n📈 <b>CONFLUENCE SIGNALS</b>\n✅ UT Bot ATR: <b>BUY</b>\n✅ EMA 50/200: <b>BULLISH</b>\n✅ ADX Strength: <b>39 (TRENDING)</b>\n✅ OBV Flow: <b>RISING</b>\n✅ Volume: <b>HIGH</b>\n\n📊 <b>Multi-Timeframe Confluence</b>\n  🟢 <b>4H</b>: BULLISH\n  🟢 <b>1H</b>: BULLISH\n  🟢 <b>15M</b>: BULLISH\n  🟢 <b>5M</b>: BULLISH\n\n💰 <b>TRADE PLAN</b>\n  Entry:      <code>99.175</code>\n  Stop Loss:  <code>94.657</code>  ⛔\n  TP1 (1.0R): <code>103.693</code>  🎯 ← Scalp target (Lock 50% / Break-even)\n  TP2 (2.0R): <code>108.21</code>  🎯 ← Main target\n  TP3 (3.0R): <code>112.728</code>  🎯 ← Runner\n\n  📐 R:R  1:2.0 Scalp (ATR=3.765 | SL=1.2×ATR)\n💼 <b>Position Sizing Guide (1-2% risk per trade)</b>\n  $1,000 acct → Risk $10-20 | $5,000 → $50-100\n\n🧠 <b>AI Analysis</b>\nScalp evaluation complete: 50/100 confluence on XAUUSD. OpenAI temporarily unavailable.\n\n⚠️ <i>This is not financial advice. Always manage risk.</i>",
+      "telegramError": "Telegram delivery failed. https://api.telegram.org: Connection timed out after 10 seconds"
+    },
+    {
+      "id": "alert_mqiol7a",
+      "timestamp": "2026-08-01T13:02:29.005Z",
+      "symbol": "XAUUSD",
+      "timeframe": "1H",
+      "price": 99.964,
+      "payload": {
+        "symbol": "XAUUSD",
+        "timeframe": "1H",
+        "price": 99.964,
+        "utbot": "buy",
+        "ema_crossover": "bullish",
+        "rsi": "neutral",
+        "rsiValue": 54.571250954157264,
+        "macd": "neutral",
+        "market_structure": "",
+        "volume": "high",
+        "adx": 35.74491681845423,
+        "adxTrending": true,
+        "stochRsiSignal": "neutral",
+        "obvTrend": "rising",
+        "atrPct": 1.6281905709473254,
+        "priceActionPattern": "NONE",
+        "priceActionBias": "NEUTRAL",
+        "priceActionDesc": "No patterns detected on simulated feed.",
+        "multiTimeframe": [
+          {
+            "timeframe": "4H",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bullish",
+            "utbot": "buy",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "high"
+          },
+          {
+            "timeframe": "15M",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "5M",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          }
+        ],
+        "side": "LONG"
+      },
+      "score": 50,
+      "maxScore": 100,
+      "passedFilters": true,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": true
+      },
+      "scoreBreakdown": {
+        "UT Bot LONG Trigger": 10,
+        "EMA 50/200 Trend Aligned": 15,
+        "ADX Trending (36)": 15,
+        "Stoch RSI Neutral": 0,
+        "MACD Neutral/Counter": 0,
+        "OBV Money Flow Aligned": 10,
+        "No Structure Pivot Broken": 0,
+        "Price Action: No Pattern": 0
+      },
+      "aiDecision": {
+        "decision": "SEND",
+        "confidence": 50,
+        "reason": "Scalp evaluation complete: 50/100 confluence on XAUUSD. OpenAI temporarily unavailable."
+      },
+      "tradePlan": {
+        "entry": 99.964,
+        "stopLoss": 98.011,
+        "takeProfit1": 101.917,
+        "takeProfit2": 103.87,
+        "takeProfit3": 105.823,
+        "riskRewardRatio": "1:2.0 Scalp (ATR=1.628 | SL=1.2×ATR)"
+      },
+      "telegramSent": false,
+      "multiTimeframe": [
+        {
+          "timeframe": "4H",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bullish",
+          "utbot": "buy",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "high"
+        },
+        {
+          "timeframe": "15M",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "5M",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        }
+      ],
+      "formattedAlert": "🟢 <b>SCALP LONG SIGNAL</b>\n━━━━━━━━━━━━━━━━━━━━\n📌 <b>XAUUSD</b>  |  Scalp 1H/15M\n🕐 Sat, 01 Aug 2026 13:02:29 UTC\n━━━━━━━━━━━━━━━━━━━━\n\n🤖 <b>AI Confidence:</b> 50%  |  Score: <b>50/100</b>\n\n📈 <b>CONFLUENCE SIGNALS</b>\n✅ UT Bot ATR: <b>BUY</b>\n✅ EMA 50/200: <b>BULLISH</b>\n✅ ADX Strength: <b>36 (TRENDING)</b>\n✅ OBV Flow: <b>RISING</b>\n✅ Volume: <b>HIGH</b>\n\n📊 <b>Multi-Timeframe Confluence</b>\n  🟢 <b>4H</b>: BULLISH\n  🟢 <b>1H</b>: BULLISH\n  🟢 <b>15M</b>: BULLISH\n  🟢 <b>5M</b>: BULLISH\n\n💰 <b>TRADE PLAN</b>\n  Entry:      <code>99.964</code>\n  Stop Loss:  <code>98.011</code>  ⛔\n  TP1 (1.0R): <code>101.917</code>  🎯 ← Scalp target (Lock 50% / Break-even)\n  TP2 (2.0R): <code>103.87</code>  🎯 ← Main target\n  TP3 (3.0R): <code>105.823</code>  🎯 ← Runner\n\n  📐 R:R  1:2.0 Scalp (ATR=1.628 | SL=1.2×ATR)\n💼 <b>Position Sizing Guide (1-2% risk per trade)</b>\n  $1,000 acct → Risk $10-20 | $5,000 → $50-100\n\n🧠 <b>AI Analysis</b>\nScalp evaluation complete: 50/100 confluence on XAUUSD. OpenAI temporarily unavailable.\n\n⚠️ <i>This is not financial advice. Always manage risk.</i>",
+      "telegramError": "Telegram delivery failed. https://api.telegram.org: Connection timed out after 10 seconds"
+    },
+    {
+      "id": "alert_jyyq8yq",
+      "timestamp": "2026-08-01T13:19:52.564Z",
+      "symbol": "LTCUSDT",
+      "timeframe": "1H",
+      "price": 44.25,
+      "payload": {
+        "symbol": "LTCUSDT",
+        "timeframe": "1H",
+        "price": 44.25,
+        "utbot": "sell",
+        "ema_crossover": "bearish",
+        "rsi": "neutral",
+        "rsiValue": 36.8343221498821,
+        "macd": "neutral",
+        "market_structure": "",
+        "volume": "normal",
+        "adx": 34.03964598113987,
+        "adxTrending": true,
+        "stochRsiSignal": "neutral",
+        "obvTrend": "falling",
+        "atrPct": 0.5255864325193156,
+        "priceActionPattern": "BEARISH_ENGULFING",
+        "priceActionBias": "BEARISH",
+        "priceActionDesc": "Bearish Engulfing: Red body completely engulfed previous buyer consolidation.",
+        "multiTimeframe": [
+          {
+            "timeframe": "4H",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "CHOCH",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "low"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bearish",
+            "utbot": "sell",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "15M",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "CHOCH",
+            "rsi": "neutral",
+            "macd": "bearish_cross",
+            "volume": "low"
+          },
+          {
+            "timeframe": "5M",
+            "trend": "bearish",
+            "utbot": "sell",
+            "structure": "CHOCH",
+            "rsi": "neutral",
+            "macd": "bearish_cross",
+            "volume": "low"
+          }
+        ],
+        "side": "SHORT"
+      },
+      "score": 60,
+      "maxScore": 100,
+      "passedFilters": true,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": true
+      },
+      "scoreBreakdown": {
+        "UT Bot SHORT Trigger": 10,
+        "EMA 50/200 Trend Aligned": 15,
+        "ADX Trending (34)": 15,
+        "Stoch RSI Neutral": 0,
+        "MACD Neutral/Counter": 0,
+        "OBV Money Flow Aligned": 10,
+        "No Structure Pivot Broken": 0,
+        "Price Action: BEARISH_ENGULFING": 10
+      },
+      "aiDecision": {
+        "decision": "SEND",
+        "confidence": 60,
+        "reason": "Scalp evaluation complete: 60/100 confluence on LTCUSDT. OpenAI temporarily unavailable."
+      },
+      "tradePlan": {
+        "entry": 44.25,
+        "stopLoss": 44.529,
+        "takeProfit1": 43.971,
+        "takeProfit2": 43.692,
+        "takeProfit3": 43.413,
+        "riskRewardRatio": "1:2.0 Scalp (ATR=0.233 | SL=1.2×ATR)"
+      },
+      "telegramSent": false,
+      "multiTimeframe": [
+        {
+          "timeframe": "4H",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "CHOCH",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "low"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bearish",
+          "utbot": "sell",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "15M",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "CHOCH",
+          "rsi": "neutral",
+          "macd": "bearish_cross",
+          "volume": "low"
+        },
+        {
+          "timeframe": "5M",
+          "trend": "bearish",
+          "utbot": "sell",
+          "structure": "CHOCH",
+          "rsi": "neutral",
+          "macd": "bearish_cross",
+          "volume": "low"
+        }
+      ],
+      "formattedAlert": "🔴 <b>SCALP SHORT SIGNAL</b>\n━━━━━━━━━━━━━━━━━━━━\n📌 <b>LTCUSDT</b>  |  Scalp 1H/15M\n🕐 Sat, 01 Aug 2026 13:19:52 UTC\n━━━━━━━━━━━━━━━━━━━━\n\n🤖 <b>AI Confidence:</b> 60%  |  Score: <b>60/100</b>\n\n📈 <b>CONFLUENCE SIGNALS</b>\n✅ UT Bot ATR: <b>SELL</b>\n✅ EMA 50/200: <b>BEARISH</b>\n✅ ADX Strength: <b>34 (TRENDING)</b>\n✅ OBV Flow: <b>FALLING</b>\n✅ Volume: <b>NORMAL</b>\n🕯️🔴 Price Action: <b>BEARISH ENGULFING</b>\n\n📊 <b>Multi-Timeframe Confluence</b>\n  🔴 <b>4H</b>: BEARISH • CHOCH\n  🔴 <b>1H</b>: BEARISH\n  🔴 <b>15M</b>: BEARISH • MACD: bearish cross • CHOCH\n  🔴 <b>5M</b>: BEARISH • MACD: bearish cross • CHOCH\n\n💰 <b>TRADE PLAN</b>\n  Entry:      <code>44.25</code>\n  Stop Loss:  <code>44.529</code>  ⛔\n  TP1 (1.0R): <code>43.971</code>  🎯 ← Scalp target (Lock 50% / Break-even)\n  TP2 (2.0R): <code>43.692</code>  🎯 ← Main target\n  TP3 (3.0R): <code>43.413</code>  🎯 ← Runner\n\n  📐 R:R  1:2.0 Scalp (ATR=0.233 | SL=1.2×ATR)\n💼 <b>Position Sizing Guide (1-2% risk per trade)</b>\n  $1,000 acct → Risk $10-20 | $5,000 → $50-100\n\n🕯️ <b>Price Action Signal</b>\n  Pattern: <b>BEARISH ENGULFING</b> (BEARISH)\n  Bearish Engulfing: Red body completely engulfed previous buyer consolidation.\n\n🧠 <b>AI Analysis</b>\nScalp evaluation complete: 60/100 confluence on LTCUSDT. OpenAI temporarily unavailable.\n\n⚠️ <i>This is not financial advice. Always manage risk.</i>",
+      "telegramError": "Telegram delivery failed. https://api.telegram.org: Connection timed out after 10 seconds"
+    },
+    {
+      "id": "alert_ku0rc5f",
+      "timestamp": "2026-08-01T13:32:03.383Z",
+      "symbol": "LTCUSDT",
+      "timeframe": "1H",
+      "price": 44.24,
+      "payload": {
+        "symbol": "LTCUSDT",
+        "timeframe": "1H",
+        "price": 44.24,
+        "utbot": "sell",
+        "ema_crossover": "bearish",
+        "rsi": "neutral",
+        "rsiValue": 36.59228651554116,
+        "macd": "neutral",
+        "market_structure": "",
+        "volume": "normal",
+        "adx": 34.1155885379893,
+        "adxTrending": true,
+        "stochRsiSignal": "neutral",
+        "obvTrend": "falling",
+        "atrPct": 0.5289343757196401,
+        "priceActionPattern": "BEARISH_ENGULFING",
+        "priceActionBias": "BEARISH",
+        "priceActionDesc": "Bearish Engulfing: Red body completely engulfed previous buyer consolidation.",
+        "multiTimeframe": [
+          {
+            "timeframe": "4H",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "CHOCH",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "low"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bearish",
+            "utbot": "sell",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "15M",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "CHOCH",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "low"
+          },
+          {
+            "timeframe": "5M",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "CHOCH",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "low"
+          }
+        ],
+        "side": "SHORT"
+      },
+      "score": 60,
+      "maxScore": 100,
+      "passedFilters": true,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": true
+      },
+      "scoreBreakdown": {
+        "UT Bot SHORT Trigger": 10,
+        "EMA 50/200 Trend Aligned": 15,
+        "ADX Trending (34)": 15,
+        "Stoch RSI Neutral": 0,
+        "MACD Neutral/Counter": 0,
+        "OBV Money Flow Aligned": 10,
+        "No Structure Pivot Broken": 0,
+        "Price Action: BEARISH_ENGULFING": 10
+      },
+      "aiDecision": {
+        "decision": "SEND",
+        "confidence": 60,
+        "reason": "Scalp evaluation complete: 60/100 confluence on LTCUSDT. OpenAI temporarily unavailable."
+      },
+      "tradePlan": {
+        "entry": 44.24,
+        "stopLoss": 44.521,
+        "takeProfit1": 43.959,
+        "takeProfit2": 43.678,
+        "takeProfit3": 43.398,
+        "riskRewardRatio": "1:2.0 Scalp (ATR=0.234 | SL=1.2×ATR)"
+      },
+      "telegramSent": false,
+      "multiTimeframe": [
+        {
+          "timeframe": "4H",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "CHOCH",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "low"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bearish",
+          "utbot": "sell",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "15M",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "CHOCH",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "low"
+        },
+        {
+          "timeframe": "5M",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "CHOCH",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "low"
+        }
+      ],
+      "formattedAlert": "🔴 <b>SCALP SHORT SIGNAL</b>\n━━━━━━━━━━━━━━━━━━━━\n📌 <b>LTCUSDT</b>  |  Scalp 1H/15M\n🕐 Sat, 01 Aug 2026 13:32:03 UTC\n━━━━━━━━━━━━━━━━━━━━\n\n🤖 <b>AI Confidence:</b> 60%  |  Score: <b>60/100</b>\n\n📈 <b>CONFLUENCE SIGNALS</b>\n✅ UT Bot ATR: <b>SELL</b>\n✅ EMA 50/200: <b>BEARISH</b>\n✅ ADX Strength: <b>34 (TRENDING)</b>\n✅ OBV Flow: <b>FALLING</b>\n✅ Volume: <b>NORMAL</b>\n🕯️🔴 Price Action: <b>BEARISH ENGULFING</b>\n\n📊 <b>Multi-Timeframe Confluence</b>\n  🔴 <b>4H</b>: BEARISH • CHOCH\n  🔴 <b>1H</b>: BEARISH\n  🔴 <b>15M</b>: BEARISH • CHOCH\n  🔴 <b>5M</b>: BEARISH • CHOCH\n\n💰 <b>TRADE PLAN</b>\n  Entry:      <code>44.24</code>\n  Stop Loss:  <code>44.521</code>  ⛔\n  TP1 (1.0R): <code>43.959</code>  🎯 ← Scalp target (Lock 50% / Break-even)\n  TP2 (2.0R): <code>43.678</code>  🎯 ← Main target\n  TP3 (3.0R): <code>43.398</code>  🎯 ← Runner\n\n  📐 R:R  1:2.0 Scalp (ATR=0.234 | SL=1.2×ATR)\n💼 <b>Position Sizing Guide (1-2% risk per trade)</b>\n  $1,000 acct → Risk $10-20 | $5,000 → $50-100\n\n🕯️ <b>Price Action Signal</b>\n  Pattern: <b>BEARISH ENGULFING</b> (BEARISH)\n  Bearish Engulfing: Red body completely engulfed previous buyer consolidation.\n\n🧠 <b>AI Analysis</b>\nScalp evaluation complete: 60/100 confluence on LTCUSDT. OpenAI temporarily unavailable.\n\n⚠️ <i>This is not financial advice. Always manage risk.</i>",
+      "telegramError": "Telegram delivery failed. https://api.telegram.org: Connection timed out after 10 seconds"
+    },
+    {
+      "id": "alert_ss5gwtf",
+      "timestamp": "2026-08-01T13:48:34.806Z",
+      "symbol": "LTCUSDT",
+      "timeframe": "1H",
+      "price": 44.26,
+      "payload": {
+        "symbol": "LTCUSDT",
+        "timeframe": "1H",
+        "price": 44.26,
+        "utbot": "sell",
+        "ema_crossover": "bearish",
+        "rsi": "neutral",
+        "rsiValue": 37.07958093932489,
+        "macd": "neutral",
+        "market_structure": "",
+        "volume": "normal",
+        "adx": 34.15257099196371,
+        "adxTrending": true,
+        "stochRsiSignal": "neutral",
+        "obvTrend": "falling",
+        "atrPct": 0.5303092036435932,
+        "priceActionPattern": "BEARISH_ENGULFING",
+        "priceActionBias": "BEARISH",
+        "priceActionDesc": "Bearish Engulfing: Red body completely engulfed previous buyer consolidation.",
+        "multiTimeframe": [
+          {
+            "timeframe": "4H",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "CHOCH",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "low"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bearish",
+            "utbot": "sell",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "15M",
+            "trend": "bearish",
+            "utbot": "hold",
+            "structure": "CHOCH",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "low"
+          },
+          {
+            "timeframe": "5M",
+            "trend": "bearish",
+            "utbot": "sell",
+            "structure": "CHOCH",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          }
+        ],
+        "side": "SHORT"
+      },
+      "score": 60,
+      "maxScore": 100,
+      "passedFilters": true,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": true
+      },
+      "scoreBreakdown": {
+        "UT Bot SHORT Trigger": 10,
+        "EMA 50/200 Trend Aligned": 15,
+        "ADX Trending (34)": 15,
+        "Stoch RSI Neutral": 0,
+        "MACD Neutral/Counter": 0,
+        "OBV Money Flow Aligned": 10,
+        "No Structure Pivot Broken": 0,
+        "Price Action: BEARISH_ENGULFING": 10
+      },
+      "aiDecision": {
+        "decision": "SEND",
+        "confidence": 60,
+        "reason": "Scalp evaluation complete: 60/100 confluence on LTCUSDT. OpenAI temporarily unavailable."
+      },
+      "tradePlan": {
+        "entry": 44.26,
+        "stopLoss": 44.542,
+        "takeProfit1": 43.978,
+        "takeProfit2": 43.697,
+        "takeProfit3": 43.415,
+        "riskRewardRatio": "1:2.0 Scalp (ATR=0.235 | SL=1.2×ATR)"
+      },
+      "telegramSent": true,
+      "multiTimeframe": [
+        {
+          "timeframe": "4H",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "CHOCH",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "low"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bearish",
+          "utbot": "sell",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "15M",
+          "trend": "bearish",
+          "utbot": "hold",
+          "structure": "CHOCH",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "low"
+        },
+        {
+          "timeframe": "5M",
+          "trend": "bearish",
+          "utbot": "sell",
+          "structure": "CHOCH",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        }
+      ],
+      "formattedAlert": "🔴 <b>SCALP SHORT SIGNAL</b>\n━━━━━━━━━━━━━━━━━━━━\n📌 <b>LTCUSDT</b>  |  Scalp 1H/15M\n🕐 Sat, 01 Aug 2026 13:48:34 UTC\n━━━━━━━━━━━━━━━━━━━━\n\n🤖 <b>AI Confidence:</b> 60%  |  Score: <b>60/100</b>\n\n📈 <b>CONFLUENCE SIGNALS</b>\n✅ UT Bot ATR: <b>SELL</b>\n✅ EMA 50/200: <b>BEARISH</b>\n✅ ADX Strength: <b>34 (TRENDING)</b>\n✅ OBV Flow: <b>FALLING</b>\n✅ Volume: <b>NORMAL</b>\n🕯️🔴 Price Action: <b>BEARISH ENGULFING</b>\n\n📊 <b>Multi-Timeframe Confluence</b>\n  🔴 <b>4H</b>: BEARISH • CHOCH\n  🔴 <b>1H</b>: BEARISH\n  🔴 <b>15M</b>: BEARISH • CHOCH\n  🔴 <b>5M</b>: BEARISH • CHOCH\n\n💰 <b>TRADE PLAN</b>\n  Entry:      <code>44.26</code>\n  Stop Loss:  <code>44.542</code>  ⛔\n  TP1 (1.0R): <code>43.978</code>  🎯 ← Scalp target (Lock 50% / Break-even)\n  TP2 (2.0R): <code>43.697</code>  🎯 ← Main target\n  TP3 (3.0R): <code>43.415</code>  🎯 ← Runner\n\n  📐 R:R  1:2.0 Scalp (ATR=0.235 | SL=1.2×ATR)\n💼 <b>Position Sizing Guide (1-2% risk per trade)</b>\n  $1,000 acct → Risk $10-20 | $5,000 → $50-100\n\n🕯️ <b>Price Action Signal</b>\n  Pattern: <b>BEARISH ENGULFING</b> (BEARISH)\n  Bearish Engulfing: Red body completely engulfed previous buyer consolidation.\n\n🧠 <b>AI Analysis</b>\nScalp evaluation complete: 60/100 confluence on LTCUSDT. OpenAI temporarily unavailable.\n\n⚠️ <i>This is not financial advice. Always manage risk.</i>"
+    },
+    {
+      "id": "alert_s1onwpa",
+      "timestamp": "2026-08-01T14:04:12.817Z",
+      "symbol": "XAUUSD",
+      "timeframe": "1H",
+      "price": 100.367,
+      "payload": {
+        "symbol": "XAUUSD",
+        "timeframe": "1H",
+        "price": 100.367,
+        "utbot": "buy",
+        "ema_crossover": "bullish",
+        "rsi": "neutral",
+        "rsiValue": 45.09151174011347,
+        "macd": "neutral",
+        "market_structure": "",
+        "volume": "normal",
+        "adx": 36.27918499857387,
+        "adxTrending": true,
+        "stochRsiSignal": "neutral",
+        "obvTrend": "rising",
+        "atrPct": 3.667336079284145,
+        "priceActionPattern": "NONE",
+        "priceActionBias": "NEUTRAL",
+        "priceActionDesc": "No patterns detected on simulated feed.",
+        "multiTimeframe": [
+          {
+            "timeframe": "4H",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bullish",
+            "utbot": "buy",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "15M",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "5M",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          }
+        ],
+        "side": "LONG"
+      },
+      "score": 50,
+      "maxScore": 100,
+      "passedFilters": true,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": true
+      },
+      "scoreBreakdown": {
+        "UT Bot LONG Trigger": 10,
+        "EMA 50/200 Trend Aligned": 15,
+        "ADX Trending (36)": 15,
+        "Stoch RSI Neutral": 0,
+        "MACD Neutral/Counter": 0,
+        "OBV Money Flow Aligned": 10,
+        "No Structure Pivot Broken": 0,
+        "Price Action: No Pattern": 0
+      },
+      "aiDecision": {
+        "decision": "SEND",
+        "confidence": 50,
+        "reason": "Scalp evaluation complete: 50/100 confluence on XAUUSD. OpenAI temporarily unavailable."
+      },
+      "tradePlan": {
+        "entry": 100.367,
+        "stopLoss": 95.95,
+        "takeProfit1": 104.784,
+        "takeProfit2": 109.201,
+        "takeProfit3": 113.618,
+        "riskRewardRatio": "1:2.0 Scalp (ATR=3.681 | SL=1.2×ATR)"
+      },
+      "telegramSent": false,
+      "multiTimeframe": [
+        {
+          "timeframe": "4H",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bullish",
+          "utbot": "buy",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "15M",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "5M",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        }
+      ],
+      "formattedAlert": "🟢 <b>SCALP LONG SIGNAL</b>\n━━━━━━━━━━━━━━━━━━━━\n📌 <b>XAUUSD</b>  |  Scalp 1H/15M\n🕐 Sat, 01 Aug 2026 14:04:12 UTC\n━━━━━━━━━━━━━━━━━━━━\n\n🤖 <b>AI Confidence:</b> 50%  |  Score: <b>50/100</b>\n\n📈 <b>CONFLUENCE SIGNALS</b>\n✅ UT Bot ATR: <b>BUY</b>\n✅ EMA 50/200: <b>BULLISH</b>\n✅ ADX Strength: <b>36 (TRENDING)</b>\n✅ OBV Flow: <b>RISING</b>\n✅ Volume: <b>NORMAL</b>\n\n📊 <b>Multi-Timeframe Confluence</b>\n  🟢 <b>4H</b>: BULLISH\n  🟢 <b>1H</b>: BULLISH\n  🟢 <b>15M</b>: BULLISH\n  🟢 <b>5M</b>: BULLISH\n\n💰 <b>TRADE PLAN</b>\n  Entry:      <code>100.367</code>\n  Stop Loss:  <code>95.95</code>  ⛔\n  TP1 (1.0R): <code>104.784</code>  🎯 ← Scalp target (Lock 50% / Break-even)\n  TP2 (2.0R): <code>109.201</code>  🎯 ← Main target\n  TP3 (3.0R): <code>113.618</code>  🎯 ← Runner\n\n  📐 R:R  1:2.0 Scalp (ATR=3.681 | SL=1.2×ATR)\n💼 <b>Position Sizing Guide (1-2% risk per trade)</b>\n  $1,000 acct → Risk $10-20 | $5,000 → $50-100\n\n🧠 <b>AI Analysis</b>\nScalp evaluation complete: 50/100 confluence on XAUUSD. OpenAI temporarily unavailable.\n\n⚠️ <i>This is not financial advice. Always manage risk.</i>",
+      "telegramError": "Telegram delivery failed. https://api.telegram.org: Connection timed out after 10 seconds"
+    },
+    {
+      "id": "alert_2izroof",
+      "timestamp": "2026-08-01T14:16:27.857Z",
+      "symbol": "XAUUSD",
+      "timeframe": "1H",
+      "price": 99.315,
+      "payload": {
+        "symbol": "XAUUSD",
+        "timeframe": "1H",
+        "price": 99.315,
+        "utbot": "buy",
+        "ema_crossover": "bullish",
+        "rsi": "neutral",
+        "rsiValue": 52.28310432557951,
+        "macd": "neutral",
+        "market_structure": "",
+        "volume": "high",
+        "adx": 24.616299119714004,
+        "adxTrending": true,
+        "stochRsiSignal": "neutral",
+        "obvTrend": "rising",
+        "atrPct": 2.4979915305520226,
+        "priceActionPattern": "NONE",
+        "priceActionBias": "NEUTRAL",
+        "priceActionDesc": "No patterns detected on simulated feed.",
+        "multiTimeframe": [
+          {
+            "timeframe": "4H",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "1H",
+            "trend": "bullish",
+            "utbot": "buy",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "high"
+          },
+          {
+            "timeframe": "15M",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          },
+          {
+            "timeframe": "5M",
+            "trend": "bullish",
+            "utbot": "hold",
+            "structure": "none",
+            "rsi": "neutral",
+            "macd": "neutral",
+            "volume": "normal"
+          }
+        ],
+        "side": "LONG"
+      },
+      "score": 50,
+      "maxScore": 100,
+      "passedFilters": true,
+      "filterResults": {
+        "lowVolume": false,
+        "againstTrend": false,
+        "rsiOverbought": false,
+        "noStructure": true
+      },
+      "scoreBreakdown": {
+        "UT Bot LONG Trigger": 10,
+        "EMA 50/200 Trend Aligned": 15,
+        "ADX Trending (25)": 15,
+        "Stoch RSI Neutral": 0,
+        "MACD Neutral/Counter": 0,
+        "OBV Money Flow Aligned": 10,
+        "No Structure Pivot Broken": 0,
+        "Price Action: No Pattern": 0
+      },
+      "aiDecision": {
+        "decision": "SEND",
+        "confidence": 50,
+        "reason": "Scalp evaluation complete: 50/100 confluence on XAUUSD. OpenAI temporarily unavailable."
+      },
+      "tradePlan": {
+        "entry": 99.315,
+        "stopLoss": 96.338,
+        "takeProfit1": 102.292,
+        "takeProfit2": 105.269,
+        "takeProfit3": 108.246,
+        "riskRewardRatio": "1:2.0 Scalp (ATR=2.481 | SL=1.2×ATR)"
+      },
+      "telegramSent": false,
+      "multiTimeframe": [
+        {
+          "timeframe": "4H",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "1H",
+          "trend": "bullish",
+          "utbot": "buy",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "high"
+        },
+        {
+          "timeframe": "15M",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        },
+        {
+          "timeframe": "5M",
+          "trend": "bullish",
+          "utbot": "hold",
+          "structure": "none",
+          "rsi": "neutral",
+          "macd": "neutral",
+          "volume": "normal"
+        }
+      ],
+      "formattedAlert": "🟢 <b>SCALP LONG SIGNAL</b>\n━━━━━━━━━━━━━━━━━━━━\n📌 <b>XAUUSD</b>  |  Scalp 1H/15M\n🕐 Sat, 01 Aug 2026 14:16:27 UTC\n━━━━━━━━━━━━━━━━━━━━\n\n🤖 <b>AI Confidence:</b> 50%  |  Score: <b>50/100</b>\n\n📈 <b>CONFLUENCE SIGNALS</b>\n✅ UT Bot ATR: <b>BUY</b>\n✅ EMA 50/200: <b>BULLISH</b>\n✅ ADX Strength: <b>25 (TRENDING)</b>\n✅ OBV Flow: <b>RISING</b>\n✅ Volume: <b>HIGH</b>\n\n📊 <b>Multi-Timeframe Confluence</b>\n  🟢 <b>4H</b>: BULLISH\n  🟢 <b>1H</b>: BULLISH\n  🟢 <b>15M</b>: BULLISH\n  🟢 <b>5M</b>: BULLISH\n\n💰 <b>TRADE PLAN</b>\n  Entry:      <code>99.315</code>\n  Stop Loss:  <code>96.338</code>  ⛔\n  TP1 (1.0R): <code>102.292</code>  🎯 ← Scalp target (Lock 50% / Break-even)\n  TP2 (2.0R): <code>105.269</code>  🎯 ← Main target\n  TP3 (3.0R): <code>108.246</code>  🎯 ← Runner\n\n  📐 R:R  1:2.0 Scalp (ATR=2.481 | SL=1.2×ATR)\n💼 <b>Position Sizing Guide (1-2% risk per trade)</b>\n  $1,000 acct → Risk $10-20 | $5,000 → $50-100\n\n🧠 <b>AI Analysis</b>\nScalp evaluation complete: 50/100 confluence on XAUUSD. OpenAI temporarily unavailable.\n\n⚠️ <i>This is not financial advice. Always manage risk.</i>",
+      "telegramError": "Telegram delivery failed. https://api.telegram.org: Connection timed out after 10 seconds"
     }
   ],
-  "trades": []
+  "trades": [
+    {
+      "id": "t_auto_1785577056748_6wxis",
+      "symbol": "BTCUSDT",
+      "market": "CRYPTO",
+      "side": "LONG",
+      "entryPrice": 59636.2,
+      "quantity": 1,
+      "sl": 57847.1,
+      "tp1": 0,
+      "tp2": 0,
+      "entryDate": "2026-08-01T09:37:36.748Z",
+      "notes": "Auto-logged from historical scan (Confidence: 61%)",
+      "isResolved": false,
+      "status": "TP1_HIT",
+      "history": [
+        {
+          "timestamp": "2026-08-01T09:37:36.749Z",
+          "status": "HOLDING",
+          "price": 59636.2,
+          "pnl": 0,
+          "pnlPct": 0,
+          "telegramSent": true,
+          "note": "Auto-logged trade signal sent to Telegram · 24/7 server monitoring active"
+        },
+        {
+          "timestamp": "2026-08-01T09:39:03.171Z",
+          "status": "TP1_HIT",
+          "price": 63106.95,
+          "pnl": 3470.75,
+          "pnlPct": 5.8198711520854784,
+          "telegramSent": false,
+          "note": "Status changed: HOLDING → TP1_HIT"
+        }
+      ],
+      "currentPrice": 63098.4,
+      "pnl": 3462.2000000000044,
+      "pnlPct": 5.805534222502447,
+      "lastUpdated": "2026-08-01T14:36:32.314Z"
+    },
+    {
+      "id": "t_auto_1785577056763_ppcrg",
+      "symbol": "ETHUSDT",
+      "market": "CRYPTO",
+      "side": "LONG",
+      "entryPrice": 3400,
+      "quantity": 1,
+      "sl": 3536,
+      "tp1": 0,
+      "tp2": 0,
+      "entryDate": "2026-08-01T09:37:36.763Z",
+      "notes": "Auto-logged from historical scan (Confidence: 44%)",
+      "isResolved": true,
+      "status": "SL_HIT",
+      "history": [
+        {
+          "timestamp": "2026-08-01T09:37:36.763Z",
+          "status": "HOLDING",
+          "price": 3400,
+          "pnl": 0,
+          "pnlPct": 0,
+          "telegramSent": true,
+          "note": "Auto-logged trade signal sent to Telegram · 24/7 server monitoring active"
+        },
+        {
+          "timestamp": "2026-08-01T09:39:13.177Z",
+          "status": "SL_HIT",
+          "price": 1870.66,
+          "pnl": -1529.34,
+          "pnlPct": -44.980588235294114,
+          "telegramSent": false,
+          "note": "Status changed: HOLDING → SL_HIT"
+        }
+      ],
+      "currentPrice": 1870.66,
+      "pnl": -1529.34,
+      "pnlPct": -44.980588235294114,
+      "lastUpdated": "2026-08-01T09:39:13.177Z",
+      "resolvedAt": "2026-08-01T09:39:13.177Z",
+      "resolvedStatus": "SL_HIT"
+    },
+    {
+      "id": "t_auto_1785577056775_u94so",
+      "symbol": "BNBUSDT",
+      "market": "CRYPTO",
+      "side": "LONG",
+      "entryPrice": 585.48,
+      "quantity": 1,
+      "sl": 620.609,
+      "tp1": 0,
+      "tp2": 0,
+      "entryDate": "2026-08-01T09:37:36.775Z",
+      "notes": "Auto-logged from historical scan (Confidence: 55%)",
+      "isResolved": true,
+      "status": "SL_HIT",
+      "history": [
+        {
+          "timestamp": "2026-08-01T09:37:36.775Z",
+          "status": "HOLDING",
+          "price": 585.48,
+          "pnl": 0,
+          "pnlPct": 0,
+          "telegramSent": true,
+          "note": "Auto-logged trade signal sent to Telegram · 24/7 server monitoring active"
+        },
+        {
+          "timestamp": "2026-08-01T09:39:23.186Z",
+          "status": "SL_HIT",
+          "price": 585.24,
+          "pnl": -0.2400000000000091,
+          "pnlPct": -0.0409920065587226,
+          "telegramSent": false,
+          "note": "Status changed: HOLDING → SL_HIT"
+        }
+      ],
+      "currentPrice": 585.24,
+      "pnl": -0.2400000000000091,
+      "pnlPct": -0.0409920065587226,
+      "lastUpdated": "2026-08-01T09:39:23.186Z",
+      "resolvedAt": "2026-08-01T09:39:23.186Z",
+      "resolvedStatus": "SL_HIT"
+    },
+    {
+      "id": "t_auto_1785577056789_r6zuy",
+      "symbol": "ADAUSDT",
+      "market": "CRYPTO",
+      "side": "LONG",
+      "entryPrice": 0.75,
+      "quantity": 1,
+      "sl": 0.795,
+      "tp1": 0,
+      "tp2": 0,
+      "entryDate": "2026-08-01T09:37:36.789Z",
+      "notes": "Auto-logged from historical scan (Confidence: 44%)",
+      "isResolved": true,
+      "status": "SL_HIT",
+      "history": [
+        {
+          "timestamp": "2026-08-01T09:37:36.789Z",
+          "status": "HOLDING",
+          "price": 0.75,
+          "pnl": 0,
+          "pnlPct": 0,
+          "telegramSent": true,
+          "note": "Auto-logged trade signal sent to Telegram · 24/7 server monitoring active"
+        },
+        {
+          "timestamp": "2026-08-01T09:39:33.192Z",
+          "status": "SL_HIT",
+          "price": 0.1719,
+          "pnl": -0.5781000000000001,
+          "pnlPct": -77.08,
+          "telegramSent": false,
+          "note": "Status changed: HOLDING → SL_HIT"
+        }
+      ],
+      "currentPrice": 0.1719,
+      "pnl": -0.5781000000000001,
+      "pnlPct": -77.08,
+      "lastUpdated": "2026-08-01T09:39:33.192Z",
+      "resolvedAt": "2026-08-01T09:39:33.192Z",
+      "resolvedStatus": "SL_HIT"
+    },
+    {
+      "id": "t_auto_1785577056807_lrrzz",
+      "symbol": "NEARUSDT",
+      "market": "CRYPTO",
+      "side": "LONG",
+      "entryPrice": 1.616,
+      "quantity": 1,
+      "sl": 1.64131,
+      "tp1": 0,
+      "tp2": 0,
+      "entryDate": "2026-08-01T09:37:36.807Z",
+      "notes": "Auto-logged from historical scan (Confidence: 70%)",
+      "isResolved": false,
+      "status": "TP1_HIT",
+      "history": [
+        {
+          "timestamp": "2026-08-01T09:37:36.807Z",
+          "status": "HOLDING",
+          "price": 1.616,
+          "pnl": 0,
+          "pnlPct": 0,
+          "telegramSent": true,
+          "note": "Auto-logged trade signal sent to Telegram · 24/7 server monitoring active"
+        },
+        {
+          "timestamp": "2026-08-01T09:39:43.197Z",
+          "status": "TP1_HIT",
+          "price": 1.651,
+          "pnl": 0.03499999999999992,
+          "pnlPct": 2.165841584158411,
+          "telegramSent": false,
+          "note": "Status changed: HOLDING → TP1_HIT"
+        }
+      ],
+      "currentPrice": 1.672,
+      "pnl": 0.05599999999999983,
+      "pnlPct": 3.4653465346534547,
+      "lastUpdated": "2026-08-01T14:36:32.314Z"
+    },
+    {
+      "id": "t_auto_1785577056820_zmlny",
+      "symbol": "SOLUSDT",
+      "market": "CRYPTO",
+      "side": "LONG",
+      "entryPrice": 72.87,
+      "quantity": 1,
+      "sl": 73.663,
+      "tp1": 0,
+      "tp2": 0,
+      "entryDate": "2026-08-01T09:37:36.821Z",
+      "notes": "Auto-logged from historical scan (Confidence: 75%)",
+      "isResolved": true,
+      "status": "SL_HIT",
+      "history": [
+        {
+          "timestamp": "2026-08-01T09:37:36.821Z",
+          "status": "HOLDING",
+          "price": 72.87,
+          "pnl": 0,
+          "pnlPct": 0,
+          "telegramSent": true,
+          "note": "Auto-logged trade signal sent to Telegram · 24/7 server monitoring active"
+        },
+        {
+          "timestamp": "2026-08-01T09:39:43.755Z",
+          "status": "SL_HIT",
+          "price": 72.98,
+          "pnl": 0.10999999999999943,
+          "pnlPct": 0.15095375325922797,
+          "telegramSent": true,
+          "note": "Status changed: HOLDING → SL_HIT · ✅ Telegram alert sent"
+        }
+      ],
+      "currentPrice": 72.98,
+      "pnl": 0.10999999999999943,
+      "pnlPct": 0.15095375325922797,
+      "lastUpdated": "2026-08-01T09:39:43.755Z",
+      "resolvedAt": "2026-08-01T09:39:43.755Z",
+      "resolvedStatus": "SL_HIT"
+    },
+    {
+      "id": "t_auto_1785577056833_ah3eg",
+      "symbol": "XRPUSDT",
+      "market": "CRYPTO",
+      "side": "LONG",
+      "entryPrice": 1.0658,
+      "quantity": 1,
+      "sl": 1.07651,
+      "tp1": 0,
+      "tp2": 0,
+      "entryDate": "2026-08-01T09:37:36.833Z",
+      "notes": "Auto-logged from historical scan (Confidence: 45%)",
+      "isResolved": true,
+      "status": "SL_HIT",
+      "history": [
+        {
+          "timestamp": "2026-08-01T09:37:36.833Z",
+          "status": "HOLDING",
+          "price": 1.0658,
+          "pnl": 0,
+          "pnlPct": 0,
+          "telegramSent": true,
+          "note": "Auto-logged trade signal sent to Telegram · 24/7 server monitoring active"
+        },
+        {
+          "timestamp": "2026-08-01T09:39:53.766Z",
+          "status": "SL_HIT",
+          "price": 1.0621,
+          "pnl": -0.0037000000000000366,
+          "pnlPct": -0.34715706511540967,
+          "telegramSent": false,
+          "note": "Status changed: HOLDING → SL_HIT"
+        }
+      ],
+      "currentPrice": 1.0621,
+      "pnl": -0.0037000000000000366,
+      "pnlPct": -0.34715706511540967,
+      "lastUpdated": "2026-08-01T09:39:53.766Z",
+      "resolvedAt": "2026-08-01T09:39:53.766Z",
+      "resolvedStatus": "SL_HIT"
+    }
+  ]
 }
