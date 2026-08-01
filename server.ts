@@ -11,7 +11,7 @@ if (!process.env.NODE_ENV) {
 }
 
 const app = express();
-const PORT = parseInt(process.env.PORT || "3000", 10);
+const PORT = parseInt(process.env.PORT || "5000", 10);
 const DB_FILE = path.join(process.cwd(), "db.json");
 
 interface TraderEvaluation {
@@ -532,7 +532,84 @@ function analyzePriceAction(opens: number[], highs: number[], lows: number[], cl
   return { pattern: "NONE", bias: "NEUTRAL", description: "No clear price action patterns detected." };
 }
 
-// Fetch Binance candles and compute scalp indicators (1H timeframe)
+// Fetch candles from Yahoo Finance for Indian Equities & Forex/Commodities
+async function fetchYahooKlines(symbol: string, interval: string = "1h", range: string = "5d") {
+  let yahooSymbol = (symbol || "").toUpperCase().trim();
+  if (yahooSymbol.endsWith(".NS") || yahooSymbol.startsWith("^")) {
+    // already formatted
+  } else if (yahooSymbol.length === 6 && !yahooSymbol.endsWith("=X") && !yahooSymbol.endsWith("USDT")) {
+    yahooSymbol = `${yahooSymbol}=X`;
+  } else if (yahooSymbol === "XAUUSD" || yahooSymbol === "XAUUSDT") {
+    yahooSymbol = "GC=F";
+  } else if (yahooSymbol === "XAGUSD" || yahooSymbol === "XAGUSDT") {
+    yahooSymbol = "SI=F";
+  } else if (!yahooSymbol.endsWith("USDT") && !yahooSymbol.includes(".")) {
+    yahooSymbol = `${yahooSymbol}.NS`;
+  }
+
+  const yfInterval = interval === "15m" ? "15m" : interval === "5m" ? "5m" : interval === "4h" ? "60m" : "1h";
+  const yfRange = range || (interval === "5m" ? "1d" : interval === "15m" ? "5d" : "1mo");
+
+  const urls = [
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=${yfInterval}&range=${yfRange}`,
+    `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=${yfInterval}&range=${yfRange}`
+  ];
+
+  for (const url of urls) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const res = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Accept": "application/json",
+          "Referer": "https://finance.yahoo.com"
+        }
+      });
+      clearTimeout(timeoutId);
+      if (!res.ok) continue;
+      const json = await res.json();
+      const result = json?.chart?.result?.[0];
+      if (!result) continue;
+
+      const timestamps: number[] = result.timestamp || [];
+      const quote = result.indicators?.quote?.[0];
+      if (!quote || !quote.close || quote.close.length === 0) continue;
+
+      const opens: number[] = [];
+      const highs: number[] = [];
+      const lows: number[] = [];
+      const closes: number[] = [];
+      const volumes: number[] = [];
+
+      for (let i = 0; i < quote.close.length; i++) {
+        if (quote.close[i] != null && quote.open[i] != null && quote.high[i] != null && quote.low[i] != null) {
+          opens.push(parseFloat(quote.open[i].toFixed(4)));
+          highs.push(parseFloat(quote.high[i].toFixed(4)));
+          lows.push(parseFloat(quote.low[i].toFixed(4)));
+          closes.push(parseFloat(quote.close[i].toFixed(4)));
+          volumes.push(parseFloat((quote.volume?.[i] || 1000).toFixed(0)));
+        }
+      }
+
+      if (closes.length >= 10) {
+        return {
+          opens,
+          highs,
+          lows,
+          closes,
+          volumes,
+          timestamps,
+          currentPrice: closes[closes.length - 1]
+        };
+      }
+    } catch {}
+  }
+  return null;
+}
+
+// Fetch candles and compute swing/scalp indicators for Crypto, Indian Equities, and Forex
 async function fetchRecentKlinesAndTrend(symbol: string): Promise<RealIndicators> {
   const cleanSymbol = symbol.replace(".P", "").toUpperCase();
   const searchSymbol = cleanSymbol === "XAUUSDT" ? "PAXGUSDT" : cleanSymbol;
@@ -542,140 +619,198 @@ async function fetchRecentKlinesAndTrend(symbol: string): Promise<RealIndicators
     return symbolIndicatorCache[symbol];
   }
 
-  try {
-    // Try primary then fallback Binance endpoint (some regions block api.binance.com)
-    const endpoints = [
-      `https://api.binance.com/api/v3/klines?symbol=${searchSymbol}&interval=1h&limit=200`,
-      `https://api1.binance.com/api/v3/klines?symbol=${searchSymbol}&interval=1h&limit=200`,
-      `https://api2.binance.com/api/v3/klines?symbol=${searchSymbol}&interval=1h&limit=200`
-    ];
-    let res: Response | null = null;
-    for (const url of endpoints) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
-        const attempt = await fetch(url, { signal: controller.signal });
-        clearTimeout(timeoutId);
-        if (attempt.ok) { res = attempt; break; }
-      } catch { /* try next endpoint */ }
-    }
-    if (res && res.ok) {
-      const data: any[][] = await res.json();
-      if (Array.isArray(data) && data.length >= 100) {
-        const opens   = data.map(k => parseFloat(k[1]));
-        const closes  = data.map(k => parseFloat(k[4]));
-        const highs   = data.map(k => parseFloat(k[2]));
-        const lows    = data.map(k => parseFloat(k[3]));
-        const volumes = data.map(k => parseFloat(k[5]));
-        const len = closes.length;
-        const currentPrice = closes[len - 1];
-
-        // Validate candle freshness: 1H interval means last kline should not be older than 2 hours
-        const lastKlineOpenTime = data[len - 1][0];
-        const isStale = (now - lastKlineOpenTime) > 2 * 60 * 60 * 1000;
-
-        // === MACRO TREND: 50 EMA vs 200 EMA ===
-        const ema50 = calculateLatestEMA(closes, 50);
-        const ema200 = calculateLatestEMA(closes, 200);
-        const trendDir: "bullish" | "bearish" = ema50 > ema200 ? "bullish" : "bearish";
-
-        // === ATR (14) — volatility for dynamic stop placement ===
-        const atr14 = calculateATR(highs, lows, closes, 14);
-        const atrPct = (atr14 / currentPrice) * 100;
-
-        // === ADX (14) — trend strength filter ===
-        const adx = calculateADX(highs, lows, closes, 14);
-        const adxTrending = adx >= 20; // >= 20 means trending market, not ranging
-
-        // === RSI (14) — professional 30/70 thresholds ===
-        const rsiVal = calculateLatestRSI(closes, 14);
-        const rsi: "oversold" | "overbought" | "neutral" = rsiVal <= 30 ? "oversold" : rsiVal >= 70 ? "overbought" : "neutral";
-
-        // === MACD (12,26,9) with histogram ===
-        const macdObj = calculateLatestMACD(closes);
-        const macd = macdObj.cross;
-        const macdHistogram = (macdObj as any).histogram ?? (macdObj.macd - macdObj.signal);
-
-        // === STOCHASTIC RSI (3,3,14,14) — precision entry timing ===
-        const stochRsi = calculateStochasticRSI(closes);
-
-        // === OBV TREND — institutional money flow ===
-        const obvTrend = calculateOBVTrend(closes, volumes);
-
-        // === VOLUME PROFILE (relative to 20-bar average) ===
-        const avgVolume20 = volumes.slice(len - 21, len - 1).reduce((a, b) => a + b, 0) / 20;
-        const volumeLevel: "high" | "normal" | "low" = 
-          volumes[len - 1] > avgVolume20 * 1.5 ? "high" :
-          volumes[len - 1] < avgVolume20 * 0.5 ? "low" : "normal";
-
-        // === UT BOT (ATR Trailing Stop) — replaces simple EMA cross logic ===
-        const utbot = calculateUTBot(closes, highs, lows, atr14, 2.0);
-
-        // === MARKET STRUCTURE — Proper zigzag swing-point BOS/CHOCH ===
-        const marketStructure = detectMarketStructure(highs, lows, closes);
-
-        // === PRICE ACTION candlestick pattern & liquidity sweeps ===
-        const paResult = analyzePriceAction(opens, highs, lows, closes);
-
-        // === BUY SIGNAL READY — StochRSI + EMA + ADX + Price Action confluence ===
-        const isBuySignalReady = (
-          trendDir === "bullish" &&
-          adxTrending &&
-          (utbot === "buy" || stochRsi.signal === "oversold_cross" || rsi === "oversold" || paResult.bias === "BULLISH")
-        );
-
-        // === 24H CHANGE (24 candles * 1H = 24H) ===
-        const price24hAgo = closes[len - 25] || closes[0];
-        const changePercent = ((currentPrice - price24hAgo) / price24hAgo) * 100;
-
-        const evaluation = evaluateTraderInsight(
-          symbol, currentPrice, trendDir, utbot, volumeLevel, rsi, macd, marketStructure
-        );
-
-        const db = readDB();
-        const scorePayload = {
-          symbol, price: currentPrice, utbot,
-          ema_crossover: trendDir, rsi, macd,
-          market_structure: marketStructure, volume: volumeLevel,
-          adx, adxTrending, stochRsiSignal: stochRsi.signal, obvTrend,
-          priceActionPattern: paResult.pattern, priceActionBias: paResult.bias
-        };
-        const scoredResult = processSignalPayload(scorePayload, db.config);
-
-        const result: RealIndicators = {
-          price: currentPrice, trendDir, utbot, volumeLevel,
-          marketStructure, rsi, rsiValue: rsiVal, macd, macdHistogram,
-          adx, adxTrending, stochRsiK: stochRsi.k, stochRsiD: stochRsi.d,
-          stochRsiSignal: stochRsi.signal, obvTrend, atrPct,
-          priceActionPattern: paResult.pattern, priceActionBias: paResult.bias, priceActionDesc: paResult.description,
-          isBuySignalReady, timestamp: now,
-          traderEvaluation: evaluation, changePercent,
-          score: scoredResult.score, scoreBreakdown: scoredResult.scoreBreakdown,
-          source: "Binance 1H", isStale
-        };
-
-        symbolIndicatorCache[symbol] = result;
-        return result;
+  // 1. Try Binance for Crypto symbols
+  if (cleanSymbol.endsWith("USDT") || ["BTC","ETH","SOL","BNB","XRP","DOGE","ADA","AVAX","LINK","DOT","NEAR"].some(c => cleanSymbol.startsWith(c))) {
+    try {
+      const endpoints = [
+        `https://api.binance.com/api/v3/klines?symbol=${searchSymbol}&interval=1h&limit=200`,
+        `https://api1.binance.com/api/v3/klines?symbol=${searchSymbol}&interval=1h&limit=200`,
+        `https://api2.binance.com/api/v3/klines?symbol=${searchSymbol}&interval=1h&limit=200`
+      ];
+      let res: Response | null = null;
+      for (const url of endpoints) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 8000);
+          const attempt = await fetch(url, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (attempt.ok) { res = attempt; break; }
+        } catch { /* try next endpoint */ }
       }
+      if (res && res.ok) {
+        const data: any[][] = await res.json();
+        if (Array.isArray(data) && data.length >= 100) {
+          const opens   = data.map(k => parseFloat(k[1]));
+          const closes  = data.map(k => parseFloat(k[4]));
+          const highs   = data.map(k => parseFloat(k[2]));
+          const lows    = data.map(k => parseFloat(k[3]));
+          const volumes = data.map(k => parseFloat(k[5]));
+          const len = closes.length;
+          const currentPrice = closes[len - 1];
+
+          const lastKlineOpenTime = data[len - 1][0];
+          const isStale = (now - lastKlineOpenTime) > 2 * 60 * 60 * 1000;
+
+          const ema50 = calculateLatestEMA(closes, 50);
+          const ema200 = calculateLatestEMA(closes, 200);
+          const trendDir: "bullish" | "bearish" = ema50 > ema200 ? "bullish" : "bearish";
+
+          const atr14 = calculateATR(highs, lows, closes, 14);
+          const atrPct = (atr14 / currentPrice) * 100;
+
+          const adx = calculateADX(highs, lows, closes, 14);
+          const adxTrending = adx >= 20;
+
+          const rsiVal = calculateLatestRSI(closes, 14);
+          const rsi: "oversold" | "overbought" | "neutral" = rsiVal <= 30 ? "oversold" : rsiVal >= 70 ? "overbought" : "neutral";
+
+          const macdObj = calculateLatestMACD(closes);
+          const macd = macdObj.cross;
+          const macdHistogram = (macdObj as any).histogram ?? (macdObj.macd - macdObj.signal);
+
+          const stochRsi = calculateStochasticRSI(closes);
+          const obvTrend = calculateOBVTrend(closes, volumes);
+
+          const avgVolume20 = volumes.slice(len - 21, len - 1).reduce((a, b) => a + b, 0) / 20;
+          const volumeLevel: "high" | "normal" | "low" = 
+            volumes[len - 1] > avgVolume20 * 1.5 ? "high" :
+            volumes[len - 1] < avgVolume20 * 0.5 ? "low" : "normal";
+
+          const utbot = calculateUTBot(closes, highs, lows, atr14, 2.0);
+          const marketStructure = detectMarketStructure(highs, lows, closes);
+          const paResult = analyzePriceAction(opens, highs, lows, closes);
+
+          const isBuySignalReady = (
+            trendDir === "bullish" &&
+            adxTrending &&
+            (utbot === "buy" || stochRsi.signal === "oversold_cross" || rsi === "oversold" || paResult.bias === "BULLISH")
+          );
+
+          const price24hAgo = closes[len - 25] || closes[0];
+          const changePercent = ((currentPrice - price24hAgo) / price24hAgo) * 100;
+
+          const evaluation = evaluateTraderInsight(
+            symbol, currentPrice, trendDir, utbot, volumeLevel, rsi, macd, marketStructure
+          );
+
+          const db = readDB();
+          const scorePayload = {
+            symbol, price: currentPrice, utbot,
+            ema_crossover: trendDir, rsi, macd,
+            market_structure: marketStructure, volume: volumeLevel,
+            adx, adxTrending, stochRsiSignal: stochRsi.signal, obvTrend,
+            priceActionPattern: paResult.pattern, priceActionBias: paResult.bias
+          };
+          const scoredResult = processSignalPayload(scorePayload, db.config);
+
+          const result: RealIndicators = {
+            price: currentPrice, trendDir, utbot, volumeLevel,
+            marketStructure, rsi, rsiValue: rsiVal, macd, macdHistogram,
+            adx, adxTrending, stochRsiK: stochRsi.k, stochRsiD: stochRsi.d,
+            stochRsiSignal: stochRsi.signal, obvTrend, atrPct,
+            priceActionPattern: paResult.pattern, priceActionBias: paResult.bias, priceActionDesc: paResult.description,
+            isBuySignalReady, timestamp: now,
+            traderEvaluation: evaluation, changePercent,
+            score: scoredResult.score, scoreBreakdown: scoredResult.scoreBreakdown,
+            source: "Binance 1H", isStale
+          };
+
+          symbolIndicatorCache[symbol] = result;
+          return result;
+        }
+      }
+    } catch (e) {
+      console.error(`[Binance API] Unable to get swing indicators for ${symbol}:`, e);
     }
-  } catch (e) {
-    console.error(`[Binance API] Unable to get swing indicators for ${symbol}:`, e);
   }
 
-  // Fallback simulator — used only when Binance is unreachable
+  // 2. Fetch Yahoo Finance candles for Indian Equities (.NS) and Forex/Commodities
+  try {
+    const yahooData = await fetchYahooKlines(symbol, "1h", "1mo");
+    if (yahooData) {
+      const { opens, highs, lows, closes, volumes, currentPrice } = yahooData;
+      const len = closes.length;
+
+      const ema50 = calculateLatestEMA(closes, Math.min(50, len - 1));
+      const ema200 = calculateLatestEMA(closes, Math.min(200, len - 1));
+      const trendDir: "bullish" | "bearish" = ema50 >= ema200 ? "bullish" : "bearish";
+
+      const atr14 = calculateATR(highs, lows, closes, Math.min(14, len - 1));
+      const atrPct = (atr14 / currentPrice) * 100;
+
+      const adx = calculateADX(highs, lows, closes, Math.min(14, len - 1));
+      const adxTrending = adx >= 20;
+
+      const rsiVal = calculateLatestRSI(closes, Math.min(14, len - 1));
+      const rsi: "oversold" | "overbought" | "neutral" = rsiVal <= 30 ? "oversold" : rsiVal >= 70 ? "overbought" : "neutral";
+
+      const macdObj = calculateLatestMACD(closes);
+      const macd = macdObj.cross;
+      const macdHistogram = (macdObj as any).histogram ?? (macdObj.macd - macdObj.signal);
+
+      const stochRsi = calculateStochasticRSI(closes);
+      const obvTrend = calculateOBVTrend(closes, volumes);
+
+      const avgVolLen = Math.min(20, len - 1);
+      const avgVolume20 = volumes.slice(len - avgVolLen - 1, len - 1).reduce((a, b) => a + b, 0) / avgVolLen;
+      const volumeLevel: "high" | "normal" | "low" = 
+        volumes[len - 1] > avgVolume20 * 1.4 ? "high" :
+        volumes[len - 1] < avgVolume20 * 0.6 ? "low" : "normal";
+
+      const utbot = calculateUTBot(closes, highs, lows, atr14, 2.0);
+      const marketStructure = detectMarketStructure(highs, lows, closes);
+      const paResult = analyzePriceAction(opens, highs, lows, closes);
+
+      const isBuySignalReady = (
+        trendDir === "bullish" &&
+        adxTrending &&
+        (utbot === "buy" || stochRsi.signal === "oversold_cross" || rsi === "oversold" || paResult.bias === "BULLISH")
+      );
+
+      const price24hAgo = closes[Math.max(0, len - 25)] || closes[0];
+      const changePercent = ((currentPrice - price24hAgo) / price24hAgo) * 100;
+
+      const evaluation = evaluateTraderInsight(
+        symbol, currentPrice, trendDir, utbot, volumeLevel, rsi, macd, marketStructure
+      );
+
+      const db = readDB();
+      const scorePayload = {
+        symbol, price: currentPrice, utbot,
+        ema_crossover: trendDir, rsi, macd,
+        market_structure: marketStructure, volume: volumeLevel,
+        adx, adxTrending, stochRsiSignal: stochRsi.signal, obvTrend,
+        priceActionPattern: paResult.pattern, priceActionBias: paResult.bias
+      };
+      const scoredResult = processSignalPayload(scorePayload, db.config);
+
+      const result: RealIndicators = {
+        price: currentPrice, trendDir, utbot, volumeLevel,
+        marketStructure, rsi, rsiValue: rsiVal, macd, macdHistogram,
+        adx, adxTrending, stochRsiK: stochRsi.k, stochRsiD: stochRsi.d,
+        stochRsiSignal: stochRsi.signal, obvTrend, atrPct,
+        priceActionPattern: paResult.pattern, priceActionBias: paResult.bias, priceActionDesc: paResult.description,
+        isBuySignalReady, timestamp: now,
+        traderEvaluation: evaluation, changePercent,
+        score: scoredResult.score, scoreBreakdown: scoredResult.scoreBreakdown,
+        source: "Yahoo Finance (Live)", isStale: false
+      };
+
+      symbolIndicatorCache[symbol] = result;
+      return result;
+    }
+  } catch (e) {
+    console.error(`[Yahoo API] Unable to fetch klines for ${symbol}:`, e);
+  }
+
+  // Fallback simulator — used only when external market feeds are offline
   const fallbackPrice = symbol.includes("BTC") ? 97200 
                       : symbol.includes("ETH") ? 3350 
                       : symbol.includes("SOL") ? 198.50 
-                      : symbol.includes("BNB") ? 622.00
-                      : symbol.includes("XRP") ? 1.12 
-                      : symbol.includes("ADA") ? 0.85 
-                      : symbol.includes("DOGE") ? 0.36 
-                      : symbol.includes("LTC") ? 104.50 
-                      : symbol.includes("AVAX") ? 32.40 
-                      : symbol.includes("LINK") ? 17.80 
-                      : symbol.includes("DOT") ? 5.60 
-                      : symbol.includes("NEAR") ? 5.10 
-                      : 1.5;
+                      : symbol.includes("RELIANCE") ? 1275.0
+                      : symbol.includes("INFY") ? 1850.0
+                      : symbol.includes("TATA") ? 980.0
+                      : 100.0;
 
   const simulatedPrice = parseFloat((fallbackPrice + (Math.random() - 0.5) * (fallbackPrice * 0.02)).toFixed(fallbackPrice > 1000 ? 1 : fallbackPrice > 10 ? 3 : 5));
   const trendDir: "bullish" | "bearish" = Math.random() > 0.4 ? "bullish" : "bearish";
@@ -685,7 +820,7 @@ async function fetchRecentKlinesAndTrend(symbol: string): Promise<RealIndicators
   const rsiValue = rsi === "oversold" ? 25 + Math.random() * 5 : rsi === "overbought" ? 72 + Math.random() * 5 : 45 + Math.random() * 10;
   const macd: "bullish_cross" | "bearish_cross" | "neutral" = Math.random() > 0.8 ? (trendDir === "bullish" ? "bullish_cross" : "bearish_cross") : "neutral";
   const marketStructure: "BOS" | "CHOCH" | "" = Math.random() > 0.8 ? "BOS" : "";
-  const adx = 15 + Math.random() * 25; // 15-40 simulated
+  const adx = 15 + Math.random() * 25;
   const adxTrending = adx >= 20;
   const stochRsiK = Math.random() * 100;
   const stochRsiD = stochRsiK + (Math.random() - 0.5) * 10;
@@ -720,8 +855,6 @@ async function fetchRecentKlinesAndTrend(symbol: string): Promise<RealIndicators
   return fallbackResult;
 }
 
-
-
 interface TimeframeAnalysis {
   timeframe: string;
   trend: "bullish" | "bearish";
@@ -736,62 +869,93 @@ interface TimeframeAnalysis {
 const lastAlertTimes: Record<string, number> = {};
 let lastGlobalAlertTime = 0;
 
-// Fetch real Binance klines for a given interval and compute key swing indicators
+// Fetch real Binance or Yahoo klines for a given interval and compute key swing indicators
 async function fetchRealTimeframeData(symbol: string, interval: string, limit: number = 100): Promise<TimeframeAnalysis> {
   const cleanSymbol = symbol.replace(".P", "").toUpperCase();
   const searchSymbol = cleanSymbol === "XAUUSDT" ? "PAXGUSDT" : cleanSymbol;
-  const endpoints = [
-    `https://api.binance.com/api/v3/klines?symbol=${searchSymbol}&interval=${interval}&limit=${limit}`,
-    `https://api1.binance.com/api/v3/klines?symbol=${searchSymbol}&interval=${interval}&limit=${limit}`,
-    `https://api2.binance.com/api/v3/klines?symbol=${searchSymbol}&interval=${interval}&limit=${limit}`
-  ];
-  try {
-    let res: Response | null = null;
-    for (const url of endpoints) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
-        const attempt = await fetch(url, { signal: controller.signal });
-        clearTimeout(timeoutId);
-        if (attempt.ok) { res = attempt; break; }
-      } catch { /* try next */ }
-    }
-    if (res && res.ok) {
-      const data: any[][] = await res.json();
-      if (Array.isArray(data) && data.length >= 30) {
-        const closes = data.map(k => parseFloat(k[4]));
-        const highs  = data.map(k => parseFloat(k[2]));
-        const lows   = data.map(k => parseFloat(k[3]));
-        const volumes = data.map(k => parseFloat(k[5]));
-        const len = closes.length;
-
-        const ema50  = calculateLatestEMA(closes, Math.min(50, len));
-        const ema200 = calculateLatestEMA(closes, Math.min(200, len));
-        const trend: "bullish" | "bearish" = ema50 > ema200 ? "bullish" : "bearish";
-
-        const rsiVal = calculateLatestRSI(closes, 14);
-        const rsi: "oversold" | "neutral" | "overbought" = rsiVal <= 30 ? "oversold" : rsiVal >= 70 ? "overbought" : "neutral";
-
-        const macdObj = calculateLatestMACD(closes);
-        const macd = macdObj.cross;
-
-        const atr14 = calculateATR(highs, lows, closes, 14);
-        const utbot = calculateUTBot(closes, highs, lows, atr14, 2.0);
-
-        const avgVol = volumes.slice(0, len - 1).reduce((a, b) => a + b, 0) / (len - 1);
-        const volume: "high" | "normal" | "low" = volumes[len - 1] > avgVol * 1.5 ? "high" : volumes[len - 1] < avgVol * 0.5 ? "low" : "normal";
-
-        const rawStructure = detectMarketStructure(highs, lows, closes);
-        const structure: "BOS" | "CHOCH" | "none" = rawStructure || "none";
-
-        return { timeframe: interval.toUpperCase(), trend, utbot, structure, rsi, macd, volume };
+  
+  if (cleanSymbol.endsWith("USDT") || ["BTC","ETH","SOL","BNB","XRP","DOGE","ADA","AVAX","LINK","DOT","NEAR"].some(c => cleanSymbol.startsWith(c))) {
+    const endpoints = [
+      `https://api.binance.com/api/v3/klines?symbol=${searchSymbol}&interval=${interval}&limit=${limit}`,
+      `https://api1.binance.com/api/v3/klines?symbol=${searchSymbol}&interval=${interval}&limit=${limit}`,
+      `https://api2.binance.com/api/v3/klines?symbol=${searchSymbol}&interval=${interval}&limit=${limit}`
+    ];
+    try {
+      let res: Response | null = null;
+      for (const url of endpoints) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 8000);
+          const attempt = await fetch(url, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (attempt.ok) { res = attempt; break; }
+        } catch { /* try next */ }
       }
-    }
-  } catch (e) {
-    console.error(`[MTF] Failed to fetch ${interval} data for ${symbol}:`, e);
+      if (res && res.ok) {
+        const data: any[][] = await res.json();
+        if (Array.isArray(data) && data.length >= 20) {
+          const closes = data.map(k => parseFloat(k[4]));
+          const highs  = data.map(k => parseFloat(k[2]));
+          const lows   = data.map(k => parseFloat(k[3]));
+          const volumes = data.map(k => parseFloat(k[5]));
+          const len = closes.length;
+
+          const ema50  = calculateLatestEMA(closes, Math.min(50, len));
+          const ema200 = calculateLatestEMA(closes, Math.min(200, len));
+          const trend: "bullish" | "bearish" = ema50 >= ema200 ? "bullish" : "bearish";
+
+          const rsiVal = calculateLatestRSI(closes, 14);
+          const rsi: "oversold" | "neutral" | "overbought" = rsiVal <= 30 ? "oversold" : rsiVal >= 70 ? "overbought" : "neutral";
+
+          const macdObj = calculateLatestMACD(closes);
+          const macd = macdObj.cross;
+
+          const atr14 = calculateATR(highs, lows, closes, Math.min(14, len - 1));
+          const utbot = calculateUTBot(closes, highs, lows, atr14, 2.0);
+
+          const avgVol = volumes.slice(0, len - 1).reduce((a, b) => a + b, 0) / (len - 1);
+          const volume: "high" | "normal" | "low" = volumes[len - 1] > avgVol * 1.5 ? "high" : volumes[len - 1] < avgVol * 0.5 ? "low" : "normal";
+
+          const rawStructure = detectMarketStructure(highs, lows, closes);
+          const structure: "BOS" | "CHOCH" | "none" = rawStructure || "none";
+
+          return { timeframe: interval.toUpperCase(), trend, utbot, structure, rsi, macd, volume };
+        }
+      }
+    } catch (e) {}
   }
-  // Fallback with directional bias if fetch fails
-  return { timeframe: interval.toUpperCase(), trend: "bearish", utbot: "hold", structure: "none", rsi: "neutral", macd: "neutral", volume: "normal" };
+
+  // Yahoo Finance fallback for non-crypto or Binance failure
+  try {
+    const yfData = await fetchYahooKlines(symbol, interval);
+    if (yfData && yfData.closes.length >= 10) {
+      const { closes, highs, lows, volumes } = yfData;
+      const len = closes.length;
+
+      const ema50  = calculateLatestEMA(closes, Math.min(50, len));
+      const ema200 = calculateLatestEMA(closes, Math.min(200, len));
+      const trend: "bullish" | "bearish" = ema50 >= ema200 ? "bullish" : "bearish";
+
+      const rsiVal = calculateLatestRSI(closes, Math.min(14, len - 1));
+      const rsi: "oversold" | "neutral" | "overbought" = rsiVal <= 30 ? "oversold" : rsiVal >= 70 ? "overbought" : "neutral";
+
+      const macdObj = calculateLatestMACD(closes);
+      const macd = macdObj.cross;
+
+      const atr14 = calculateATR(highs, lows, closes, Math.min(14, len - 1));
+      const utbot = calculateUTBot(closes, highs, lows, atr14, 2.0);
+
+      const avgVol = volumes.slice(0, len - 1).reduce((a, b) => a + b, 0) / Math.max(1, len - 1);
+      const volume: "high" | "normal" | "low" = volumes[len - 1] > avgVol * 1.4 ? "high" : volumes[len - 1] < avgVol * 0.6 ? "low" : "normal";
+
+      const rawStructure = detectMarketStructure(highs, lows, closes);
+      const structure: "BOS" | "CHOCH" | "none" = rawStructure || "none";
+
+      return { timeframe: interval.toUpperCase(), trend, utbot, structure, rsi, macd, volume };
+    }
+  } catch (e) {}
+
+  return { timeframe: interval.toUpperCase(), trend: "bullish", utbot: "hold", structure: "none", rsi: "neutral", macd: "neutral", volume: "normal" };
 }
 
 // Build multi-timeframe analysis: 4H, 15M, and 5M use REAL Binance data; 1H is the main cached scan
@@ -1176,32 +1340,176 @@ app.get("/api/trades/pnl-account", (req, res) => {
   });
 });
 
-// ─── LIVE PRICE HELPER FOR SERVER DAEMON ─────────────────────────────────────
-async function getLivePriceForSymbol(symbol: string, market: string): Promise<number | null> {
-  try {
-    const rawSymb = (symbol || "").toUpperCase().trim();
-    if (market === "CRYPTO" || rawSymb.endsWith("USDT")) {
-      const sym = rawSymb.endsWith("USDT") ? rawSymb : rawSymb + "USDT";
-      const r = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${sym}`);
-      const d = await r.json();
-      return d.price ? parseFloat(d.price) : null;
-    } else {
-      let yahooSymbol = rawSymb;
-      if (market === "INDIAN_EQUITY" && !rawSymb.endsWith(".NS") && !rawSymb.startsWith("^")) {
-        yahooSymbol = `${rawSymb}.NS`;
-      } else if (market === "FOREX" && rawSymb.length === 6 && !rawSymb.endsWith("=X")) {
-        yahooSymbol = `${rawSymb}=X`;
-      }
-      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=1d&range=2d`;
-      const r = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
-      const d = await r.json();
-      const price = d?.chart?.result?.[0]?.meta?.regularMarketPrice;
-      return price ? parseFloat(price) : null;
-    }
-  } catch {
-    return null;
-  }
+// ─── BATCH LIVE PRICE FETCHING ENGINE ─────────────────────────────────────────
+const livePriceCache: Record<string, { price: number; change: number; changePct: number; timestamp: number }> = {};
+
+// Maps frontend symbol codes → Yahoo Finance tickers
+const YAHOO_SYMBOL_MAP: Record<string, string> = {
+  // Commodities
+  XAUUSD: "GC=F",
+  XAGUSD: "SI=F",
+  "CL=F":  "CL=F",
+  "BZ=F":  "BZ=F",
+  "NG=F":  "NG=F",
+  "HG=F":  "HG=F",
+  "PL=F":  "PL=F",
+  // Forex Majors
+  EURUSD: "EURUSD=X",
+  GBPUSD: "GBPUSD=X",
+  USDJPY: "USDJPY=X",
+  AUDUSD: "AUDUSD=X",
+  USDCAD: "USDCAD=X",
+  USDCHF: "USDCHF=X",
+  NZDUSD: "NZDUSD=X",
+  // Forex Crosses
+  EURGBP: "EURGBP=X",
+  EURJPY: "EURJPY=X",
+  GBPJPY: "GBPJPY=X",
+  AUDJPY: "AUDJPY=X",
+  EURAUD: "EURAUD=X",
+  GBPCAD: "GBPCAD=X",
+  AUDCAD: "AUDCAD=X",
+  CHFJPY: "CHFJPY=X",
+  // Indian Indices
+  "^NSEI": "^NSEI",
+  "^BSESN": "^BSESN"
+};
+
+function toYahooSymbol(sym: string): string {
+  if (YAHOO_SYMBOL_MAP[sym]) return YAHOO_SYMBOL_MAP[sym];
+  if (sym.endsWith(".NS") || sym.endsWith("=X") || sym.endsWith("=F") || sym.startsWith("^")) return sym;
+  // 6-char all-alpha → likely a Forex pair
+  if (/^[A-Z]{6}$/.test(sym)) return `${sym}=X`;
+  // Otherwise assume Indian stock
+  return `${sym}.NS`;
 }
+
+async function getLivePricesBatch(
+  symbols: string[]
+): Promise<Record<string, { price: number; change: number; changePct: number }>> {
+  const result: Record<string, { price: number; change: number; changePct: number }> = {};
+  const now = Date.now();
+  const missing: string[] = [];
+
+  for (const s of symbols) {
+    const raw = (s || "").toUpperCase().trim();
+    if (!raw) continue;
+    if (livePriceCache[raw] && (now - livePriceCache[raw].timestamp < 8000)) {
+      result[raw] = { price: livePriceCache[raw].price, change: livePriceCache[raw].change, changePct: livePriceCache[raw].changePct };
+    } else {
+      missing.push(raw);
+    }
+  }
+
+  if (missing.length === 0) return result;
+
+  // ── CRYPTO: Binance 24hr ticker (price + change) ───────────────────────────
+  const cryptoSyms = missing.filter(s =>
+    s.endsWith("USDT") ||
+    (!s.includes(".") && !s.includes("=") && !s.endsWith("=F") &&
+      ["BTC","ETH","SOL","BNB","XRP","DOGE","ADA","AVAX","LINK","DOT","NEAR","SHIB","PEPE","SUI","UNI","WLD","OP","ARB","MATIC","FTM","ALGO","ATOM","FIL","INJ","SEI","TIA","APT","SUI"].some(c => s.startsWith(c)))
+  );
+  const otherSyms = missing.filter(s => !cryptoSyms.includes(s));
+
+  if (cryptoSyms.length > 0) {
+    try {
+      const r = await fetch("https://api.binance.com/api/v3/ticker/24hr", { signal: AbortSignal.timeout(5000) });
+      if (r.ok) {
+        const data: { symbol: string; lastPrice: string; priceChange: string; priceChangePercent: string }[] = await r.json();
+        const map = new Map(data.map(d => [d.symbol, d]));
+        for (const sym of cryptoSyms) {
+          const search = sym.endsWith("USDT") ? sym : sym + "USDT";
+          const t = map.get(search);
+          if (t) {
+            const p = parseFloat(t.lastPrice);
+            const ch = parseFloat(t.priceChange);
+            const chPct = parseFloat(t.priceChangePercent);
+            if (p > 0) {
+              result[sym] = { price: p, change: ch, changePct: chPct };
+              livePriceCache[sym] = { price: p, change: ch, changePct: chPct, timestamp: now };
+            }
+          }
+        }
+      }
+    } catch {}
+  }
+
+  // ── NON-CRYPTO: Yahoo Finance batch quote ─────────────────────────────────
+  if (otherSyms.length > 0) {
+    // Map each frontend symbol → Yahoo Finance symbol
+    const yahooSymMap = new Map<string, string>(); // yahooSym → origSym
+    for (const sym of otherSyms) {
+      yahooSymMap.set(toYahooSymbol(sym), sym);
+    }
+    const yfList = Array.from(yahooSymMap.keys());
+
+    try {
+      const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(yfList.join(","))}`;
+      const r = await fetch(url, {
+        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" },
+        signal: AbortSignal.timeout(8000)
+      });
+      if (r.ok) {
+        const d = await r.json();
+        const quotes: any[] = d?.quoteResponse?.result || [];
+        for (const q of quotes) {
+          const orig = yahooSymMap.get(q.symbol);
+          if (orig && q.regularMarketPrice > 0) {
+            const p   = q.regularMarketPrice as number;
+            const ch  = (q.regularMarketChange as number) || 0;
+            const chP = (q.regularMarketChangePercent as number) || 0;
+            result[orig] = { price: p, change: ch, changePct: chP };
+            livePriceCache[orig] = { price: p, change: ch, changePct: chP, timestamp: now };
+          }
+        }
+      }
+    } catch {}
+
+    // Fallback: individually fetch any symbols still missing
+    await Promise.all(otherSyms.map(async sym => {
+      if (result[sym]) return;
+      try {
+        const yf = toYahooSymbol(sym);
+        const url = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yf)}?interval=1d&range=2d`;
+        const r = await fetch(url, {
+          headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" },
+          signal: AbortSignal.timeout(5000)
+        });
+        if (!r.ok) return;
+        const d = await r.json();
+        const meta = d?.chart?.result?.[0]?.meta;
+        const p = meta?.regularMarketPrice;
+        const prev = meta?.previousClose || meta?.chartPreviousClose;
+        if (p > 0) {
+          const ch  = prev ? p - prev : 0;
+          const chP = prev ? (ch / prev) * 100 : 0;
+          result[sym] = { price: p, change: ch, changePct: chP };
+          livePriceCache[sym] = { price: p, change: ch, changePct: chP, timestamp: now };
+        }
+      } catch {}
+    }));
+  }
+
+  return result;
+}
+
+async function getLivePriceForSymbol(symbol: string, market?: string): Promise<number | null> {
+  const batch = await getLivePricesBatch([symbol]);
+  return batch[symbol]?.price || null;
+}
+
+app.post("/api/market-prices/batch", async (req, res) => {
+  try {
+    const { symbols } = req.body;
+    if (!Array.isArray(symbols) || symbols.length === 0) {
+      return res.json({ prices: {} });
+    }
+    const prices = await getLivePricesBatch(symbols);
+    res.json({ prices, timestamp: Date.now() });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Failed to fetch batch prices", prices: {} });
+  }
+});
 
 // ─── AUTO-LOG TRADE FROM TELEGRAM SIGNAL ──────────────────────────────────────
 function autoLogTradeFromAlert(tradeData: {
@@ -1268,10 +1576,13 @@ function startTradeMonitorDaemon() {
       const openTrades = db.trades.filter(t => !t.isResolved);
       if (openTrades.length === 0) return;
 
+      const symbols = openTrades.map(t => t.symbol);
+      const priceMap = await getLivePricesBatch(symbols);
+
       let hasChanges = false;
 
       for (const trade of openTrades) {
-        const curPrice = await getLivePriceForSymbol(trade.symbol, trade.market);
+        const curPrice = priceMap[trade.symbol]?.price;
         if (!curPrice || curPrice <= 0) continue;
 
         const prevStatus = trade.status || "HOLDING";
@@ -1376,9 +1687,9 @@ ${verdict}
         writeDB(db);
       }
     } catch (e) {
-      console.error("Trade monitor daemon error:", e);
+      console.error("[Daemon] Error monitoring open trades:", e);
     }
-  }, 30000);
+  }, 15000);
 }
 
 
@@ -2273,6 +2584,119 @@ ${verdict}${notes ? `\n\n📝 <i>${notes}</i>` : ""}
 
 let telegramBotOffset = 0;
 
+async function parseAnyTelegramSignalText(text: string, token: string, chatId: string): Promise<boolean> {
+  try {
+    const cleanText = text.trim();
+    if (cleanText.length < 5) return false;
+
+    // Detect direction / side
+    let side: "LONG" | "SHORT" | null = null;
+    if (/\b(BUY|LONG)\b/i.test(cleanText)) side = "LONG";
+    else if (/\b(SELL|SHORT)\b/i.test(cleanText)) side = "SHORT";
+
+    if (!side) return false;
+
+    // Find symbol
+    const words = cleanText.split(/\s+/).map(w => w.replace(/[^A-Z0-9.\-=]/gi, "").toUpperCase()).filter(Boolean);
+    const ignoreKeywords = new Set([
+      "BUY", "LONG", "SELL", "SHORT", "ENTRY", "PRICE", "SL", "STOP", "STOPLOSS", "TP", "TP1", "TP2", "TARGET", "TARGET1", "TARGET2", "QTY", "QUANTITY", "SIGNAL", "NOW", "AT", "@", "ORDER", "LIMIT", "MARKET"
+    ]);
+
+    let symbol = "";
+    for (const word of words) {
+      if (!ignoreKeywords.has(word) && (word.length >= 2 && word.length <= 15) && !/^\d+$/.test(word)) {
+        symbol = word;
+        break;
+      }
+    }
+
+    if (!symbol) return false;
+
+    // Extract numbers
+    const findNum = (patterns: RegExp[]): number => {
+      for (const pat of patterns) {
+        const match = cleanText.match(pat);
+        if (match && match[1]) {
+          const val = parseFloat(match[1]);
+          if (!isNaN(val) && val > 0) return val;
+        }
+      }
+      return 0;
+    };
+
+    const entry = findNum([
+      /(?:ENTRY|PRICE|AT|@)\s*:?\s*(\d+(?:\.\d+)?)/i,
+      /(?:BUY|LONG|SELL|SHORT)\s+[\w.-]+\s+(?:AT|@)?\s*(\d+(?:\.\d+)?)/i,
+      /^\/trade\s+[\w.-]+\s+(?:LONG|SHORT)\s+(\d+(?:\.\d+)?)/i
+    ]);
+
+    const sl = findNum([
+      /(?:SL|STOP|STOPLOSS|STOP\s*LOSS)\s*:?\s*(\d+(?:\.\d+)?)/i
+    ]);
+
+    const tp1 = findNum([
+      /(?:TP1|TP\s*1|TARGET1|TARGET\s*1|TP|TARGET|TAKE\s*PROFIT)\s*:?\s*(\d+(?:\.\d+)?)/i
+    ]);
+
+    const tp2 = findNum([
+      /(?:TP2|TP\s*2|TARGET2|TARGET\s*2)\s*:?\s*(\d+(?:\.\d+)?)/i
+    ]);
+
+    const qty = findNum([
+      /(?:QTY|QUANTITY|LOTS|SIZE)\s*:?\s*(\d+(?:\.\d+)?)/i
+    ]);
+
+    if (!entry || !sl || (!tp1 && !tp2)) return false;
+
+    let market = "";
+    if (symbol.endsWith(".NS") || (!symbol.endsWith("USDT") && symbol.length <= 12 && !["EURUSD","GBPUSD","USDJPY","AUDUSD","USDCAD","USDCHF","NZDUSD","EURGBP","EURJPY","GBPJPY","XAUUSD","XAGUSD"].includes(symbol))) {
+      market = "INDIAN_EQUITY";
+    } else if (symbol.endsWith("USDT") || ["BTC","ETH","SOL","BNB","XRP","DOGE","ADA","AVAX","LINK","DOT","NEAR","SHIB","PEPE","SUI","UNI"].some(c => symbol.startsWith(c))) {
+      market = "CRYPTO";
+    } else {
+      market = "FOREX";
+    }
+
+    const defaultQty = market === "INDIAN_EQUITY" ? 10 : 1;
+    const finalQty = qty > 0 ? qty : defaultQty;
+
+    const trade = autoLogTradeFromAlert({
+      symbol,
+      side,
+      market,
+      entryPrice: entry,
+      sl,
+      tp1: tp1 || tp2,
+      tp2: tp2 || 0,
+      quantity: finalQty,
+      notes: `Auto-logged from Telegram Signal text`
+    });
+
+    if (trade) {
+      const cur = market === "INDIAN_EQUITY" ? "₹" : "$";
+      const fmt = (n: number) => `${cur}${n.toLocaleString("en-IN", { minimumFractionDigits: n < 10 ? 4 : 2, maximumFractionDigits: n < 10 ? 5 : 2 })}`;
+      const rr  = tp1 && sl && entry ? (Math.abs(tp1 - entry) / Math.abs(entry - sl)).toFixed(2) : "—";
+
+      await sendTelegramNotification(token, chatId,
+        `✅ <b>TELEGRAM SIGNAL RECORDED IN JOURNAL</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `📌 <b>Symbol:</b>   <code>${symbol}</code> (${market.replace("_"," ")})\n` +
+        `${side === "LONG" ? "📈" : "📉"} <b>Direction:</b> <b>${side}</b>\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━\n💰 <b>LEVELS</b>\n━━━━━━━━━━━━━━━━━━━━━\n` +
+        `🟢 <b>Entry:</b>     <code>${fmt(entry)}</code>\n` +
+        `🔴 <b>Stop Loss:</b> <code>${fmt(sl)}</code>\n` +
+        `🎯 <b>Target 1:</b>  <code>${fmt(tp1 || tp2)}</code>\n` +
+        (tp2 && tp1 !== tp2 ? `🎯 <b>Target 2:</b>  <code>${fmt(tp2)}</code>\n` : ``) +
+        `📦 <b>Quantity:</b>  <code>${finalQty}</code>\n` +
+        `⚖️ <b>R:R Ratio:</b> <code>1 : ${rr}</code>\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━\n` +
+        `🤖 <i>Signal automatically logged in Trade Journal & 24/7 server monitoring started!</i>`
+      );
+      return true;
+    }
+  } catch (e) {}
+  return false;
+}
+
 async function parseTelegramBotUpdates() {
   const db = readDB();
   const token = db.config.telegramToken;
@@ -2291,9 +2715,12 @@ async function parseTelegramBotUpdates() {
       const msg = update.message || update.channel_post;
       if (!msg || !msg.text) continue;
 
-      // Only process messages from the configured chat
-      const fromChatId = String(msg.chat?.id || "");
-      if (fromChatId !== String(chatId).replace("@","")) continue;
+      const configuredChatId = String(chatId).trim().replace("@", "").toLowerCase();
+      const msgChatId = String(msg.chat?.id || "").trim().replace("@", "").toLowerCase();
+      const msgChatUsername = String(msg.chat?.username || "").trim().replace("@", "").toLowerCase();
+
+      const isChatMatch = !configuredChatId || msgChatId === configuredChatId || msgChatUsername === configuredChatId;
+      if (!isChatMatch) continue;
 
       const text = (msg.text || "").trim();
 
@@ -2360,6 +2787,10 @@ async function parseTelegramBotUpdates() {
           `<code>/trade EURUSD LONG 1.0850 SL:1.0790 TP1:1.0930</code>\n\n` +
           `The bot will monitor your trade 24/7 and alert you when SL or TP is hit! 🎯`
         );
+
+      } else {
+        // Parse natural signal text (e.g. BUY BTCUSDT Entry: 67000 SL: 65000 TP: 70000)
+        await parseAnyTelegramSignalText(text, token, chatId);
       }
     }
   } catch (e) {

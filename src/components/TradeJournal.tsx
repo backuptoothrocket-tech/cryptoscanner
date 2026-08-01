@@ -444,42 +444,40 @@ export default function TradeJournal({ onNavigateToSMC }: Props) {
     fetchPnlAccount();
   }, [fetchPnlAccount]);
 
-  // ── Fetch live price ──────────────────────────────────────────────────────
-  const fetchPrice = async (symbol: string, market: Market): Promise<number | null> => {
-    try {
-      if (market === "CRYPTO") {
-        const sym = symbol.endsWith("USDT") ? symbol : symbol + "USDT";
-        const r = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${sym}`);
-        const d = await r.json();
-        return d.price ? parseFloat(d.price) : null;
-      } else {
-        const yfSym = market === "INDIAN_EQUITY" ? (symbol.endsWith(".NS") ? symbol : symbol + ".NS") : symbol.length === 6 ? symbol + "=X" : symbol;
-        const r = await fetch(`/api/smc-report/${encodeURIComponent(yfSym)}`);
-        const d = await r.json();
-        return d.livePrice ?? null;
-      }
-    } catch { return null; }
-  };
-
   // ── Refresh all open trades, update backend with status + auto-send Telegram ─
   const refreshAll = useCallback(async (current: Trade[]) => {
     const open = current.filter(t => !t.isResolved);
     if (!open.length) return;
     setRefreshing(true);
-    const updatedAll = await Promise.all(current.map(async t => {
-      if (t.isResolved) return t; // skip closed trades
-      const cur = await fetchPrice(t.symbol, t.market);
-      if (cur === null) return t;
-      const status = computeStatus(t, cur);
-      const pnl    = t.side === "LONG" ? (cur - t.entryPrice) * t.quantity : (t.entryPrice - cur) * t.quantity;
-      const pnlPct = (pnl / (t.entryPrice * t.quantity)) * 100;
-      // Push update to backend (which handles auto-Telegram + history logging)
-      const res = await apiUpdateTrade(t.id, { currentPrice: cur, status, pnl, pnlPct });
-      return res?.trade ?? { ...t, currentPrice: cur, status, pnl, pnlPct, lastUpdated: new Date().toISOString() };
-    }));
-    setTrades(updatedAll as Trade[]);
-    setRefreshing(false);
-    setCountdown(30);
+    try {
+      const symbols = open.map(t => t.symbol);
+      const r = await fetch("/api/market-prices/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ symbols })
+      });
+      const data = await r.json();
+      // API returns { prices: { SYM: { price, change, changePct } } }
+      const priceMap: Record<string, { price: number; change: number; changePct: number }> = data.prices || {};
+
+      const updatedAll = await Promise.all(current.map(async t => {
+        if (t.isResolved) return t;
+        const info = priceMap[t.symbol];
+        const cur = info?.price ?? null;
+        if (cur === null) return t;
+        const status = computeStatus(t, cur);
+        const pnl    = t.side === "LONG" ? (cur - t.entryPrice) * t.quantity : (t.entryPrice - cur) * t.quantity;
+        const pnlPct = (pnl / (t.entryPrice * t.quantity)) * 100;
+        const res = await apiUpdateTrade(t.id, { currentPrice: cur, status, pnl, pnlPct });
+        return res?.trade ?? { ...t, currentPrice: cur, status, pnl, pnlPct, lastUpdated: new Date().toISOString() };
+      }));
+      setTrades(updatedAll as Trade[]);
+    } catch (e) {
+      console.error("Failed to refresh trade prices", e);
+    } finally {
+      setRefreshing(false);
+      setCountdown(30);
+    }
   }, []);
 
   // ── Periodic refresh every 30s ────────────────────────────────────────────

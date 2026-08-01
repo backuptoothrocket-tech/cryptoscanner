@@ -85,43 +85,38 @@ export default function ForexMarket({ onNavigateToSMC }: Props) {
 
   const fetchForexData = useCallback(async () => {
     try {
-      // Fetch live prices for Forex & Commodities via backend SMC endpoint
-      const list = await Promise.all(FOREX_CATALOG.map(async item => {
-        let sym = item.symbol;
-        if (sym === "XAUUSD") sym = "XAUUSD";
-        else if (sym === "EURUSD" || sym === "GBPUSD" || sym === "USDJPY" || sym === "AUDUSD" || sym === "USDCAD" || sym === "USDCHF" || sym === "NZDUSD" || sym === "EURGBP" || sym === "EURJPY" || sym === "GBPJPY" || sym === "AUDJPY" || sym === "EURAUD" || sym === "GBPCAD" || sym === "AUDCAD" || sym === "CHFJPY") {
-          sym = `${item.symbol}=X`;
-        }
+      const symList = FOREX_CATALOG.map(item => item.symbol);
+      const r = await fetch("/api/market-prices/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ symbols: symList })
+      });
+      const data = await r.json();
+      // API now returns { prices: { SYM: { price, change, changePct } } }
+      const priceMap: Record<string, { price: number; change: number; changePct: number }> = data.prices || {};
 
-        try {
-          const r = await fetch(`/api/smc-report/${encodeURIComponent(sym)}`);
-          const d = await r.json();
-          const price = d.livePrice || 0;
-          const high = d.dailyHigh || price * 1.008;
-          const low = d.dailyLow || price * 0.992;
-          const prevClose = d.prevClose || price;
-          const change = price - prevClose;
-          const changePct = prevClose > 0 ? (change / prevClose) * 100 : 0;
+      const list: ForexTicker[] = FOREX_CATALOG.map(item => {
+        const info = priceMap[item.symbol];
+        const p        = info?.price    || 0;
+        const change   = info?.change   || 0;
+        const changePct = info?.changePct || 0;
+        const prevClose = p > 0 && change !== 0 ? p - change : p;
 
-          return {
-            symbol: item.symbol,
-            name: item.name,
-            category: item.category,
-            price,
-            change,
-            changePct,
-            high,
-            low,
-            open: prevClose,
-            prevClose
-          } as ForexTicker;
-        } catch {
-          return null;
-        }
-      }));
+        return {
+          symbol: item.symbol,
+          name: item.name,
+          category: item.category,
+          price: p,
+          change,
+          changePct,
+          high: p > 0 ? p * 1.008 : 0,
+          low:  p > 0 ? p * 0.992 : 0,
+          open: prevClose,
+          prevClose
+        };
+      }).filter(t => t.price > 0);
 
-      const valid = list.filter((t): t is ForexTicker => t !== null && t.price > 0);
-      setTickers(valid);
+      setTickers(list);
     } catch (e) {
       console.error("Failed to fetch Forex data", e);
     } finally {

@@ -33,7 +33,7 @@ if (!process.env.NODE_ENV) {
   process.env.NODE_ENV = isCjsBundle || hasNoSourceFile ? "production" : "development";
 }
 var app = (0, import_express.default)();
-var PORT = parseInt(process.env.PORT || "3000", 10);
+var PORT = parseInt(process.env.PORT || "5000", 10);
 var DB_FILE = import_path.default.join(process.cwd(), "db.json");
 var symbolIndicatorCache = {};
 var pairScanHistory = {};
@@ -410,6 +410,74 @@ function analyzePriceAction(opens, highs, lows, closes) {
   }
   return { pattern: "NONE", bias: "NEUTRAL", description: "No clear price action patterns detected." };
 }
+async function fetchYahooKlines(symbol, interval = "1h", range = "5d") {
+  let yahooSymbol = (symbol || "").toUpperCase().trim();
+  if (yahooSymbol.endsWith(".NS") || yahooSymbol.startsWith("^")) {
+  } else if (yahooSymbol.length === 6 && !yahooSymbol.endsWith("=X") && !yahooSymbol.endsWith("USDT")) {
+    yahooSymbol = `${yahooSymbol}=X`;
+  } else if (yahooSymbol === "XAUUSD" || yahooSymbol === "XAUUSDT") {
+    yahooSymbol = "GC=F";
+  } else if (yahooSymbol === "XAGUSD" || yahooSymbol === "XAGUSDT") {
+    yahooSymbol = "SI=F";
+  } else if (!yahooSymbol.endsWith("USDT") && !yahooSymbol.includes(".")) {
+    yahooSymbol = `${yahooSymbol}.NS`;
+  }
+  const yfInterval = interval === "15m" ? "15m" : interval === "5m" ? "5m" : interval === "4h" ? "60m" : "1h";
+  const yfRange = range || (interval === "5m" ? "1d" : interval === "15m" ? "5d" : "1mo");
+  const urls = [
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=${yfInterval}&range=${yfRange}`,
+    `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=${yfInterval}&range=${yfRange}`
+  ];
+  for (const url of urls) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6e3);
+      const res = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Accept": "application/json",
+          "Referer": "https://finance.yahoo.com"
+        }
+      });
+      clearTimeout(timeoutId);
+      if (!res.ok) continue;
+      const json = await res.json();
+      const result = json?.chart?.result?.[0];
+      if (!result) continue;
+      const timestamps = result.timestamp || [];
+      const quote = result.indicators?.quote?.[0];
+      if (!quote || !quote.close || quote.close.length === 0) continue;
+      const opens = [];
+      const highs = [];
+      const lows = [];
+      const closes = [];
+      const volumes = [];
+      for (let i = 0; i < quote.close.length; i++) {
+        if (quote.close[i] != null && quote.open[i] != null && quote.high[i] != null && quote.low[i] != null) {
+          opens.push(parseFloat(quote.open[i].toFixed(4)));
+          highs.push(parseFloat(quote.high[i].toFixed(4)));
+          lows.push(parseFloat(quote.low[i].toFixed(4)));
+          closes.push(parseFloat(quote.close[i].toFixed(4)));
+          volumes.push(parseFloat((quote.volume?.[i] || 1e3).toFixed(0)));
+        }
+      }
+      if (closes.length >= 10) {
+        return {
+          opens,
+          highs,
+          lows,
+          closes,
+          volumes,
+          timestamps,
+          currentPrice: closes[closes.length - 1]
+        };
+      }
+    } catch {
+    }
+  }
+  return null;
+}
 async function fetchRecentKlinesAndTrend(symbol) {
   const cleanSymbol = symbol.replace(".P", "").toUpperCase();
   const searchSymbol = cleanSymbol === "XAUUSDT" ? "PAXGUSDT" : cleanSymbol;
@@ -417,125 +485,218 @@ async function fetchRecentKlinesAndTrend(symbol) {
   if (symbolIndicatorCache[symbol] && now - symbolIndicatorCache[symbol].timestamp < 12e3) {
     return symbolIndicatorCache[symbol];
   }
-  try {
-    const endpoints = [
-      `https://api.binance.com/api/v3/klines?symbol=${searchSymbol}&interval=1h&limit=200`,
-      `https://api1.binance.com/api/v3/klines?symbol=${searchSymbol}&interval=1h&limit=200`,
-      `https://api2.binance.com/api/v3/klines?symbol=${searchSymbol}&interval=1h&limit=200`
-    ];
-    let res = null;
-    for (const url of endpoints) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8e3);
-        const attempt = await fetch(url, { signal: controller.signal });
-        clearTimeout(timeoutId);
-        if (attempt.ok) {
-          res = attempt;
-          break;
+  if (cleanSymbol.endsWith("USDT") || ["BTC", "ETH", "SOL", "BNB", "XRP", "DOGE", "ADA", "AVAX", "LINK", "DOT", "NEAR"].some((c) => cleanSymbol.startsWith(c))) {
+    try {
+      const endpoints = [
+        `https://api.binance.com/api/v3/klines?symbol=${searchSymbol}&interval=1h&limit=200`,
+        `https://api1.binance.com/api/v3/klines?symbol=${searchSymbol}&interval=1h&limit=200`,
+        `https://api2.binance.com/api/v3/klines?symbol=${searchSymbol}&interval=1h&limit=200`
+      ];
+      let res = null;
+      for (const url of endpoints) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 8e3);
+          const attempt = await fetch(url, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (attempt.ok) {
+            res = attempt;
+            break;
+          }
+        } catch {
         }
-      } catch {
       }
+      if (res && res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length >= 100) {
+          const opens = data.map((k) => parseFloat(k[1]));
+          const closes = data.map((k) => parseFloat(k[4]));
+          const highs = data.map((k) => parseFloat(k[2]));
+          const lows = data.map((k) => parseFloat(k[3]));
+          const volumes = data.map((k) => parseFloat(k[5]));
+          const len = closes.length;
+          const currentPrice = closes[len - 1];
+          const lastKlineOpenTime = data[len - 1][0];
+          const isStale = now - lastKlineOpenTime > 2 * 60 * 60 * 1e3;
+          const ema50 = calculateLatestEMA(closes, 50);
+          const ema200 = calculateLatestEMA(closes, 200);
+          const trendDir2 = ema50 > ema200 ? "bullish" : "bearish";
+          const atr14 = calculateATR(highs, lows, closes, 14);
+          const atrPct2 = atr14 / currentPrice * 100;
+          const adx2 = calculateADX(highs, lows, closes, 14);
+          const adxTrending2 = adx2 >= 20;
+          const rsiVal = calculateLatestRSI(closes, 14);
+          const rsi2 = rsiVal <= 30 ? "oversold" : rsiVal >= 70 ? "overbought" : "neutral";
+          const macdObj = calculateLatestMACD(closes);
+          const macd2 = macdObj.cross;
+          const macdHistogram = macdObj.histogram ?? macdObj.macd - macdObj.signal;
+          const stochRsi = calculateStochasticRSI(closes);
+          const obvTrend2 = calculateOBVTrend(closes, volumes);
+          const avgVolume20 = volumes.slice(len - 21, len - 1).reduce((a, b) => a + b, 0) / 20;
+          const volumeLevel2 = volumes[len - 1] > avgVolume20 * 1.5 ? "high" : volumes[len - 1] < avgVolume20 * 0.5 ? "low" : "normal";
+          const utbot2 = calculateUTBot(closes, highs, lows, atr14, 2);
+          const marketStructure2 = detectMarketStructure(highs, lows, closes);
+          const paResult = analyzePriceAction(opens, highs, lows, closes);
+          const isBuySignalReady = trendDir2 === "bullish" && adxTrending2 && (utbot2 === "buy" || stochRsi.signal === "oversold_cross" || rsi2 === "oversold" || paResult.bias === "BULLISH");
+          const price24hAgo = closes[len - 25] || closes[0];
+          const changePercent = (currentPrice - price24hAgo) / price24hAgo * 100;
+          const evaluation2 = evaluateTraderInsight(
+            symbol,
+            currentPrice,
+            trendDir2,
+            utbot2,
+            volumeLevel2,
+            rsi2,
+            macd2,
+            marketStructure2
+          );
+          const db2 = readDB();
+          const scorePayload = {
+            symbol,
+            price: currentPrice,
+            utbot: utbot2,
+            ema_crossover: trendDir2,
+            rsi: rsi2,
+            macd: macd2,
+            market_structure: marketStructure2,
+            volume: volumeLevel2,
+            adx: adx2,
+            adxTrending: adxTrending2,
+            stochRsiSignal: stochRsi.signal,
+            obvTrend: obvTrend2,
+            priceActionPattern: paResult.pattern,
+            priceActionBias: paResult.bias
+          };
+          const scoredResult2 = processSignalPayload(scorePayload, db2.config);
+          const result = {
+            price: currentPrice,
+            trendDir: trendDir2,
+            utbot: utbot2,
+            volumeLevel: volumeLevel2,
+            marketStructure: marketStructure2,
+            rsi: rsi2,
+            rsiValue: rsiVal,
+            macd: macd2,
+            macdHistogram,
+            adx: adx2,
+            adxTrending: adxTrending2,
+            stochRsiK: stochRsi.k,
+            stochRsiD: stochRsi.d,
+            stochRsiSignal: stochRsi.signal,
+            obvTrend: obvTrend2,
+            atrPct: atrPct2,
+            priceActionPattern: paResult.pattern,
+            priceActionBias: paResult.bias,
+            priceActionDesc: paResult.description,
+            isBuySignalReady,
+            timestamp: now,
+            traderEvaluation: evaluation2,
+            changePercent,
+            score: scoredResult2.score,
+            scoreBreakdown: scoredResult2.scoreBreakdown,
+            source: "Binance 1H",
+            isStale
+          };
+          symbolIndicatorCache[symbol] = result;
+          return result;
+        }
+      }
+    } catch (e) {
+      console.error(`[Binance API] Unable to get swing indicators for ${symbol}:`, e);
     }
-    if (res && res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length >= 100) {
-        const opens = data.map((k) => parseFloat(k[1]));
-        const closes = data.map((k) => parseFloat(k[4]));
-        const highs = data.map((k) => parseFloat(k[2]));
-        const lows = data.map((k) => parseFloat(k[3]));
-        const volumes = data.map((k) => parseFloat(k[5]));
-        const len = closes.length;
-        const currentPrice = closes[len - 1];
-        const lastKlineOpenTime = data[len - 1][0];
-        const isStale = now - lastKlineOpenTime > 2 * 60 * 60 * 1e3;
-        const ema50 = calculateLatestEMA(closes, 50);
-        const ema200 = calculateLatestEMA(closes, 200);
-        const trendDir2 = ema50 > ema200 ? "bullish" : "bearish";
-        const atr14 = calculateATR(highs, lows, closes, 14);
-        const atrPct2 = atr14 / currentPrice * 100;
-        const adx2 = calculateADX(highs, lows, closes, 14);
-        const adxTrending2 = adx2 >= 20;
-        const rsiVal = calculateLatestRSI(closes, 14);
-        const rsi2 = rsiVal <= 30 ? "oversold" : rsiVal >= 70 ? "overbought" : "neutral";
-        const macdObj = calculateLatestMACD(closes);
-        const macd2 = macdObj.cross;
-        const macdHistogram = macdObj.histogram ?? macdObj.macd - macdObj.signal;
-        const stochRsi = calculateStochasticRSI(closes);
-        const obvTrend2 = calculateOBVTrend(closes, volumes);
-        const avgVolume20 = volumes.slice(len - 21, len - 1).reduce((a, b) => a + b, 0) / 20;
-        const volumeLevel2 = volumes[len - 1] > avgVolume20 * 1.5 ? "high" : volumes[len - 1] < avgVolume20 * 0.5 ? "low" : "normal";
-        const utbot2 = calculateUTBot(closes, highs, lows, atr14, 2);
-        const marketStructure2 = detectMarketStructure(highs, lows, closes);
-        const paResult = analyzePriceAction(opens, highs, lows, closes);
-        const isBuySignalReady = trendDir2 === "bullish" && adxTrending2 && (utbot2 === "buy" || stochRsi.signal === "oversold_cross" || rsi2 === "oversold" || paResult.bias === "BULLISH");
-        const price24hAgo = closes[len - 25] || closes[0];
-        const changePercent = (currentPrice - price24hAgo) / price24hAgo * 100;
-        const evaluation2 = evaluateTraderInsight(
-          symbol,
-          currentPrice,
-          trendDir2,
-          utbot2,
-          volumeLevel2,
-          rsi2,
-          macd2,
-          marketStructure2
-        );
-        const db2 = readDB();
-        const scorePayload = {
-          symbol,
-          price: currentPrice,
-          utbot: utbot2,
-          ema_crossover: trendDir2,
-          rsi: rsi2,
-          macd: macd2,
-          market_structure: marketStructure2,
-          volume: volumeLevel2,
-          adx: adx2,
-          adxTrending: adxTrending2,
-          stochRsiSignal: stochRsi.signal,
-          obvTrend: obvTrend2,
-          priceActionPattern: paResult.pattern,
-          priceActionBias: paResult.bias
-        };
-        const scoredResult2 = processSignalPayload(scorePayload, db2.config);
-        const result = {
-          price: currentPrice,
-          trendDir: trendDir2,
-          utbot: utbot2,
-          volumeLevel: volumeLevel2,
-          marketStructure: marketStructure2,
-          rsi: rsi2,
-          rsiValue: rsiVal,
-          macd: macd2,
-          macdHistogram,
-          adx: adx2,
-          adxTrending: adxTrending2,
-          stochRsiK: stochRsi.k,
-          stochRsiD: stochRsi.d,
-          stochRsiSignal: stochRsi.signal,
-          obvTrend: obvTrend2,
-          atrPct: atrPct2,
-          priceActionPattern: paResult.pattern,
-          priceActionBias: paResult.bias,
-          priceActionDesc: paResult.description,
-          isBuySignalReady,
-          timestamp: now,
-          traderEvaluation: evaluation2,
-          changePercent,
-          score: scoredResult2.score,
-          scoreBreakdown: scoredResult2.scoreBreakdown,
-          source: "Binance 1H",
-          isStale
-        };
-        symbolIndicatorCache[symbol] = result;
-        return result;
-      }
+  }
+  try {
+    const yahooData = await fetchYahooKlines(symbol, "1h", "1mo");
+    if (yahooData) {
+      const { opens, highs, lows, closes, volumes, currentPrice } = yahooData;
+      const len = closes.length;
+      const ema50 = calculateLatestEMA(closes, Math.min(50, len - 1));
+      const ema200 = calculateLatestEMA(closes, Math.min(200, len - 1));
+      const trendDir2 = ema50 >= ema200 ? "bullish" : "bearish";
+      const atr14 = calculateATR(highs, lows, closes, Math.min(14, len - 1));
+      const atrPct2 = atr14 / currentPrice * 100;
+      const adx2 = calculateADX(highs, lows, closes, Math.min(14, len - 1));
+      const adxTrending2 = adx2 >= 20;
+      const rsiVal = calculateLatestRSI(closes, Math.min(14, len - 1));
+      const rsi2 = rsiVal <= 30 ? "oversold" : rsiVal >= 70 ? "overbought" : "neutral";
+      const macdObj = calculateLatestMACD(closes);
+      const macd2 = macdObj.cross;
+      const macdHistogram = macdObj.histogram ?? macdObj.macd - macdObj.signal;
+      const stochRsi = calculateStochasticRSI(closes);
+      const obvTrend2 = calculateOBVTrend(closes, volumes);
+      const avgVolLen = Math.min(20, len - 1);
+      const avgVolume20 = volumes.slice(len - avgVolLen - 1, len - 1).reduce((a, b) => a + b, 0) / avgVolLen;
+      const volumeLevel2 = volumes[len - 1] > avgVolume20 * 1.4 ? "high" : volumes[len - 1] < avgVolume20 * 0.6 ? "low" : "normal";
+      const utbot2 = calculateUTBot(closes, highs, lows, atr14, 2);
+      const marketStructure2 = detectMarketStructure(highs, lows, closes);
+      const paResult = analyzePriceAction(opens, highs, lows, closes);
+      const isBuySignalReady = trendDir2 === "bullish" && adxTrending2 && (utbot2 === "buy" || stochRsi.signal === "oversold_cross" || rsi2 === "oversold" || paResult.bias === "BULLISH");
+      const price24hAgo = closes[Math.max(0, len - 25)] || closes[0];
+      const changePercent = (currentPrice - price24hAgo) / price24hAgo * 100;
+      const evaluation2 = evaluateTraderInsight(
+        symbol,
+        currentPrice,
+        trendDir2,
+        utbot2,
+        volumeLevel2,
+        rsi2,
+        macd2,
+        marketStructure2
+      );
+      const db2 = readDB();
+      const scorePayload = {
+        symbol,
+        price: currentPrice,
+        utbot: utbot2,
+        ema_crossover: trendDir2,
+        rsi: rsi2,
+        macd: macd2,
+        market_structure: marketStructure2,
+        volume: volumeLevel2,
+        adx: adx2,
+        adxTrending: adxTrending2,
+        stochRsiSignal: stochRsi.signal,
+        obvTrend: obvTrend2,
+        priceActionPattern: paResult.pattern,
+        priceActionBias: paResult.bias
+      };
+      const scoredResult2 = processSignalPayload(scorePayload, db2.config);
+      const result = {
+        price: currentPrice,
+        trendDir: trendDir2,
+        utbot: utbot2,
+        volumeLevel: volumeLevel2,
+        marketStructure: marketStructure2,
+        rsi: rsi2,
+        rsiValue: rsiVal,
+        macd: macd2,
+        macdHistogram,
+        adx: adx2,
+        adxTrending: adxTrending2,
+        stochRsiK: stochRsi.k,
+        stochRsiD: stochRsi.d,
+        stochRsiSignal: stochRsi.signal,
+        obvTrend: obvTrend2,
+        atrPct: atrPct2,
+        priceActionPattern: paResult.pattern,
+        priceActionBias: paResult.bias,
+        priceActionDesc: paResult.description,
+        isBuySignalReady,
+        timestamp: now,
+        traderEvaluation: evaluation2,
+        changePercent,
+        score: scoredResult2.score,
+        scoreBreakdown: scoredResult2.scoreBreakdown,
+        source: "Yahoo Finance (Live)",
+        isStale: false
+      };
+      symbolIndicatorCache[symbol] = result;
+      return result;
     }
   } catch (e) {
-    console.error(`[Binance API] Unable to get swing indicators for ${symbol}:`, e);
+    console.error(`[Yahoo API] Unable to fetch klines for ${symbol}:`, e);
   }
-  const fallbackPrice = symbol.includes("BTC") ? 97200 : symbol.includes("ETH") ? 3350 : symbol.includes("SOL") ? 198.5 : symbol.includes("BNB") ? 622 : symbol.includes("XRP") ? 1.12 : symbol.includes("ADA") ? 0.85 : symbol.includes("DOGE") ? 0.36 : symbol.includes("LTC") ? 104.5 : symbol.includes("AVAX") ? 32.4 : symbol.includes("LINK") ? 17.8 : symbol.includes("DOT") ? 5.6 : symbol.includes("NEAR") ? 5.1 : 1.5;
+  const fallbackPrice = symbol.includes("BTC") ? 97200 : symbol.includes("ETH") ? 3350 : symbol.includes("SOL") ? 198.5 : symbol.includes("RELIANCE") ? 1275 : symbol.includes("INFY") ? 1850 : symbol.includes("TATA") ? 980 : 100;
   const simulatedPrice = parseFloat((fallbackPrice + (Math.random() - 0.5) * (fallbackPrice * 0.02)).toFixed(fallbackPrice > 1e3 ? 1 : fallbackPrice > 10 ? 3 : 5));
   const trendDir = Math.random() > 0.4 ? "bullish" : "bearish";
   const utbot = Math.random() > 0.88 ? trendDir === "bullish" ? "buy" : "sell" : "hold";
@@ -607,54 +768,77 @@ var lastGlobalAlertTime = 0;
 async function fetchRealTimeframeData(symbol, interval, limit = 100) {
   const cleanSymbol = symbol.replace(".P", "").toUpperCase();
   const searchSymbol = cleanSymbol === "XAUUSDT" ? "PAXGUSDT" : cleanSymbol;
-  const endpoints = [
-    `https://api.binance.com/api/v3/klines?symbol=${searchSymbol}&interval=${interval}&limit=${limit}`,
-    `https://api1.binance.com/api/v3/klines?symbol=${searchSymbol}&interval=${interval}&limit=${limit}`,
-    `https://api2.binance.com/api/v3/klines?symbol=${searchSymbol}&interval=${interval}&limit=${limit}`
-  ];
-  try {
-    let res = null;
-    for (const url of endpoints) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8e3);
-        const attempt = await fetch(url, { signal: controller.signal });
-        clearTimeout(timeoutId);
-        if (attempt.ok) {
-          res = attempt;
-          break;
+  if (cleanSymbol.endsWith("USDT") || ["BTC", "ETH", "SOL", "BNB", "XRP", "DOGE", "ADA", "AVAX", "LINK", "DOT", "NEAR"].some((c) => cleanSymbol.startsWith(c))) {
+    const endpoints = [
+      `https://api.binance.com/api/v3/klines?symbol=${searchSymbol}&interval=${interval}&limit=${limit}`,
+      `https://api1.binance.com/api/v3/klines?symbol=${searchSymbol}&interval=${interval}&limit=${limit}`,
+      `https://api2.binance.com/api/v3/klines?symbol=${searchSymbol}&interval=${interval}&limit=${limit}`
+    ];
+    try {
+      let res = null;
+      for (const url of endpoints) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 8e3);
+          const attempt = await fetch(url, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (attempt.ok) {
+            res = attempt;
+            break;
+          }
+        } catch {
         }
-      } catch {
       }
+      if (res && res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length >= 20) {
+          const closes = data.map((k) => parseFloat(k[4]));
+          const highs = data.map((k) => parseFloat(k[2]));
+          const lows = data.map((k) => parseFloat(k[3]));
+          const volumes = data.map((k) => parseFloat(k[5]));
+          const len = closes.length;
+          const ema50 = calculateLatestEMA(closes, Math.min(50, len));
+          const ema200 = calculateLatestEMA(closes, Math.min(200, len));
+          const trend = ema50 >= ema200 ? "bullish" : "bearish";
+          const rsiVal = calculateLatestRSI(closes, 14);
+          const rsi = rsiVal <= 30 ? "oversold" : rsiVal >= 70 ? "overbought" : "neutral";
+          const macdObj = calculateLatestMACD(closes);
+          const macd = macdObj.cross;
+          const atr14 = calculateATR(highs, lows, closes, Math.min(14, len - 1));
+          const utbot = calculateUTBot(closes, highs, lows, atr14, 2);
+          const avgVol = volumes.slice(0, len - 1).reduce((a, b) => a + b, 0) / (len - 1);
+          const volume = volumes[len - 1] > avgVol * 1.5 ? "high" : volumes[len - 1] < avgVol * 0.5 ? "low" : "normal";
+          const rawStructure = detectMarketStructure(highs, lows, closes);
+          const structure = rawStructure || "none";
+          return { timeframe: interval.toUpperCase(), trend, utbot, structure, rsi, macd, volume };
+        }
+      }
+    } catch (e) {
     }
-    if (res && res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length >= 30) {
-        const closes = data.map((k) => parseFloat(k[4]));
-        const highs = data.map((k) => parseFloat(k[2]));
-        const lows = data.map((k) => parseFloat(k[3]));
-        const volumes = data.map((k) => parseFloat(k[5]));
-        const len = closes.length;
-        const ema50 = calculateLatestEMA(closes, Math.min(50, len));
-        const ema200 = calculateLatestEMA(closes, Math.min(200, len));
-        const trend = ema50 > ema200 ? "bullish" : "bearish";
-        const rsiVal = calculateLatestRSI(closes, 14);
-        const rsi = rsiVal <= 30 ? "oversold" : rsiVal >= 70 ? "overbought" : "neutral";
-        const macdObj = calculateLatestMACD(closes);
-        const macd = macdObj.cross;
-        const atr14 = calculateATR(highs, lows, closes, 14);
-        const utbot = calculateUTBot(closes, highs, lows, atr14, 2);
-        const avgVol = volumes.slice(0, len - 1).reduce((a, b) => a + b, 0) / (len - 1);
-        const volume = volumes[len - 1] > avgVol * 1.5 ? "high" : volumes[len - 1] < avgVol * 0.5 ? "low" : "normal";
-        const rawStructure = detectMarketStructure(highs, lows, closes);
-        const structure = rawStructure || "none";
-        return { timeframe: interval.toUpperCase(), trend, utbot, structure, rsi, macd, volume };
-      }
+  }
+  try {
+    const yfData = await fetchYahooKlines(symbol, interval);
+    if (yfData && yfData.closes.length >= 10) {
+      const { closes, highs, lows, volumes } = yfData;
+      const len = closes.length;
+      const ema50 = calculateLatestEMA(closes, Math.min(50, len));
+      const ema200 = calculateLatestEMA(closes, Math.min(200, len));
+      const trend = ema50 >= ema200 ? "bullish" : "bearish";
+      const rsiVal = calculateLatestRSI(closes, Math.min(14, len - 1));
+      const rsi = rsiVal <= 30 ? "oversold" : rsiVal >= 70 ? "overbought" : "neutral";
+      const macdObj = calculateLatestMACD(closes);
+      const macd = macdObj.cross;
+      const atr14 = calculateATR(highs, lows, closes, Math.min(14, len - 1));
+      const utbot = calculateUTBot(closes, highs, lows, atr14, 2);
+      const avgVol = volumes.slice(0, len - 1).reduce((a, b) => a + b, 0) / Math.max(1, len - 1);
+      const volume = volumes[len - 1] > avgVol * 1.4 ? "high" : volumes[len - 1] < avgVol * 0.6 ? "low" : "normal";
+      const rawStructure = detectMarketStructure(highs, lows, closes);
+      const structure = rawStructure || "none";
+      return { timeframe: interval.toUpperCase(), trend, utbot, structure, rsi, macd, volume };
     }
   } catch (e) {
-    console.error(`[MTF] Failed to fetch ${interval} data for ${symbol}:`, e);
   }
-  return { timeframe: interval.toUpperCase(), trend: "bearish", utbot: "hold", structure: "none", rsi: "neutral", macd: "neutral", volume: "normal" };
+  return { timeframe: interval.toUpperCase(), trend: "bullish", utbot: "hold", structure: "none", rsi: "neutral", macd: "neutral", volume: "normal" };
 }
 async function generateMultiTimeframeAnalysis(symbol, isBuy, actualTrendDir, actual1H) {
   const [h4, m15, m5] = await Promise.all([
@@ -938,31 +1122,150 @@ app.get("/api/trades/pnl-account", (req, res) => {
     holdingCount: openTrades.filter((t) => t.status === "HOLDING" || t.status === "PENDING" || !t.status).length
   });
 });
-async function getLivePriceForSymbol(symbol, market) {
-  try {
-    const rawSymb = (symbol || "").toUpperCase().trim();
-    if (market === "CRYPTO" || rawSymb.endsWith("USDT")) {
-      const sym = rawSymb.endsWith("USDT") ? rawSymb : rawSymb + "USDT";
-      const r = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${sym}`);
-      const d = await r.json();
-      return d.price ? parseFloat(d.price) : null;
-    } else {
-      let yahooSymbol = rawSymb;
-      if (market === "INDIAN_EQUITY" && !rawSymb.endsWith(".NS") && !rawSymb.startsWith("^")) {
-        yahooSymbol = `${rawSymb}.NS`;
-      } else if (market === "FOREX" && rawSymb.length === 6 && !rawSymb.endsWith("=X")) {
-        yahooSymbol = `${rawSymb}=X`;
-      }
-      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=1d&range=2d`;
-      const r = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
-      const d = await r.json();
-      const price = d?.chart?.result?.[0]?.meta?.regularMarketPrice;
-      return price ? parseFloat(price) : null;
-    }
-  } catch {
-    return null;
-  }
+var livePriceCache = {};
+var YAHOO_SYMBOL_MAP = {
+  // Commodities
+  XAUUSD: "GC=F",
+  XAGUSD: "SI=F",
+  "CL=F": "CL=F",
+  "BZ=F": "BZ=F",
+  "NG=F": "NG=F",
+  "HG=F": "HG=F",
+  "PL=F": "PL=F",
+  // Forex Majors
+  EURUSD: "EURUSD=X",
+  GBPUSD: "GBPUSD=X",
+  USDJPY: "USDJPY=X",
+  AUDUSD: "AUDUSD=X",
+  USDCAD: "USDCAD=X",
+  USDCHF: "USDCHF=X",
+  NZDUSD: "NZDUSD=X",
+  // Forex Crosses
+  EURGBP: "EURGBP=X",
+  EURJPY: "EURJPY=X",
+  GBPJPY: "GBPJPY=X",
+  AUDJPY: "AUDJPY=X",
+  EURAUD: "EURAUD=X",
+  GBPCAD: "GBPCAD=X",
+  AUDCAD: "AUDCAD=X",
+  CHFJPY: "CHFJPY=X",
+  // Indian Indices
+  "^NSEI": "^NSEI",
+  "^BSESN": "^BSESN"
+};
+function toYahooSymbol(sym) {
+  if (YAHOO_SYMBOL_MAP[sym]) return YAHOO_SYMBOL_MAP[sym];
+  if (sym.endsWith(".NS") || sym.endsWith("=X") || sym.endsWith("=F") || sym.startsWith("^")) return sym;
+  if (/^[A-Z]{6}$/.test(sym)) return `${sym}=X`;
+  return `${sym}.NS`;
 }
+async function getLivePricesBatch(symbols) {
+  const result = {};
+  const now = Date.now();
+  const missing = [];
+  for (const s of symbols) {
+    const raw = (s || "").toUpperCase().trim();
+    if (!raw) continue;
+    if (livePriceCache[raw] && now - livePriceCache[raw].timestamp < 8e3) {
+      result[raw] = { price: livePriceCache[raw].price, change: livePriceCache[raw].change, changePct: livePriceCache[raw].changePct };
+    } else {
+      missing.push(raw);
+    }
+  }
+  if (missing.length === 0) return result;
+  const cryptoSyms = missing.filter(
+    (s) => s.endsWith("USDT") || !s.includes(".") && !s.includes("=") && !s.endsWith("=F") && ["BTC", "ETH", "SOL", "BNB", "XRP", "DOGE", "ADA", "AVAX", "LINK", "DOT", "NEAR", "SHIB", "PEPE", "SUI", "UNI", "WLD", "OP", "ARB", "MATIC", "FTM", "ALGO", "ATOM", "FIL", "INJ", "SEI", "TIA", "APT", "SUI"].some((c) => s.startsWith(c))
+  );
+  const otherSyms = missing.filter((s) => !cryptoSyms.includes(s));
+  if (cryptoSyms.length > 0) {
+    try {
+      const r = await fetch("https://api.binance.com/api/v3/ticker/24hr", { signal: AbortSignal.timeout(5e3) });
+      if (r.ok) {
+        const data = await r.json();
+        const map = new Map(data.map((d) => [d.symbol, d]));
+        for (const sym of cryptoSyms) {
+          const search = sym.endsWith("USDT") ? sym : sym + "USDT";
+          const t = map.get(search);
+          if (t) {
+            const p = parseFloat(t.lastPrice);
+            const ch = parseFloat(t.priceChange);
+            const chPct = parseFloat(t.priceChangePercent);
+            if (p > 0) {
+              result[sym] = { price: p, change: ch, changePct: chPct };
+              livePriceCache[sym] = { price: p, change: ch, changePct: chPct, timestamp: now };
+            }
+          }
+        }
+      }
+    } catch {
+    }
+  }
+  if (otherSyms.length > 0) {
+    const yahooSymMap = /* @__PURE__ */ new Map();
+    for (const sym of otherSyms) {
+      yahooSymMap.set(toYahooSymbol(sym), sym);
+    }
+    const yfList = Array.from(yahooSymMap.keys());
+    try {
+      const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(yfList.join(","))}`;
+      const r = await fetch(url, {
+        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" },
+        signal: AbortSignal.timeout(8e3)
+      });
+      if (r.ok) {
+        const d = await r.json();
+        const quotes = d?.quoteResponse?.result || [];
+        for (const q of quotes) {
+          const orig = yahooSymMap.get(q.symbol);
+          if (orig && q.regularMarketPrice > 0) {
+            const p = q.regularMarketPrice;
+            const ch = q.regularMarketChange || 0;
+            const chP = q.regularMarketChangePercent || 0;
+            result[orig] = { price: p, change: ch, changePct: chP };
+            livePriceCache[orig] = { price: p, change: ch, changePct: chP, timestamp: now };
+          }
+        }
+      }
+    } catch {
+    }
+    await Promise.all(otherSyms.map(async (sym) => {
+      if (result[sym]) return;
+      try {
+        const yf = toYahooSymbol(sym);
+        const url = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yf)}?interval=1d&range=2d`;
+        const r = await fetch(url, {
+          headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" },
+          signal: AbortSignal.timeout(5e3)
+        });
+        if (!r.ok) return;
+        const d = await r.json();
+        const meta = d?.chart?.result?.[0]?.meta;
+        const p = meta?.regularMarketPrice;
+        const prev = meta?.previousClose || meta?.chartPreviousClose;
+        if (p > 0) {
+          const ch = prev ? p - prev : 0;
+          const chP = prev ? ch / prev * 100 : 0;
+          result[sym] = { price: p, change: ch, changePct: chP };
+          livePriceCache[sym] = { price: p, change: ch, changePct: chP, timestamp: now };
+        }
+      } catch {
+      }
+    }));
+  }
+  return result;
+}
+app.post("/api/market-prices/batch", async (req, res) => {
+  try {
+    const { symbols } = req.body;
+    if (!Array.isArray(symbols) || symbols.length === 0) {
+      return res.json({ prices: {} });
+    }
+    const prices = await getLivePricesBatch(symbols);
+    res.json({ prices, timestamp: Date.now() });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Failed to fetch batch prices", prices: {} });
+  }
+});
 function autoLogTradeFromAlert(tradeData) {
   const db = readDB();
   if (!db.trades) db.trades = [];
@@ -1007,9 +1310,11 @@ function startTradeMonitorDaemon() {
       if (!db.trades || db.trades.length === 0) return;
       const openTrades = db.trades.filter((t) => !t.isResolved);
       if (openTrades.length === 0) return;
+      const symbols = openTrades.map((t) => t.symbol);
+      const priceMap = await getLivePricesBatch(symbols);
       let hasChanges = false;
       for (const trade of openTrades) {
-        const curPrice = await getLivePriceForSymbol(trade.symbol, trade.market);
+        const curPrice = priceMap[trade.symbol]?.price;
         if (!curPrice || curPrice <= 0) continue;
         const prevStatus = trade.status || "HOLDING";
         let newStatus = "HOLDING";
@@ -1097,9 +1402,9 @@ ${verdict}
         writeDB(db);
       }
     } catch (e) {
-      console.error("Trade monitor daemon error:", e);
+      console.error("[Daemon] Error monitoring open trades:", e);
     }
-  }, 3e4);
+  }, 15e3);
 }
 function calculateRiskManagement(side, entryPrice, timeframe, symbol, atrValue) {
   let slDistance;
@@ -1839,6 +2144,130 @@ ${verdict}${notes ? `
   }
 });
 var telegramBotOffset = 0;
+async function parseAnyTelegramSignalText(text, token, chatId) {
+  try {
+    const cleanText = text.trim();
+    if (cleanText.length < 5) return false;
+    let side = null;
+    if (/\b(BUY|LONG)\b/i.test(cleanText)) side = "LONG";
+    else if (/\b(SELL|SHORT)\b/i.test(cleanText)) side = "SHORT";
+    if (!side) return false;
+    const words = cleanText.split(/\s+/).map((w) => w.replace(/[^A-Z0-9.\-=]/gi, "").toUpperCase()).filter(Boolean);
+    const ignoreKeywords = /* @__PURE__ */ new Set([
+      "BUY",
+      "LONG",
+      "SELL",
+      "SHORT",
+      "ENTRY",
+      "PRICE",
+      "SL",
+      "STOP",
+      "STOPLOSS",
+      "TP",
+      "TP1",
+      "TP2",
+      "TARGET",
+      "TARGET1",
+      "TARGET2",
+      "QTY",
+      "QUANTITY",
+      "SIGNAL",
+      "NOW",
+      "AT",
+      "@",
+      "ORDER",
+      "LIMIT",
+      "MARKET"
+    ]);
+    let symbol = "";
+    for (const word of words) {
+      if (!ignoreKeywords.has(word) && (word.length >= 2 && word.length <= 15) && !/^\d+$/.test(word)) {
+        symbol = word;
+        break;
+      }
+    }
+    if (!symbol) return false;
+    const findNum = (patterns) => {
+      for (const pat of patterns) {
+        const match = cleanText.match(pat);
+        if (match && match[1]) {
+          const val = parseFloat(match[1]);
+          if (!isNaN(val) && val > 0) return val;
+        }
+      }
+      return 0;
+    };
+    const entry = findNum([
+      /(?:ENTRY|PRICE|AT|@)\s*:?\s*(\d+(?:\.\d+)?)/i,
+      /(?:BUY|LONG|SELL|SHORT)\s+[\w.-]+\s+(?:AT|@)?\s*(\d+(?:\.\d+)?)/i,
+      /^\/trade\s+[\w.-]+\s+(?:LONG|SHORT)\s+(\d+(?:\.\d+)?)/i
+    ]);
+    const sl = findNum([
+      /(?:SL|STOP|STOPLOSS|STOP\s*LOSS)\s*:?\s*(\d+(?:\.\d+)?)/i
+    ]);
+    const tp1 = findNum([
+      /(?:TP1|TP\s*1|TARGET1|TARGET\s*1|TP|TARGET|TAKE\s*PROFIT)\s*:?\s*(\d+(?:\.\d+)?)/i
+    ]);
+    const tp2 = findNum([
+      /(?:TP2|TP\s*2|TARGET2|TARGET\s*2)\s*:?\s*(\d+(?:\.\d+)?)/i
+    ]);
+    const qty = findNum([
+      /(?:QTY|QUANTITY|LOTS|SIZE)\s*:?\s*(\d+(?:\.\d+)?)/i
+    ]);
+    if (!entry || !sl || !tp1 && !tp2) return false;
+    let market = "";
+    if (symbol.endsWith(".NS") || !symbol.endsWith("USDT") && symbol.length <= 12 && !["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "USDCHF", "NZDUSD", "EURGBP", "EURJPY", "GBPJPY", "XAUUSD", "XAGUSD"].includes(symbol)) {
+      market = "INDIAN_EQUITY";
+    } else if (symbol.endsWith("USDT") || ["BTC", "ETH", "SOL", "BNB", "XRP", "DOGE", "ADA", "AVAX", "LINK", "DOT", "NEAR", "SHIB", "PEPE", "SUI", "UNI"].some((c) => symbol.startsWith(c))) {
+      market = "CRYPTO";
+    } else {
+      market = "FOREX";
+    }
+    const defaultQty = market === "INDIAN_EQUITY" ? 10 : 1;
+    const finalQty = qty > 0 ? qty : defaultQty;
+    const trade = autoLogTradeFromAlert({
+      symbol,
+      side,
+      market,
+      entryPrice: entry,
+      sl,
+      tp1: tp1 || tp2,
+      tp2: tp2 || 0,
+      quantity: finalQty,
+      notes: `Auto-logged from Telegram Signal text`
+    });
+    if (trade) {
+      const cur = market === "INDIAN_EQUITY" ? "\u20B9" : "$";
+      const fmt = (n) => `${cur}${n.toLocaleString("en-IN", { minimumFractionDigits: n < 10 ? 4 : 2, maximumFractionDigits: n < 10 ? 5 : 2 })}`;
+      const rr = tp1 && sl && entry ? (Math.abs(tp1 - entry) / Math.abs(entry - sl)).toFixed(2) : "\u2014";
+      await sendTelegramNotification(
+        token,
+        chatId,
+        `\u2705 <b>TELEGRAM SIGNAL RECORDED IN JOURNAL</b>
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+
+\u{1F4CC} <b>Symbol:</b>   <code>${symbol}</code> (${market.replace("_", " ")})
+${side === "LONG" ? "\u{1F4C8}" : "\u{1F4C9}"} <b>Direction:</b> <b>${side}</b>
+
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u{1F4B0} <b>LEVELS</b>
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u{1F7E2} <b>Entry:</b>     <code>${fmt(entry)}</code>
+\u{1F534} <b>Stop Loss:</b> <code>${fmt(sl)}</code>
+\u{1F3AF} <b>Target 1:</b>  <code>${fmt(tp1 || tp2)}</code>
+` + (tp2 && tp1 !== tp2 ? `\u{1F3AF} <b>Target 2:</b>  <code>${fmt(tp2)}</code>
+` : ``) + `\u{1F4E6} <b>Quantity:</b>  <code>${finalQty}</code>
+\u2696\uFE0F <b>R:R Ratio:</b> <code>1 : ${rr}</code>
+
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u{1F916} <i>Signal automatically logged in Trade Journal & 24/7 server monitoring started!</i>`
+      );
+      return true;
+    }
+  } catch (e) {
+  }
+  return false;
+}
 async function parseTelegramBotUpdates() {
   const db = readDB();
   const token = db.config.telegramToken;
@@ -1853,8 +2282,11 @@ async function parseTelegramBotUpdates() {
       telegramBotOffset = update.update_id + 1;
       const msg = update.message || update.channel_post;
       if (!msg || !msg.text) continue;
-      const fromChatId = String(msg.chat?.id || "");
-      if (fromChatId !== String(chatId).replace("@", "")) continue;
+      const configuredChatId = String(chatId).trim().replace("@", "").toLowerCase();
+      const msgChatId = String(msg.chat?.id || "").trim().replace("@", "").toLowerCase();
+      const msgChatUsername = String(msg.chat?.username || "").trim().replace("@", "").toLowerCase();
+      const isChatMatch = !configuredChatId || msgChatId === configuredChatId || msgChatUsername === configuredChatId;
+      if (!isChatMatch) continue;
       const text = (msg.text || "").trim();
       if (text.toLowerCase().startsWith("/trade")) {
         const logged = await handleTradeBotCommand(text, token, chatId);
@@ -1947,6 +2379,8 @@ Send <code>/pnl</code> for full account summary.`);
 
 The bot will monitor your trade 24/7 and alert you when SL or TP is hit! \u{1F3AF}`
         );
+      } else {
+        await parseAnyTelegramSignalText(text, token, chatId);
       }
     }
   } catch (e) {

@@ -57,8 +57,19 @@
 .animate-fade-slide { animation: fadeSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .animate-fade-in    { animation: fadeIn 0.3s ease both; }
 .glow-cyan          { animation: glow-pulse 2.5s ease-in-out infinite; }
-.animate-marquee    { animation: marqueeScroll 25s linear infinite; }
-.animate-marquee:hover { animation-play-state: paused; }
+
+/* Ticker — proper seamless scroll, no bleed */
+.ticker-track {
+  display: flex;
+  width: max-content;
+  animation: tickerScroll 35s linear infinite;
+}
+.ticker-track:hover { animation-play-state: paused; }
+
+@keyframes tickerScroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
 
 /* Shimmer overlay */
 .shimmer-badge {

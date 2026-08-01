@@ -77,6 +77,28 @@ export default function App() {
 
   const [splashStep, setSplashStep] = useState(0);
   const [bootProgress, setBootProgress] = useState(0);
+  const [tickerPrices, setTickerPrices] = useState<Record<string, { price: number; change: number; changePct: number }>>({});
+
+  const fetchLiveTickerPrices = async () => {
+    try {
+      const symbols = ["XAUUSD", "BTCUSDT", "ETHUSDT", "^NSEI", "RELIANCE.NS", "EURUSD", "CL=F", "SOLUSDT", "GBPUSD", "TATAMOTORS.NS"];
+      const r = await fetch("/api/market-prices/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ symbols })
+      });
+      const d = await r.json();
+      if (d.prices) {
+        setTickerPrices(d.prices);
+      }
+    } catch {}
+  };
+
+  useEffect(() => {
+    fetchLiveTickerPrices();
+    const interval = setInterval(fetchLiveTickerPrices, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -196,34 +218,72 @@ export default function App() {
         </div>
       </header>
 
-      <div className="shrink-0 border-b overflow-x-auto scrollbar-none"
-        style={{ background: "#080c14", borderColor: "rgba(255,255,255,0.07)" }}>
-        <div className="flex items-center min-w-max px-4 py-2 gap-1">
-          <div className="flex items-center gap-2 pr-4 mr-3 shrink-0"
-            style={{ borderRight: "1px solid rgba(255,255,255,0.08)" }}>
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shrink-0" />
-            <span className="text-[11px] font-bold text-cyan-400 tracking-wider uppercase">Live Feeds</span>
+      {/* ── LIVE FEEDS ANIMATED TICKER ── */}
+      <div className="shrink-0 border-b flex items-center"
+        style={{ background: "#080c14", borderColor: "rgba(255,255,255,0.08)", height: "38px" }}>
+
+        {/* Solid label — sits OUTSIDE overflow-hidden so no bleed-through ever */}
+        <div className="flex items-center gap-2 px-4 h-full shrink-0"
+          style={{ background: "#080c14", borderRight: "1px solid rgba(6,182,212,0.25)", minWidth: "fit-content" }}>
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-60" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400" />
+          </span>
+          <span className="text-[11px] font-black text-cyan-400 tracking-widest uppercase whitespace-nowrap">Live Feeds</span>
+        </div>
+
+        {/* Scroll container — overflow:hidden applied ONLY here, label is already outside */}
+        <div style={{ overflow: "hidden", flex: 1 }}>
+          <div className="ticker-track gap-3 items-center py-1">
+            {(() => {
+              const tickerItemsConfig = [
+                { key: "XAUUSD", label: "GOLD", icon: "🥇", prefix: "$" },
+                { key: "BTCUSDT", label: "BTC/USDT", icon: "₿", prefix: "$" },
+                { key: "ETHUSDT", label: "ETH/USDT", icon: "Ξ", prefix: "$" },
+                { key: "^NSEI", label: "NIFTY 50", icon: "🇮🇳", prefix: "₹" },
+                { key: "RELIANCE.NS", label: "RELIANCE", icon: "📈", prefix: "₹" },
+                { key: "EURUSD", label: "EUR/USD", icon: "💱", prefix: "" },
+                { key: "CL=F", label: "CRUDE OIL", icon: "🛢️", prefix: "$" },
+                { key: "SOLUSDT", label: "SOL/USDT", icon: "◎", prefix: "$" },
+                { key: "GBPUSD", label: "GBP/USD", icon: "💷", prefix: "" },
+                { key: "TATAMOTORS.NS", label: "TATAMOTORS", icon: "🚗", prefix: "₹" },
+              ];
+
+              const getFormatted = (item: typeof tickerItemsConfig[0]) => {
+                const data = tickerPrices[item.key];
+                if (!data || !data.price) {
+                  return { p: "Fetching...", c: "0.00%", pos: true };
+                }
+                const pVal = data.price;
+                const cVal = data.changePct || 0;
+                const pos = cVal >= 0;
+                let formattedPrice = "";
+                if (item.prefix) {
+                  formattedPrice = `${item.prefix}${pVal.toLocaleString("en-US", { minimumFractionDigits: pVal > 100 ? 2 : 4, maximumFractionDigits: pVal > 100 ? 2 : 4 })}`;
+                } else {
+                  formattedPrice = pVal.toFixed(4);
+                }
+                const formattedChange = `${pos ? "+" : ""}${cVal.toFixed(2)}%`;
+                return { p: formattedPrice, c: formattedChange, pos };
+              };
+
+              const list = [...tickerItemsConfig, ...tickerItemsConfig]; // duplicate for loop
+              return list.map((item, i) => {
+                const fmt = getFormatted(item);
+                return (
+                  <div key={i} className="flex items-center gap-2 px-3 py-1 rounded-lg shrink-0"
+                    style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
+                    <span className="text-base leading-none">{item.icon}</span>
+                    <div className="leading-none">
+                      <div className="text-[11px] font-bold text-slate-200">{item.label}</div>
+                      <div className="text-[10px] font-mono text-slate-400 mt-0.5">{fmt.p}</div>
+                    </div>
+                    <span className={`text-[11px] font-black font-mono ml-1 ${fmt.pos ? "text-emerald-400" : "text-red-400"}`}>{fmt.c}</span>
+                  </div>
+                );
+              });
+            })()}
           </div>
-          {[
-            { s: "GOLD",      sym: "XAUUSD",  p: "$2,385",  c: "+0.84%", pos: true,  icon: "🥇" },
-            { s: "BTC",       sym: "USDT",     p: "$65,420", c: "+2.40%", pos: true,  icon: "₿" },
-            { s: "ETH",       sym: "USDT",     p: "$3,450",  c: "+1.95%", pos: true,  icon: "Ξ" },
-            { s: "NIFTY 50",  sym: "INDEX",    p: "₹24,850", c: "+0.45%", pos: true,  icon: "🇮🇳" },
-            { s: "RELIANCE",  sym: "NSE",      p: "₹1,278",  c: "+1.25%", pos: true,  icon: "📈" },
-            { s: "EUR/USD",   sym: "FX",       p: "1.0850",  c: "+0.12%", pos: true,  icon: "💱" },
-            { s: "CRUDE OIL", sym: "WTI",      p: "$78.20",  c: "-0.45%", pos: false, icon: "🛢️" },
-            { s: "SOL",       sym: "USDT",     p: "$178.50", c: "+5.12%", pos: true,  icon: "◎" },
-          ].map((t, i) => (
-            <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-lg shrink-0"
-              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}>
-              <span className="text-sm">{t.icon}</span>
-              <div>
-                <div className="text-[11px] font-bold text-white leading-none">{t.s}</div>
-                <div className="text-[10px] font-mono text-slate-400 leading-none mt-0.5">{t.p}</div>
-              </div>
-              <span className={`text-[10px] font-black font-mono ${t.pos ? "text-emerald-400" : "text-red-400"}`}>{t.c}</span>
-            </div>
-          ))}
         </div>
       </div>
 
