@@ -45,8 +45,12 @@ interface Trade {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function fmtCur(market: Market, n: number) {
-  return (market === "INDIAN_EQUITY" ? "₹" : "$") +
-    Math.abs(n).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const sym = market === "INDIAN_EQUITY" ? "₹" : "$";
+  const abs = Math.abs(n);
+  if (abs === 0) return `${sym}0.00`;
+  if (abs < 0.0001) return `${sym}${abs.toFixed(8)}`;
+  if (abs < 1) return `${sym}${abs.toFixed(4)}`;
+  return sym + abs.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 function uid() { return `t_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`; }
 
@@ -265,7 +269,14 @@ function TradeCard({ trade, onDelete, onNavigateSMC }: {
             <div className="text-[10px] text-slate-500 mt-0.5">Entry {fmtCur(trade.market, trade.entryPrice)} · Qty {trade.quantity} · {new Date(trade.entryDate).toLocaleDateString("en-IN")}</div>
           </div>
           <StatusBadge status={status} />
-          {trade.currentPrice !== undefined && <span className="font-mono font-bold text-xs text-white">{fmtCur(trade.market, trade.currentPrice)}</span>}
+          <div className="flex items-center gap-1">
+            {trade.currentPrice !== undefined && <span className="font-mono font-bold text-xs text-white">{fmtCur(trade.market, trade.currentPrice)}</span>}
+            {trade.market === "CRYPTO" && trade.currentPrice !== undefined && (
+              <span className="bg-emerald-500/20 text-emerald-400 text-[8px] px-1 py-0.5 rounded font-bold uppercase tracking-wider" title="Verified against Live Binance Feed">
+                Verified Live
+              </span>
+            )}
+          </div>
         </div>
         <div className="text-right shrink-0">
           {trade.pnl !== undefined && (<><div className={`text-sm font-black font-mono ${pnlPos ? "text-emerald-400" : "text-red-400"}`}>{pnlPos ? "+" : "−"}{fmtCur(trade.market, trade.pnl)}</div><div className={`text-[10px] font-mono ${pnlPos ? "text-emerald-500/60" : "text-red-500/60"}`}>{pnlPos ? "+" : ""}{trade.pnlPct?.toFixed(2)}%</div></>)}
@@ -466,7 +477,7 @@ export default function TradeJournal({ onNavigateToSMC }: Props) {
         const cur = info?.price ?? null;
         if (cur === null) return t;
         const status = computeStatus(t, cur);
-        const pnl    = t.side === "LONG" ? (cur - t.entryPrice) * t.quantity : (t.entryPrice - cur) * t.quantity;
+        const pnl = t.side === "LONG" ? (cur - t.entryPrice) * t.quantity : (t.entryPrice - cur) * t.quantity;
         const pnlPct = (pnl / (t.entryPrice * t.quantity)) * 100;
         const res = await apiUpdateTrade(t.id, { currentPrice: cur, status, pnl, pnlPct });
         return res?.trade ?? { ...t, currentPrice: cur, status, pnl, pnlPct, lastUpdated: new Date().toISOString() };

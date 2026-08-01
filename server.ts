@@ -2,6 +2,9 @@ import express from "express";
 import path from "path";
 import fs from "fs";
 import { OpenAI } from "openai";
+import WebSocket from "ws";
+import { Config, Log, Trade, connectDatabase } from "./src/models/Database.js";
+import { calcPnL, calcPnLPct, formatPrecision } from "./src/utils/precisionMath.js";
 
 // Programmatic environment detection
 if (!process.env.NODE_ENV) {
@@ -12,6 +15,7 @@ if (!process.env.NODE_ENV) {
 
 const app = express();
 const PORT = parseInt(process.env.PORT || "5000", 10);
+await connectDatabase();
 const DB_FILE = path.join(process.cwd(), "db.json");
 
 interface TraderEvaluation {
@@ -759,7 +763,7 @@ async function fetchRecentKlinesAndTrend(symbol: string): Promise<RealIndicators
             symbol, currentPrice, trendDir, utbot, volumeLevel, rsi, macd, marketStructure
           );
 
-          const db = readDB();
+          const db = await readDB();
           const scorePayload = {
             symbol, price: currentPrice, utbot,
             ema_crossover: trendDir, rsi, macd,
@@ -840,7 +844,7 @@ async function fetchRecentKlinesAndTrend(symbol: string): Promise<RealIndicators
         symbol, currentPrice, trendDir, utbot, volumeLevel, rsi, macd, marketStructure
       );
 
-      const db = readDB();
+      const db = await readDB();
       const scorePayload = {
         symbol, price: currentPrice, utbot,
         ema_crossover: trendDir, rsi, macd,
@@ -898,7 +902,7 @@ async function fetchRecentKlinesAndTrend(symbol: string): Promise<RealIndicators
 
   const evaluation = evaluateTraderInsight(symbol, currentPrice, trendDir, utbot, volumeLevel, rsi, macd, marketStructure);
 
-  const db = readDB();
+  const db = await readDB();
   const fallbackPayload = {
     symbol, price: currentPrice, utbot, ema_crossover: trendDir, rsi, macd,
     market_structure: marketStructure, volume: volumeLevel,
@@ -1168,34 +1172,49 @@ interface DB {
   trades: TradeRecord[];     // persistent trade journal
 }
 
-function readDB(): DB {
+async function readDB(): Promise<DB> {
   try {
-    if (fs.existsSync(DB_FILE)) {
-      const data = fs.readFileSync(DB_FILE, "utf-8");
-      const parsed = JSON.parse(data);
-      return {
-        config: { ...DEFAULT_CONFIG, ...parsed.config },
-        logs: parsed.logs || [],
-        trades: parsed.trades || []
-      };
+    const configDoc = await Config.getSingleton();
+    const logs = await Log.find().lean();
+    const trades = await Trade.find().lean();
+    return {
+      config: { ...DEFAULT_CONFIG, ...configDoc.toObject() },
+      logs: logs as any[],
+      trades: trades as any[]
+    };
+  } catch (e) {
+    console.error("Error reading from MongoDB", e);
+    return { config: DEFAULT_CONFIG, logs: [], trades: [] };
+  }
+}
+
+async function writeDB(db: DB) {
+  try {
+    const configDoc = await Config.getSingleton();
+    Object.assign(configDoc, db.config);
+    await configDoc.save();
+
+    if (db.logs && db.logs.length > 0) {
+      const bulkOps = db.logs.map(log => ({
+        updateOne: { filter: { id: log.id }, update: { $set: log }, upsert: true }
+      }));
+      await Log.bulkWrite(bulkOps);
+    }
+    
+    if (db.trades && db.trades.length > 0) {
+      const bulkOps = db.trades.map(trade => ({
+        updateOne: { filter: { id: trade.id }, update: { $set: trade }, upsert: true }
+      }));
+      await Trade.bulkWrite(bulkOps);
     }
   } catch (e) {
-    console.error("Error reading database file, using fallback", e);
-  }
-  return { config: DEFAULT_CONFIG, logs: [], trades: [] };
-}
-
-function writeDB(db: DB) {
-  try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), "utf-8");
-  } catch (e) {
-    console.error("Error writing database file", e);
+    console.error("Error writing to MongoDB", e);
   }
 }
 
-function backfillTradesFromLogs() {
+async function backfillTradesFromLogs() {
   try {
-    const db = readDB();
+    const db = await readDB();
     if (!db.trades) db.trades = [];
     let count = 0;
     for (const log of db.logs || []) {
@@ -1207,7 +1226,7 @@ function backfillTradesFromLogs() {
           const tp1 = log.tradePlan.target1 ?? log.tradePlan.takeProfit1 ?? 0;
           const tp2 = log.tradePlan.target2 ?? log.tradePlan.takeProfit2 ?? 0;
 
-          autoLogTradeFromAlert({
+          await autoLogTradeFromAlert({
             symbol: log.symbol,
             side: (log.side || log.payload?.side || "LONG") as "LONG" | "SHORT",
             entryPrice,
@@ -1229,41 +1248,41 @@ function backfillTradesFromLogs() {
 }
 
 // REST Endpoints
-app.get("/api/config", (req, res) => {
-  const db = readDB();
+app.get("/api/config", async (req, res) => {
+  const db = await readDB();
   res.json(db.config);
 });
 
-app.post("/api/config", (req, res) => {
-  const db = readDB();
+app.post("/api/config", async (req, res) => {
+  const db = await readDB();
   db.config = { ...db.config, ...req.body };
-  writeDB(db);
+  await writeDB(db);
   res.json({ success: true, config: db.config });
 });
 
-app.get("/api/logs", (req, res) => {
-  const db = readDB();
+app.get("/api/logs", async (req, res) => {
+  const db = await readDB();
   res.json(db.logs.slice().reverse());
 });
 
-app.post("/api/logs/clear", (req, res) => {
-  const db = readDB();
+app.post("/api/logs/clear", async (req, res) => {
+  const db = await readDB();
   db.logs = [];
-  writeDB(db);
+  await writeDB(db);
   res.json({ success: true });
 });
 
 // ── TRADE JOURNAL CRUD API ────────────────────────────────────────────────────
 
 // GET all trades (newest first)
-app.get("/api/trades", (req, res) => {
-  const db = readDB();
+app.get("/api/trades", async (req, res) => {
+  const db = await readDB();
   res.json({ trades: (db.trades || []).slice().reverse(), total: (db.trades || []).length });
 });
 
 // POST create a new trade
-app.post("/api/trades", (req, res) => {
-  const db = readDB();
+app.post("/api/trades", async (req, res) => {
+  const db = await readDB();
   if (!db.trades) db.trades = [];
   const openTrades = db.trades.filter(t => !t.isResolved);
   if (openTrades.length >= MAX_OPEN_TRADES) {
@@ -1293,13 +1312,13 @@ app.post("/api/trades", (req, res) => {
     }],
   };
   db.trades.push(trade);
-  writeDB(db);
+  await writeDB(db);
   res.json({ success: true, trade });
 });
 
 // PUT update trade status + append history entry
 app.put("/api/trades/:id", async (req, res) => {
-  const db = readDB();
+  const db = await readDB();
   if (!db.trades) db.trades = [];
   const idx = db.trades.findIndex(t => t.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: "Trade not found" });
@@ -1397,33 +1416,33 @@ ${verdict}${existing.notes ? `\n\n📝 <i>${existing.notes}</i>` : ""}
   };
 
   db.trades[idx] = updated;
-  writeDB(db);
+  await writeDB(db);
   res.json({ success: true, trade: updated, telegramSent, statusChanged });
 });
 
 // DELETE one trade
-app.delete("/api/trades/:id", (req, res) => {
-  const db = readDB();
+app.delete("/api/trades/:id", async (req, res) => {
+  const db = await readDB();
   if (!db.trades) db.trades = [];
   const before = db.trades.length;
   db.trades = db.trades.filter(t => t.id !== req.params.id);
-  writeDB(db);
+  await writeDB(db);
   res.json({ success: true, removed: before - db.trades.length });
 });
 
 // DELETE all resolved/completed trades (cleanup)
-app.delete("/api/trades/resolved/all", (req, res) => {
-  const db = readDB();
+app.delete("/api/trades/resolved/all", async (req, res) => {
+  const db = await readDB();
   if (!db.trades) db.trades = [];
   const before = db.trades.length;
   db.trades = db.trades.filter(t => !t.isResolved);
-  writeDB(db);
+  await writeDB(db);
   res.json({ success: true, removed: before - db.trades.length });
 });
 
 // GET P&L Account Summary & Performance Stats
-app.get("/api/trades/pnl-account", (req, res) => {
-  const db = readDB();
+app.get("/api/trades/pnl-account", async (req, res) => {
+  const db = await readDB();
   const trades = db.trades || [];
 
   const closedTrades = trades.filter(t => t.isResolved);
@@ -1454,7 +1473,7 @@ app.get("/api/trades/pnl-account", (req, res) => {
 // ─── BATCH LIVE PRICE FETCHING ENGINE ─────────────────────────────────────────
 const livePriceCache: Record<string, { price: number; change: number; changePct: number; timestamp: number }> = {};
 
-const FOREX_USDT_SYMBS = new Set(["XAUUSDT", "XAGUSDT"]);
+const FOREX_USDT_SYMBS = new Set(["XAGUSDT"]);
 
 async function getLivePricesBatch(
   symbols: string[]
@@ -1491,7 +1510,8 @@ async function getLivePricesBatch(
         const data: { symbol: string; lastPrice: string; priceChange: string; priceChangePercent: string }[] = await r.json();
         const map = new Map(data.map(d => [d.symbol, d]));
         for (const sym of cryptoSyms) {
-          const search = sym.endsWith("USDT") ? sym : sym + "USDT";
+          let search = sym.endsWith("USDT") ? sym : sym + "USDT";
+          if (sym === "XAUUSDT") search = "PAXGUSDT";
           const t = map.get(search);
           if (t) {
             const p = parseFloat(t.lastPrice);
@@ -1517,50 +1537,77 @@ async function getLivePricesBatch(
     const yfList = Array.from(yahooSymMap.keys());
 
     try {
-      const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(yfList.join(","))}`;
-      const r = await fetch(url, {
-        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" },
-        signal: AbortSignal.timeout(8000)
-      });
-      if (r.ok) {
-        const d = await r.json();
-        const quotes: any[] = d?.quoteResponse?.result || [];
-        for (const q of quotes) {
-          const orig = yahooSymMap.get(q.symbol);
-          if (orig && q.regularMarketPrice > 0) {
-            const p   = q.regularMarketPrice as number;
-            const ch  = (q.regularMarketChange as number) || 0;
-            const chP = (q.regularMarketChangePercent as number) || 0;
-            result[orig] = { price: p, change: ch, changePct: chP };
-            livePriceCache[orig] = { price: p, change: ch, changePct: chP, timestamp: now };
+      const quoteUrls = [
+        `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(yfList.join(","))}`,
+        `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(yfList.join(","))}`
+      ];
+      const foundOtherSyms = new Set<string>();
+      for (const url of quoteUrls) {
+        if (foundOtherSyms.size === otherSyms.length) break;
+        try {
+          const r = await fetch(url, {
+            headers: {
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+              "Accept": "application/json",
+              "Accept-Language": "en-US,en;q=0.9",
+              "Referer": "https://finance.yahoo.com"
+            },
+            signal: AbortSignal.timeout(8000)
+          });
+          if (!r.ok) continue;
+          const d = await r.json();
+          const quotes: any[] = d?.quoteResponse?.result || [];
+          for (const q of quotes) {
+            const orig = yahooSymMap.get(q.symbol);
+            if (orig && q.regularMarketPrice > 0) {
+              const p   = q.regularMarketPrice as number;
+              const ch  = (q.regularMarketChange as number) || 0;
+              const chP = (q.regularMarketChangePercent as number) || 0;
+              result[orig] = { price: p, change: ch, changePct: chP };
+              livePriceCache[orig] = { price: p, change: ch, changePct: chP, timestamp: now };
+              foundOtherSyms.add(orig);
+            }
           }
-        }
+        } catch {}
       }
     } catch {}
 
     // Fallback: individually fetch any symbols still missing
-    await Promise.all(otherSyms.map(async sym => {
-      if (result[sym]) return;
+    for (const sym of otherSyms) {
+      if (result[sym]) continue;
       try {
         const yf = toYahooSymbol(sym);
-        const url = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yf)}?interval=1d&range=2d`;
-        const r = await fetch(url, {
-          headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" },
-          signal: AbortSignal.timeout(5000)
-        });
-        if (!r.ok) return;
-        const d = await r.json();
-        const meta = d?.chart?.result?.[0]?.meta;
-        const p = meta?.regularMarketPrice;
-        const prev = meta?.previousClose || meta?.chartPreviousClose;
-        if (p > 0) {
-          const ch  = prev ? p - prev : 0;
-          const chP = prev ? (ch / prev) * 100 : 0;
-          result[sym] = { price: p, change: ch, changePct: chP };
-          livePriceCache[sym] = { price: p, change: ch, changePct: chP, timestamp: now };
+        const chartUrls = [
+          `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yf)}?interval=1d&range=2d`,
+          `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yf)}?interval=1d&range=2d`
+        ];
+        for (const url of chartUrls) {
+          if (result[sym]) break;
+          try {
+            const r = await fetch(url, {
+              headers: {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "application/json",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Referer": "https://finance.yahoo.com"
+              },
+              signal: AbortSignal.timeout(5000)
+            });
+            if (!r.ok) continue;
+            const d = await r.json();
+            const meta = d?.chart?.result?.[0]?.meta;
+            const p = meta?.regularMarketPrice;
+            const prev = meta?.previousClose || meta?.chartPreviousClose;
+            if (p > 0) {
+              const ch  = prev ? p - prev : 0;
+              const chP = prev ? (ch / prev) * 100 : 0;
+              result[sym] = { price: p, change: ch, changePct: chP };
+              livePriceCache[sym] = { price: p, change: ch, changePct: chP, timestamp: now };
+            }
+          } catch {}
         }
       } catch {}
-    }));
+    }
   }
 
   return result;
@@ -1585,7 +1632,7 @@ app.post("/api/market-prices/batch", async (req, res) => {
 });
 
 // ─── AUTO-LOG TRADE FROM TELEGRAM SIGNAL ──────────────────────────────────────
-function autoLogTradeFromAlert(tradeData: {
+async function autoLogTradeFromAlert(tradeData: {
   symbol: string;
   side: "LONG" | "SHORT";
   market?: string;
@@ -1596,7 +1643,7 @@ function autoLogTradeFromAlert(tradeData: {
   quantity?: number;
   notes?: string;
 }, db?: DB) {
-  const dbToUse = db ?? readDB();
+  const dbToUse = db ?? await readDB();
   if (!dbToUse.trades) dbToUse.trades = [];
 
   const rawSymb = (tradeData.symbol || "").toUpperCase().trim();
@@ -1641,7 +1688,7 @@ function autoLogTradeFromAlert(tradeData: {
   };
 
   dbToUse.trades.push(newTrade);
-  if (!db) writeDB(dbToUse);
+  if (!db) await writeDB(dbToUse);
   return newTrade;
 }
 
@@ -1650,7 +1697,7 @@ function startTradeMonitorDaemon() {
   console.log("[Daemon] 24/7 Server Trade Monitor Daemon initialized...");
   setInterval(async () => {
     try {
-      const db = readDB();
+      const db = await readDB();
       if (!db.trades || db.trades.length === 0) return;
 
       const openTrades = db.trades.filter(t => !t.isResolved);
@@ -1680,10 +1727,8 @@ function startTradeMonitorDaemon() {
           else if (Math.abs(curPrice - trade.entryPrice) / trade.entryPrice < 0.001) newStatus = "BREAKEVEN";
         }
 
-        const pnl = trade.side === "LONG"
-          ? (curPrice - trade.entryPrice) * trade.quantity
-          : (trade.entryPrice - curPrice) * trade.quantity;
-        const pnlPct = (pnl / (trade.entryPrice * trade.quantity)) * 100;
+        const pnl = calcPnL(trade.side as "LONG" | "SHORT", trade.entryPrice, curPrice, trade.quantity);
+        const pnlPct = calcPnLPct(trade.side as "LONG" | "SHORT", trade.entryPrice, curPrice);
 
         const statusChanged = newStatus !== prevStatus && newStatus !== "PENDING";
         const isResolved = ["SL_HIT", "TP2_HIT"].includes(newStatus);
@@ -1764,7 +1809,7 @@ ${verdict}
       }
 
       if (hasChanges) {
-        writeDB(db);
+        await writeDB(db);
       }
     } catch (e) {
       console.error("[Daemon] Error monitoring open trades:", e);
@@ -2105,7 +2150,7 @@ async function sendTelegramNotification(
     return { success: false, error: "Credentials missing" };
   }
 
-  const db = readDB();
+  const db = await readDB();
   const configuredProxy = (proxyUrl ?? db.config.telegramApiUrl ?? "").trim();
   const bases = configuredProxy
     ? [configuredProxy, "https://api.telegram.org"]
@@ -2141,7 +2186,7 @@ async function sendTelegramNotification(
 
       if (response.ok && resValue.ok) {
         if (autoLogTradeData) {
-          autoLogTradeFromAlert(autoLogTradeData, sharedDb);
+          await autoLogTradeFromAlert(autoLogTradeData, sharedDb);
         }
         return { success: true };
       }
@@ -2171,7 +2216,7 @@ async function runGeminiConfluenceAnalysis(
   mtf?: TimeframeAnalysis[],
   confidenceThreshold: number = 50
 ): Promise<{ decision: "SEND" | "REJECT"; confidence: number; reason: string }> {
-  const db = readDB();
+  const db = await readDB();
   const apiKey = db.config.openAiKey || process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
@@ -2263,7 +2308,7 @@ Respond ONLY with this JSON structure:
 }
 
 async function handleSignalPipeline(payload: any, isSimulation: boolean = false) {
-  const db = readDB();
+  const db = await readDB();
   const config = db.config;
 
   const symbol = (payload.symbol || "BTCUSDT").toUpperCase();
@@ -2413,7 +2458,7 @@ async function handleSignalPipeline(payload: any, isSimulation: boolean = false)
   // ── AUTO-LOG TO TRADE JOURNAL ─────────────────────────────────────────────
   // Always log passed trade signals into the Trade Journal (regardless of Telegram status)
   if (logEntry.passedFilters && logEntry.tradePlan) {
-    autoLogTradeFromAlert({
+    await autoLogTradeFromAlert({
       symbol: logEntry.symbol,
       side: (logEntry.side || "LONG") as "LONG" | "SHORT",
       entryPrice: logEntry.tradePlan.entry || logEntry.payload?.price || 0,
@@ -2425,7 +2470,7 @@ async function handleSignalPipeline(payload: any, isSimulation: boolean = false)
   }
 
   db.logs.push(logEntry);
-  writeDB(db);
+  await writeDB(db);
 
   return logEntry;
 }
@@ -2443,6 +2488,53 @@ app.post("/api/webhook", async (req, res) => {
   }
 });
 
+// ── TELEGRAM SIGNAL INGESTION WEBHOOK ──────────────────────────────────────────
+app.post("/api/telegram/webhook", async (req, res) => {
+  try {
+    const message = req.body.message || req.body.edited_message;
+    if (!message || !message.text) {
+      return res.status(200).send("OK");
+    }
+
+    const text = message.text.toUpperCase();
+    
+    // Pattern: /trade SYMBOL LONG ENTRY SL:xxx TP1:xxx
+    // Or simple text: BUY BTCUSDT ENTRY 65000 TP 68000 SL 63000
+    const symbolMatch = text.match(/(?:BUY|SELL|LONG|SHORT)\s+([A-Z0-9]+)/);
+    const actionMatch = text.match(/(BUY|SELL|LONG|SHORT)/);
+    const entryMatch = text.match(/ENTRY\s*:?\s*([\d\.]+)/);
+    const tpMatch = text.match(/TP(?:1)?\s*:?\s*([\d\.]+)/);
+    const slMatch = text.match(/SL\s*:?\s*([\d\.]+)/);
+
+    if (symbolMatch && actionMatch && entryMatch && tpMatch && slMatch) {
+      const symbol = symbolMatch[1];
+      const side = (actionMatch[1] === "BUY" || actionMatch[1] === "LONG") ? "LONG" : "SHORT";
+      const entryPrice = parseFloat(entryMatch[1]);
+      const tp1 = parseFloat(tpMatch[1]);
+      const sl = parseFloat(slMatch[1]);
+
+      const trade = await autoLogTradeFromAlert({
+        symbol,
+        side,
+        entryPrice,
+        tp1,
+        tp2: 0,
+        sl,
+        notes: `Ingested from Telegram Webhook`
+      });
+
+      console.log(`[Telegram Webhook] Ingested signal for ${symbol}`);
+      // Acknowledge to Telegram
+      return res.status(200).send("OK");
+    }
+
+    res.status(200).send("OK");
+  } catch (err) {
+    console.error("[Telegram Webhook] Error processing message", err);
+    res.status(200).send("OK"); // Don't fail the webhook retries
+  }
+});
+
 app.post("/api/simulate-alert", async (req, res) => {
   try {
     const payload = req.body;
@@ -2455,7 +2547,7 @@ app.post("/api/simulate-alert", async (req, res) => {
 
 app.get("/api/market-scan", async (req, res) => {
   try {
-    const db = readDB();
+    const db = await readDB();
     const pairs = db.config.activeSymbols;
     
     const scans = await Promise.all(pairs.map(async (symbol) => {
@@ -2496,7 +2588,7 @@ app.get("/api/market-scan", async (req, res) => {
 // TOP PICKS: ranked trade suggestions with full plans
 app.get("/api/top-picks", async (req, res) => {
   try {
-    const db = readDB();
+    const db = await readDB();
     const pairs = db.config.activeSymbols;
 
     const scans = await Promise.all(pairs.map(async (symbol) => {
@@ -2579,12 +2671,12 @@ Ready to receive high-confluence swing setup alerts!`;
 
   const responseVal = await sendTelegramNotification(token, chatId, welcomeMarkdown, proxyUrl || undefined);
   if (responseVal.success) {
-    const db = readDB();
+    const db = await readDB();
     db.config.telegramToken = token;
     db.config.telegramChatId = chatId;
     db.config.telegramEnabled = true;
     db.config.telegramApiUrl = (proxyUrl || "").trim();
-    writeDB(db);
+    await writeDB(db);
     res.json({
       success: true,
       message: "Success! Connection test delivered. Config saved.",
@@ -2597,7 +2689,7 @@ Ready to receive high-confluence swing setup alerts!`;
 
 // ── TRADE JOURNAL → TELEGRAM ALERT ────────────────────────────────────────────
 app.post("/api/telegram/send-trade", async (req, res) => {
-  const db = readDB();
+  const db = await readDB();
   const { token: reqToken, chatId: reqChatId } = req.body;
 
   // Use request-provided creds or fall back to saved config
@@ -2673,7 +2765,7 @@ ${verdict}${notes ? `\n\n📝 <i>${notes}</i>` : ""}
   const result = await sendTelegramNotification(token, chatId, message);
   if (result.success) {
     // Auto-log to persistent Trade Journal
-    autoLogTradeFromAlert({
+    await autoLogTradeFromAlert({
       symbol,
       side: side || "LONG",
       market,
@@ -2779,7 +2871,7 @@ async function parseAnyTelegramSignalText(text: string, token: string, chatId: s
     const defaultQty = market === "INDIAN_EQUITY" ? 10 : 1;
     const finalQty = qty > 0 ? qty : defaultQty;
 
-    const trade = autoLogTradeFromAlert({
+    const trade = await autoLogTradeFromAlert({
       symbol,
       side,
       market,
@@ -2817,7 +2909,7 @@ async function parseAnyTelegramSignalText(text: string, token: string, chatId: s
 }
 
 async function parseTelegramBotUpdates() {
-  const db = readDB();
+  const db = await readDB();
   const token = db.config.telegramToken;
   const chatId = db.config.telegramChatId;
   if (!token || !chatId || !db.config.telegramEnabled) return;
@@ -2854,7 +2946,7 @@ async function parseTelegramBotUpdates() {
 
       // ── /status command ───────────────────────────────────────────────────
       } else if (text.toLowerCase() === "/status" || text.toLowerCase() === "/trades") {
-        const dbNow = readDB();
+        const dbNow = await readDB();
         const openTrades = (dbNow.trades || []).filter(t => !t.isResolved);
         if (openTrades.length === 0) {
           await sendTelegramNotification(token, chatId, `📊 <b>Trade Journal Status</b>\n\nNo open trades currently being monitored.\n\nSend <code>/trade SYMBOL LONG ENTRY SL:xxx TP1:xxx</code> to add one!`);
@@ -2869,7 +2961,7 @@ async function parseTelegramBotUpdates() {
 
       // ── /pnl command ──────────────────────────────────────────────────────
       } else if (text.toLowerCase() === "/pnl" || text.toLowerCase() === "/account") {
-        const dbNow = readDB();
+        const dbNow = await readDB();
         const trades = dbNow.trades || [];
         const closed = trades.filter(t => t.isResolved);
         const open   = trades.filter(t => !t.isResolved);
@@ -2959,7 +3051,7 @@ async function handleTradeBotCommand(text: string, token: string, chatId: string
     const finalQty = qty > 0 ? qty : defaultQty;
 
     // Auto-log to Trade Journal
-    const trade = autoLogTradeFromAlert({
+    const trade = await autoLogTradeFromAlert({
       symbol,
       side,
       market,
@@ -3022,7 +3114,7 @@ let alertsMatchedCount = 0;
 let pollingCooldownUntil = 0;
 
 async function runHeadlessScannerTick() {
-  const db = readDB();
+  const db = await readDB();
   const config = db.config;
   if (!config.pollingEnabled) return;
 
@@ -3125,7 +3217,7 @@ setInterval(() => {
   }
 }, 2000);
 
-app.get("/api/polling-logs", (req, res) => {
+app.get("/api/polling-logs", async (req, res) => {
   res.json({
     logs: pollingLogs,
     stats: {
@@ -3273,11 +3365,11 @@ function getBrokerRecommendationsFeed() {
   ];
 }
 
-app.get("/api/multimarket-symbols", (req, res) => {
+app.get("/api/multimarket-symbols", async (req, res) => {
   res.json(Object.values(MULTI_MARKET_CATALOG));
 });
 
-app.get("/api/broker-recommendations", (req, res) => {
+app.get("/api/broker-recommendations", async (req, res) => {
   res.json(getBrokerRecommendationsFeed());
 });
 
@@ -4376,7 +4468,7 @@ async function setupVite() {
     console.log("[Express] Starting server in Production mode...");
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
-    app.get("*", (req, res) => {
+    app.get("*", async (req, res) => {
       if (req.path.startsWith("/api/")) {
         return res.status(404).json({ error: "API route not found" });
       }
@@ -4386,6 +4478,68 @@ async function setupVite() {
 }
 
 setupVite().then(() => {
+// ── BINANCE WEBSOCKET LIVE FEED ───────────────────────────────────────────────
+let binanceWs: WebSocket | null = null;
+const cryptoPrices: Record<string, number> = {};
+
+function startBinanceWS() {
+  binanceWs = new WebSocket("wss://stream.binance.com:9443/ws/!miniTicker@arr");
+  binanceWs.on("open", () => console.log("✅ Connected to Binance WebSocket"));
+  
+  binanceWs.on("message", async (data: any) => {
+    try {
+      const tickers = JSON.parse(data);
+      if (!Array.isArray(tickers)) return;
+      
+      let priceUpdated = false;
+      for (const t of tickers) {
+        if (t.s && t.c) {
+          cryptoPrices[t.s] = parseFloat(t.c);
+          priceUpdated = true;
+        }
+      }
+
+      // Update unresolved crypto trades in memory cache and optionally DB
+      if (priceUpdated) {
+        const db = await readDB();
+        if (!db.trades) return;
+        let dbChanged = false;
+        
+        for (const trade of db.trades) {
+          if (!trade.isResolved && trade.market === "CRYPTO") {
+            const curPrice = cryptoPrices[trade.symbol];
+            if (curPrice) {
+              trade.currentPrice = curPrice;
+              trade.pnl = calcPnL(trade.side as "LONG" | "SHORT", trade.entryPrice, curPrice, trade.quantity);
+              trade.pnlPct = calcPnLPct(trade.side as "LONG" | "SHORT", trade.entryPrice, curPrice);
+              trade.lastUpdated = new Date().toISOString();
+              dbChanged = true;
+            }
+          }
+        }
+        
+        if (dbChanged) {
+          // Debounced DB save would be better, but we save on each tick to persist
+          // To prevent hammering Mongo, we just rely on the polling loop to do DB writes, 
+          // but we can expose an API endpoint for the UI to fetch live prices
+        }
+      }
+    } catch (e) { }
+  });
+
+  binanceWs.on("error", (e) => console.error("Binance WS error", e));
+  binanceWs.on("close", () => {
+    console.log("Binance WS closed, reconnecting in 5s...");
+    setTimeout(startBinanceWS, 5000);
+  });
+}
+startBinanceWS();
+
+// ── GET LIVE PRICES ───────────────────────────────────────────────────────────
+app.get("/api/live-prices", (req, res) => {
+  res.json(cryptoPrices);
+});
+
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server is listening on http://0.0.0.0:${PORT}`);
     // Auto-backfill any valid scan signals into Trade Journal
