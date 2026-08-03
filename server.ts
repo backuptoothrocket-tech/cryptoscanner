@@ -4275,18 +4275,26 @@ app.get("/api/smc-report/:symbol", async (req, res) => {
     const distFromVwap = Math.abs(livePrice - vwap);
     const isOverextended = distFromVwap > atr14 * 2.5;
 
-    // --- Intraday Scoring Engine (25% SMC, 25% Vol, 20% OB/FVG, 15% 9/21 EMA, 10% VWAP, 5% Catalyst) ---
-    const intradayBreakdown = {
-      structure: 22,
-      volume: 23,
-      orderBlock: 18,
-      trendEma: 13,
-      relativeStrength: 9,
-      catalyst: 4,
-    };
-    const rawIntradayScore = Object.values(intradayBreakdown).reduce((a, b) => a + b, 0); // 89
-    const intradayScore = isOverextended ? 55 : rawIntradayScore;
-    const intradayQualified = intradayScore >= 85 && !isOverextended;
+    // --- Dynamic Trend & Confluence Evaluation ---
+    const isDownToday = livePrice < (meta2?.previousClose || meta.basePrice);
+    const changePct = meta2?.previousClose ? ((livePrice - meta2.previousClose) / meta2.previousClose) * 100 : 0;
+    const isBelowVwap = livePrice < vwap;
+    const isAtDailyLow = dailyLowFetched ? Math.abs(livePrice - dailyLowFetched) / livePrice < 0.003 : false;
+
+    // Evaluate Intraday Setup
+    let intradayScore = 85;
+    let intradayDisqualifyReason: string | undefined = undefined;
+
+    if (isDownToday && isBelowVwap) {
+      // Stock is down and trading below VWAP -> Intraday Bearish Downtrend!
+      intradayScore = Math.max(35, Math.round(75 + changePct * 4)); // Drop score significantly
+      intradayDisqualifyReason = `BEARISH DOWNTREND: Stock is down ${changePct.toFixed(2)}% today and trading below Session VWAP (${vwap}). Avoid buying falling knives without reversal structure!`;
+    } else if (isOverextended) {
+      intradayScore = 55;
+      intradayDisqualifyReason = "OVEREXTENDED: Intraday price is >2.5x ATR above VWAP. Do not chase high-risk entry!";
+    }
+
+    const intradayQualified = intradayScore >= 85 && !intradayDisqualifyReason;
 
     const intradaySl = parseFloat((livePrice - atr14 * 1.1).toFixed(livePrice > 100 ? 2 : 4));
     const intradayRisk = livePrice - intradaySl;
@@ -4294,17 +4302,22 @@ app.get("/api/smc-report/:symbol", async (req, res) => {
     const intradayTp2 = parseFloat((livePrice + intradayRisk * 2.2).toFixed(livePrice > 100 ? 2 : 4));
     const intradayRR = parseFloat(((intradayTp2 - livePrice) / intradayRisk).toFixed(1));
 
+    const intradayBreakdown = {
+      structure: isDownToday ? 10 : 22,
+      volume: 18,
+      orderBlock: isBelowVwap ? 8 : 18,
+      trendEma: isDownToday ? 5 : 13,
+      relativeStrength: isDownToday ? 4 : 9,
+      catalyst: 4,
+    };
+
     const intradaySetup = {
       mode: "INTRADAY" as const,
       productType: "MIS" as const,
       timeframe: "5m / 15m",
       score: intradayScore,
       status: (intradayQualified ? "QUALIFIED" : "DISQUALIFIED") as "QUALIFIED" | "DISQUALIFIED",
-      disqualificationReason: isOverextended
-        ? "OVEREXTENDED: Intraday price is >2.5x ATR above VWAP. Do not chase high-risk entry!"
-        : intradayScore < 85
-        ? "Score below required 85/100 threshold."
-        : undefined,
+      disqualificationReason: intradayDisqualifyReason,
       orderType: (intradayQualified ? "LIMIT BUY" : "DO NOT CHASE") as any,
       entryMin: parseFloat((livePrice * 0.998).toFixed(livePrice > 100 ? 2 : 4)),
       entryMax: livePrice,
@@ -4313,21 +4326,20 @@ app.get("/api/smc-report/:symbol", async (req, res) => {
       target2: intradayTp2,
       riskRewardRatio: intradayRR,
       formattedRiskReward: `1 : ${intradayRR}`,
-      keyCatalyst: "15m Bullish FVG Gap-Fill + Session VWAP Bounce + Volume Surge",
+      keyCatalyst: isDownToday ? "Intraday Bearish Momentum (Down Today)" : "15m Bullish FVG Gap-Fill + Session VWAP Bounce + Volume Surge",
       scoreBreakdown: intradayBreakdown
     };
 
-    // --- Swing Scoring Engine (20% SMC, 15% Vol, 20% OB, 20% 50/200 EMA, 15% Sector RS, 10% Catalyst) ---
-    const swingBreakdown = {
-      structure: 19,
-      volume: 14,
-      orderBlock: 19,
-      trendEma: 19,
-      relativeStrength: 14,
-      catalyst: 9,
-    };
-    const swingScore = Object.values(swingBreakdown).reduce((a, b) => a + b, 0); // 94
-    const swingQualified = swingScore >= 85;
+    // Evaluate Swing Setup
+    let swingScore = 90;
+    let swingDisqualifyReason: string | undefined = undefined;
+
+    if (changePct < -2.0) {
+      swingScore = 60;
+      swingDisqualifyReason = `MACRO DOWNTREND: Heavy selling pressure (${changePct.toFixed(2)}% drop today). Wait for 1D Order Block stabilization.`;
+    }
+
+    const swingQualified = swingScore >= 85 && !swingDisqualifyReason;
 
     const swingSl = parseFloat((livePrice - atr14 * 2.0).toFixed(livePrice > 100 ? 2 : 4));
     const swingRisk = livePrice - swingSl;
@@ -4335,12 +4347,22 @@ app.get("/api/smc-report/:symbol", async (req, res) => {
     const swingTp2 = parseFloat((livePrice + swingRisk * 3.5).toFixed(livePrice > 100 ? 2 : 4));
     const swingRR = parseFloat(((swingTp2 - livePrice) / swingRisk).toFixed(1));
 
+    const swingBreakdown = {
+      structure: isDownToday ? 10 : 19,
+      volume: 14,
+      orderBlock: 15,
+      trendEma: isDownToday ? 8 : 19,
+      relativeStrength: isDownToday ? 6 : 14,
+      catalyst: 8,
+    };
+
     const swingSetup = {
       mode: "SWING" as const,
       productType: "CNC/Delivery" as const,
       timeframe: "1H / Daily",
       score: swingScore,
       status: (swingQualified ? "QUALIFIED" : "DISQUALIFIED") as "QUALIFIED" | "DISQUALIFIED",
+      disqualificationReason: swingDisqualifyReason,
       orderType: (swingQualified ? "LIMIT BUY" : "DO NOT CHASE") as any,
       entryMin: parseFloat((livePrice * 0.993).toFixed(livePrice > 100 ? 2 : 4)),
       entryMax: livePrice,

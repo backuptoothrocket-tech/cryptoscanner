@@ -33,6 +33,11 @@ interface SMCReportProps {
 const PRESET_MARKETS = [
   { symbol: "RELIANCE.NS", name: "Reliance Industries", assetClass: "INDIAN_EQUITY" as const, flag: "🇮🇳" },
   { symbol: "TATAMOTORS.NS", name: "Tata Motors", assetClass: "INDIAN_EQUITY" as const, flag: "🇮🇳" },
+  { symbol: "TATASTEEL.NS", name: "Tata Steel", assetClass: "INDIAN_EQUITY" as const, flag: "🇮🇳" },
+  { symbol: "BHARTIARTL.NS", name: "Bharti Airtel", assetClass: "INDIAN_EQUITY" as const, flag: "🇮🇳" },
+  { symbol: "ICICIBANK.NS", name: "ICICI Bank", assetClass: "INDIAN_EQUITY" as const, flag: "🇮🇳" },
+  { symbol: "SBIN.NS", name: "State Bank of India", assetClass: "INDIAN_EQUITY" as const, flag: "🇮🇳" },
+  { symbol: "ZOMATO.NS", name: "Zomato Ltd", assetClass: "INDIAN_EQUITY" as const, flag: "🇮🇳" },
   { symbol: "NIFTY50.NS", name: "Nifty 50 Index", assetClass: "INDIAN_EQUITY" as const, flag: "🇮🇳" },
   { symbol: "BANKNIFTY.NS", name: "Nifty Bank Index", assetClass: "INDIAN_EQUITY" as const, flag: "🇮🇳" },
   { symbol: "TCS.NS", name: "Tata Consultancy", assetClass: "INDIAN_EQUITY" as const, flag: "🇮🇳" },
@@ -40,10 +45,12 @@ const PRESET_MARKETS = [
   { symbol: "HDFCBANK.NS", name: "HDFC Bank", assetClass: "INDIAN_EQUITY" as const, flag: "🇮🇳" },
   { symbol: "EURUSD", name: "EUR / USD", assetClass: "FOREX" as const, flag: "🌍" },
   { symbol: "GBPUSD", name: "GBP / USD", assetClass: "FOREX" as const, flag: "🌍" },
+  { symbol: "USDJPY", name: "USD / JPY", assetClass: "FOREX" as const, flag: "🌍" },
   { symbol: "XAUUSDT", name: "Gold Spot", assetClass: "FOREX" as const, flag: "🥇" },
   { symbol: "BTCUSDT", name: "Bitcoin", assetClass: "CRYPTO" as const, flag: "🪙" },
   { symbol: "ETHUSDT", name: "Ethereum", assetClass: "CRYPTO" as const, flag: "🪙" },
   { symbol: "SOLUSDT", name: "Solana", assetClass: "CRYPTO" as const, flag: "🪙" },
+  { symbol: "BNBUSDT", name: "Binance Coin", assetClass: "CRYPTO" as const, flag: "🪙" },
 ];
 
 function ScoreRing({ score }: { score: number }) {
