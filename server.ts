@@ -1470,6 +1470,62 @@ app.get("/api/trades/pnl-account", async (req, res) => {
   });
 });
 
+// GET Self-Learning Quantitative Strategy Analytics
+app.get("/api/self-learning", async (req, res) => {
+  const db = await readDB();
+  const trades = db.trades || [];
+  const logs = db.logs || [];
+
+  const resolvedTrades = trades.filter(t => t.isResolved || ["SL_HIT", "TP1_HIT", "TP2_HIT"].includes(t.status || ""));
+
+  const winners = resolvedTrades.filter(t => ["TP1_HIT", "TP2_HIT"].includes(t.status || t.resolvedStatus || ""));
+  const losers = resolvedTrades.filter(t => (t.status || t.resolvedStatus) === "SL_HIT");
+
+  // Group by symbol
+  const symbolStats: Record<string, { symbol: string; trades: number; wins: number; losses: number; pnl: number }> = {};
+  for (const t of resolvedTrades) {
+    const sym = t.symbol || "UNKNOWN";
+    if (!symbolStats[sym]) symbolStats[sym] = { symbol: sym, trades: 0, wins: 0, losses: 0, pnl: 0 };
+    symbolStats[sym].trades += 1;
+    if (["TP1_HIT", "TP2_HIT"].includes(t.status || t.resolvedStatus || "")) symbolStats[sym].wins += 1;
+    else if ((t.status || t.resolvedStatus) === "SL_HIT") symbolStats[sym].losses += 1;
+    symbolStats[sym].pnl += (t.pnl || 0);
+  }
+
+  const symbolList = Object.values(symbolStats).map(s => ({
+    ...s,
+    winRate: s.trades > 0 ? Math.round((s.wins / s.trades) * 100) : 0,
+    pnl: Math.round(s.pnl)
+  })).sort((a, b) => b.winRate - a.winRate);
+
+  const topSymbols = symbolList.slice(0, 3);
+  const worstSymbols = symbolList.slice(-3).reverse();
+
+  // Recommendations based on statistical evidence
+  const optimizations: string[] = [];
+  const winRate = (winners.length + losers.length) > 0 ? Math.round((winners.length / (winners.length + losers.length)) * 100) : 0;
+
+  if (winRate < 60) {
+    optimizations.push("Increase minimum Weighted Confidence Score cutoff from 65 to 75 to filter out weak B-tier setups.");
+    optimizations.push("Enforce strict Volume Expansion > 1.5x 20MA to avoid low-liquidity slippage.");
+    optimizations.push("Require at least 2 Smart Money Concept (SMC) confirmations (BOS, CHOCH, FVG, OB) before entry.");
+  } else {
+    optimizations.push("Current 110-point weighted scoring parameters are operating at high statistical win rate.");
+    optimizations.push("Maintain 1% risk per trade with dynamic ATR trailing stops after TP1.");
+  }
+
+  res.json({
+    totalAnalyzed: resolvedTrades.length,
+    winnersCount: winners.length,
+    losersCount: losers.length,
+    winRatePct: winRate,
+    topSymbols,
+    worstSymbols,
+    optimizations
+  });
+
+});
+
 // ─── BATCH LIVE PRICE FETCHING ENGINE ─────────────────────────────────────────
 const livePriceCache: Record<string, { price: number; change: number; changePct: number; timestamp: number }> = {};
 
