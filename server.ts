@@ -15,7 +15,7 @@ if (!process.env.NODE_ENV) {
 
 const app = express();
 const PORT = parseInt(process.env.PORT || "5000", 10);
-await connectDatabase();
+connectDatabase().catch(err => console.error("Database connection error:", err));
 const DB_FILE = path.join(process.cwd(), "db.json");
 
 interface TraderEvaluation {
