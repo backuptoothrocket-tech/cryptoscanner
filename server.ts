@@ -5,6 +5,7 @@ import { OpenAI } from "openai";
 import WebSocket from "ws";
 import { Config, Log, Trade, connectDatabase } from "./src/models/Database.js";
 import { calcPnL, calcPnLPct, formatPrecision, calculateCryptoPositionSize, calculateForexLots, isMarginSafe } from "./src/utils/precisionMath.js";
+import { initNSESwingEngine, registerNSESwingRoutes, startNSESwingScheduler } from "./nse_swing_engine.js";
 
 // Programmatic environment detection
 if (!process.env.NODE_ENV) {
@@ -4276,8 +4277,9 @@ app.get("/api/smc-report/:symbol", async (req, res) => {
     const isOverextended = distFromVwap > atr14 * 2.5;
 
     // --- Dynamic Trend & Confluence Evaluation ---
-    const isDownToday = livePrice < (meta2?.previousClose || meta.basePrice);
-    const changePct = meta2?.previousClose ? ((livePrice - meta2.previousClose) / meta2.previousClose) * 100 : 0;
+    const prevClose = (meta as any)?.previousClose;
+    const isDownToday = livePrice < (prevClose || meta.basePrice);
+    const changePct = prevClose ? ((livePrice - prevClose) / prevClose) * 100 : 0;
     const isBelowVwap = livePrice < vwap;
     const isAtDailyLow = dailyLowFetched ? Math.abs(livePrice - dailyLowFetched) / livePrice < 0.003 : false;
 
@@ -4704,5 +4706,23 @@ app.get("/api/live-prices", (req, res) => {
     startTradeMonitorDaemon();
     // Start Telegram bot /trade command listener
     startTelegramBotListener();
+    // ── NSE Institutional Swing Research Engine ──
+    initNSESwingEngine({
+      nseGet,
+      sendTelegramNotification,
+      getLivePricesBatch,
+      readDB,
+      catalog: ANGEL_ONE_NSE_CATALOG,
+      calculateLatestEMA,
+      calculateLatestRSI,
+      calculateLatestMACD,
+      calculateATR,
+      calculateADX,
+      calculateOBVTrend,
+      detectMarketStructure,
+    });
+    registerNSESwingRoutes(app);
+    startNSESwingScheduler();
+    console.log("[NSE-SWING] ✅ NSE Institutional Swing Engine registered & scheduler active");
   });
 });

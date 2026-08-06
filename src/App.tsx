@@ -12,6 +12,7 @@ import TopPicks from "./components/TopPicks";
 import SMCReportView from "./components/SMCReport";
 import IndiaMarket from "./components/IndiaMarket";
 import CryptoMarket from "./components/CryptoMarket";
+import NSESwingDashboard from "./components/NSESwingDashboard";
 import ForexMarket from "./components/ForexMarket";
 import TradeJournal from "./components/TradeJournal";
 import {
@@ -19,11 +20,12 @@ import {
   TrendingUp, Activity, Send, RefreshCw, Zap, Shield, Target, IndianRupee, BookOpen, Coins, Globe
 } from "lucide-react";
 
-type TabId = "smc" | "india" | "crypto" | "forex" | "journal" | "dashboard" | "config" | "backtest" | "polling" | "code";
+type TabId = "smc" | "india" | "nseswing" | "crypto" | "forex" | "journal" | "dashboard" | "config" | "backtest" | "polling" | "code";
 
 const NAV_ITEMS: { id: TabId; label: string; icon: React.FC<any>; badge?: string }[] = [
   { id: "smc",       label: "SMC Analyzer", icon: Target },
   { id: "india",     label: "India Stocks", icon: IndianRupee },
+  { id: "nseswing",  label: "NSE Swing AI", icon: Zap, badge: "NEW" },
   { id: "crypto",    label: "Crypto Hub",   icon: Coins },
   { id: "forex",     label: "Forex & Gold", icon: Globe },
   { id: "journal",   label: "Trade Journal",icon: BookOpen, badge: "AUTO" },
@@ -355,6 +357,13 @@ export default function App() {
                 setSmcSymbol(sym);
                 setActiveTab("smc");
               }} />
+            </div>
+          )}
+
+          {/* ── NSE INSTITUTIONAL SWING ENGINE ── */}
+          {activeTab === "nseswing" && (
+            <div className="animate-fade-slide" style={{ height: "100%" }}>
+              <NSESwingDashboard />
             </div>
           )}
 
