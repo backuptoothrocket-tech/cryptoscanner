@@ -102,6 +102,9 @@ async function apiDeleteTrade(id: string): Promise<void> {
 async function apiClearResolved(): Promise<void> {
   try { await fetch("/api/trades/resolved/all", { method: "DELETE" }); } catch {}
 }
+async function apiClearAll(): Promise<void> {
+  try { await fetch("/api/trades/all", { method: "DELETE" }); } catch {}
+}
 async function apiManualSend(trade: Trade): Promise<{ success: boolean; error?: string }> {
   try {
     const r = await fetch("/api/telegram/send-trade", {
@@ -438,6 +441,8 @@ export default function TradeJournal({ onNavigateToSMC }: Props) {
   const [filter, setFilter]         = useState<"OPEN" | "CLOSED" | "ALL">("OPEN");
   const [loading, setLoading]       = useState(true);
   const [pnlAccount, setPnlAccount] = useState<PnlAccount | null>(null);
+  const [marketFocus, setMarketFocus] = useState<"INDIAN_EQUITY" | "CRYPTO" | "FOREX" | "ALL">("INDIAN_EQUITY");
+  const [clearingAll, setClearingAll] = useState(false);
 
   // Read capital config shared with SMCReport widget
   const savedCapital  = parseFloat(localStorage.getItem("capital_value")    || "100");
@@ -545,14 +550,31 @@ export default function TradeJournal({ onNavigateToSMC }: Props) {
     a.click();
   };
 
-  const openTrades   = trades.filter(t => !t.isResolved);
-  const closedTrades = trades.filter(t => t.isResolved);
-  const displayed    = filter === "OPEN" ? openTrades : filter === "CLOSED" ? closedTrades : trades;
+  const marketTrades  = marketFocus === "ALL" ? trades : trades.filter(t => t.market === marketFocus);
+  const openTrades   = marketTrades.filter(t => !t.isResolved);
+  const closedTrades = marketTrades.filter(t => t.isResolved);
+  const displayed    = filter === "OPEN" ? openTrades : filter === "CLOSED" ? closedTrades : marketTrades;
 
   const FILTERS = [
     { key: "OPEN"   as const, label: `📊 Open (${openTrades.length})` },
     { key: "CLOSED" as const, label: `🏁 Closed (${closedTrades.length})` },
-    { key: "ALL"    as const, label: `All (${trades.length})` },
+    { key: "ALL"    as const, label: `All (${marketTrades.length})` },
+  ];
+
+  const clearAll = async () => {
+    if (!window.confirm("⚠️ This will permanently delete ALL trade journal records. Are you sure?")) return;
+    setClearingAll(true);
+    await apiClearAll();
+    setTrades([]);
+    setPnlAccount(null);
+    setClearingAll(false);
+  };
+
+  const MARKET_TABS: { key: typeof marketFocus; label: string; color: string }[] = [
+    { key: "INDIAN_EQUITY", label: "🇮🇳 India NSE",  color: "#10b981" },
+    { key: "CRYPTO",        label: "₿ Crypto",       color: "#f59e0b" },
+    { key: "FOREX",         label: "💱 Forex",        color: "#06b6d4" },
+    { key: "ALL",           label: "🌐 All Markets",  color: "#8b5cf6" },
   ];
 
   if (loading) return (
@@ -570,16 +592,16 @@ export default function TradeJournal({ onNavigateToSMC }: Props) {
       {/* ── Header ── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg,#06b6d4,#3b82f6)", boxShadow: "0 0 20px rgba(6,182,212,0.25)" }}>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg,#10b981,#06b6d4)", boxShadow: "0 0 20px rgba(16,185,129,0.25)" }}>
             <BookOpen className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-white">Signal Performance Tracker</h2>
-            <p className="text-[10px] text-slate-500">Auto-records every trade the app sends to Telegram · Tracks if it was a WIN or LOSS · No manual input needed</p>
+            <h2 className="text-sm font-bold text-white">NSE India Signal Performance Tracker</h2>
+            <p className="text-[10px] text-slate-500">Auto-records every Indian equity swing trade the app sends to Telegram · Tracks WIN / LOSS · No manual input needed</p>
           </div>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/10 border border-green-500/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-            <span className="text-[10px] font-bold text-green-400">AUTO TRACKING LIVE</span>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-[10px] font-bold text-emerald-400">NSE TRACKING LIVE</span>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -593,6 +615,11 @@ export default function TradeJournal({ onNavigateToSMC }: Props) {
             </button>
           )}
           {trades.length > 0 && (
+            <button onClick={clearAll} disabled={clearingAll} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold cursor-pointer" style={{ background: "rgba(239,68,68,0.12)", color: "#fca5a5", border: "1px solid rgba(239,68,68,0.3)" }}>
+              <Trash2 className="w-3 h-3" />{clearingAll ? "Clearing…" : "Clear ALL Records"}
+            </button>
+          )}
+          {trades.length > 0 && (
             <button onClick={exportCSV} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold cursor-pointer" style={{ background: "rgba(255,255,255,0.04)", color: "#64748b", border: "1px solid rgba(255,255,255,0.08)" }}>
               <Download className="w-3 h-3" /> Export CSV
             </button>
@@ -601,6 +628,27 @@ export default function TradeJournal({ onNavigateToSMC }: Props) {
             <PlusCircle className="w-3.5 h-3.5" /> Manual Add
           </button>
         </div>
+      </div>
+
+      {/* ── Market Focus Switcher ── */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-1">📌 Market Focus:</span>
+        {MARKET_TABS.map(m => (
+          <button key={m.key} onClick={() => setMarketFocus(m.key)}
+            className="px-3 py-1.5 rounded-xl text-[10px] font-black transition-all cursor-pointer"
+            style={marketFocus === m.key
+              ? { background: m.color + "25", color: m.color, border: `1.5px solid ${m.color}50`, boxShadow: `0 0 12px ${m.color}20` }
+              : { background: "rgba(255,255,255,0.03)", color: "#475569", border: "1px solid rgba(255,255,255,0.07)" }
+            }>
+            {m.label}
+            {m.key !== "ALL" && (
+              <span className="ml-1 opacity-60">({trades.filter(t => t.market === m.key).length})</span>
+            )}
+          </button>
+        ))}
+        {marketFocus !== "ALL" && (
+          <span className="text-[9px] text-slate-600 ml-1">Showing only {marketFocus.replace("_", " ")} trades</span>
+        )}
       </div>
 
       {/* ── P&L Account Dashboard Card ── */}

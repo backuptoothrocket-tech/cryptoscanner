@@ -169,36 +169,6 @@ export async function connectDatabase() {
   try {
     await mongoose.connect(uri);
     console.log("✅ Successfully connected to MongoDB Atlas");
-    
-    // Fallback Mock Seed Data if Trade collection is empty
-    const count = await Trade.countDocuments();
-    if (count === 0) {
-      console.log("No trades found, seeding with fallback mock data...");
-      await Trade.create({
-        id: "mock_trade_1",
-        symbol: "BTCUSDT",
-        market: "CRYPTO",
-        side: "LONG",
-        entryPrice: 65000,
-        quantity: 0.1,
-        sl: 63000,
-        tp1: 68000,
-        tp2: 70000,
-        entryDate: new Date().toISOString(),
-        notes: "Mock initial trade to ensure journal structure.",
-        isResolved: false,
-        history: [{
-          timestamp: new Date().toISOString(),
-          status: "HOLDING",
-          price: 65000,
-          pnl: 0,
-          pnlPct: 0,
-          telegramSent: false,
-          note: "Trade Created"
-        }]
-      });
-      console.log("✅ Seed data inserted.");
-    }
   } catch (error) {
     console.error("❌ MongoDB connection error:", error);
     process.exit(1);

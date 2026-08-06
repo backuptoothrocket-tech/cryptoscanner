@@ -1423,22 +1423,41 @@ ${verdict}${existing.notes ? `\n\n📝 <i>${existing.notes}</i>` : ""}
 
 // DELETE one trade
 app.delete("/api/trades/:id", async (req, res) => {
-  const db = await readDB();
-  if (!db.trades) db.trades = [];
-  const before = db.trades.length;
-  db.trades = db.trades.filter(t => t.id !== req.params.id);
-  await writeDB(db);
-  res.json({ success: true, removed: before - db.trades.length });
+  try {
+    await Trade.deleteOne({ id: req.params.id });
+    const db = await readDB();
+    if (!db.trades) db.trades = [];
+    const before = db.trades.length;
+    db.trades = db.trades.filter(t => t.id !== req.params.id);
+    res.json({ success: true, removed: before - db.trades.length });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message || "Failed to delete trade" });
+  }
 });
 
 // DELETE all resolved/completed trades (cleanup)
 app.delete("/api/trades/resolved/all", async (req, res) => {
-  const db = await readDB();
-  if (!db.trades) db.trades = [];
-  const before = db.trades.length;
-  db.trades = db.trades.filter(t => !t.isResolved);
-  await writeDB(db);
-  res.json({ success: true, removed: before - db.trades.length });
+  try {
+    const deleted = await Trade.deleteMany({ isResolved: true });
+    const db = await readDB();
+    if (!db.trades) db.trades = [];
+    db.trades = db.trades.filter(t => !t.isResolved);
+    res.json({ success: true, removed: deleted.deletedCount || 0 });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message || "Failed to clear resolved trades" });
+  }
+});
+
+// DELETE ALL trade records from PnL Journal
+app.delete("/api/trades/all", async (req, res) => {
+  try {
+    await Trade.deleteMany({});
+    const db = await readDB();
+    db.trades = [];
+    res.json({ success: true, message: "All trade journal records successfully cleared." });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message || "Failed to clear trade journal" });
+  }
 });
 
 // GET P&L Account Summary & Performance Stats
@@ -1710,6 +1729,12 @@ async function autoLogTradeFromAlert(tradeData: {
   if (openTrades.length >= MAX_OPEN_TRADES) return null;
 
   const market = tradeData.market || (rawSymb === "XAUUSDT" || rawSymb === "XAGUSDT" ? "FOREX" : rawSymb.endsWith(".NS") ? "INDIAN_EQUITY" : rawSymb.endsWith("USDT") ? "CRYPTO" : "FOREX");
+
+  // Enforce Indian market trades only
+  if (market !== "INDIAN_EQUITY" && !rawSymb.endsWith(".NS")) {
+    console.log(`[TRADE-FILTER] 🛑 Skipping non-Indian market trade: ${rawSymb} (${market})`);
+    return null;
+  }
 
   // Prevent duplicate open trades for exact same symbol
   const existing = dbToUse.trades.find(t => t.symbol === rawSymb && !t.isResolved);

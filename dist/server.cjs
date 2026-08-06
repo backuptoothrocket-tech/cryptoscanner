@@ -116,34 +116,6 @@ async function connectDatabase() {
   try {
     await import_mongoose.default.connect(uri);
     console.log("\u2705 Successfully connected to MongoDB Atlas");
-    const count = await Trade.countDocuments();
-    if (count === 0) {
-      console.log("No trades found, seeding with fallback mock data...");
-      await Trade.create({
-        id: "mock_trade_1",
-        symbol: "BTCUSDT",
-        market: "CRYPTO",
-        side: "LONG",
-        entryPrice: 65e3,
-        quantity: 0.1,
-        sl: 63e3,
-        tp1: 68e3,
-        tp2: 7e4,
-        entryDate: (/* @__PURE__ */ new Date()).toISOString(),
-        notes: "Mock initial trade to ensure journal structure.",
-        isResolved: false,
-        history: [{
-          timestamp: (/* @__PURE__ */ new Date()).toISOString(),
-          status: "HOLDING",
-          price: 65e3,
-          pnl: 0,
-          pnlPct: 0,
-          telegramSent: false,
-          note: "Trade Created"
-        }]
-      });
-      console.log("\u2705 Seed data inserted.");
-    }
   } catch (error) {
     console.error("\u274C MongoDB connection error:", error);
     process.exit(1);
@@ -2243,20 +2215,37 @@ ${verdict}${existing.notes ? `
   res.json({ success: true, trade: updated, telegramSent, statusChanged });
 });
 app.delete("/api/trades/:id", async (req, res) => {
-  const db = await readDB();
-  if (!db.trades) db.trades = [];
-  const before = db.trades.length;
-  db.trades = db.trades.filter((t) => t.id !== req.params.id);
-  await writeDB(db);
-  res.json({ success: true, removed: before - db.trades.length });
+  try {
+    await Trade.deleteOne({ id: req.params.id });
+    const db = await readDB();
+    if (!db.trades) db.trades = [];
+    const before = db.trades.length;
+    db.trades = db.trades.filter((t) => t.id !== req.params.id);
+    res.json({ success: true, removed: before - db.trades.length });
+  } catch (e) {
+    res.status(500).json({ error: e.message || "Failed to delete trade" });
+  }
 });
 app.delete("/api/trades/resolved/all", async (req, res) => {
-  const db = await readDB();
-  if (!db.trades) db.trades = [];
-  const before = db.trades.length;
-  db.trades = db.trades.filter((t) => !t.isResolved);
-  await writeDB(db);
-  res.json({ success: true, removed: before - db.trades.length });
+  try {
+    const deleted = await Trade.deleteMany({ isResolved: true });
+    const db = await readDB();
+    if (!db.trades) db.trades = [];
+    db.trades = db.trades.filter((t) => !t.isResolved);
+    res.json({ success: true, removed: deleted.deletedCount || 0 });
+  } catch (e) {
+    res.status(500).json({ error: e.message || "Failed to clear resolved trades" });
+  }
+});
+app.delete("/api/trades/all", async (req, res) => {
+  try {
+    await Trade.deleteMany({});
+    const db = await readDB();
+    db.trades = [];
+    res.json({ success: true, message: "All trade journal records successfully cleared." });
+  } catch (e) {
+    res.status(500).json({ error: e.message || "Failed to clear trade journal" });
+  }
 });
 app.get("/api/trades/pnl-account", async (req, res) => {
   const db = await readDB();
@@ -2472,6 +2461,10 @@ async function autoLogTradeFromAlert(tradeData, db) {
   const openTrades = dbToUse.trades.filter((t) => !t.isResolved);
   if (openTrades.length >= MAX_OPEN_TRADES) return null;
   const market = tradeData.market || (rawSymb === "XAUUSDT" || rawSymb === "XAGUSDT" ? "FOREX" : rawSymb.endsWith(".NS") ? "INDIAN_EQUITY" : rawSymb.endsWith("USDT") ? "CRYPTO" : "FOREX");
+  if (market !== "INDIAN_EQUITY" && !rawSymb.endsWith(".NS")) {
+    console.log(`[TRADE-FILTER] \u{1F6D1} Skipping non-Indian market trade: ${rawSymb} (${market})`);
+    return null;
+  }
   const existing = dbToUse.trades.find((t) => t.symbol === rawSymb && !t.isResolved);
   if (existing) return existing;
   const riskAmt = DEFAULT_USER_CAPITAL_USD * DEFAULT_TRADE_RISK_PCT;
