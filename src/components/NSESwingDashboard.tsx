@@ -91,6 +91,24 @@ interface ScanResult {
   noSignalReason?: string;
 }
 
+interface MorningSignalStatus {
+  symbol: string;
+  name: string;
+  nightlySignal: SwingSignal;
+  livePrice945: number;
+  gapPct: number;
+  status: "CONFIRMED_IN_ZONE" | "GAP_UP_WAIT" | "GAP_DOWN_HOLD" | "INVALIDATED_BELOW_SL" | "T1_REACHED_SKIP";
+  actionText: string;
+}
+
+interface MorningScanResult {
+  runAt: string;
+  marketRegime945: MarketRegime;
+  signalStatuses: MorningSignalStatus[];
+  changeOfPlan: boolean;
+  changeOfPlanReason: string;
+}
+
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 const fmtINR = (n: number) =>
@@ -493,6 +511,9 @@ export default function NSESwingDashboard() {
   const [activeTab, setActiveTab] = useState<"signals" | "sectors" | "history">("signals");
   const [pollTimer, setPollTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
 
+  const [morningResult, setMorningResult] = useState<MorningScanResult | null>(null);
+  const [runningMorningScan, setRunningMorningScan] = useState(false);
+
   const fetchLastResult = useCallback(async () => {
     try {
       const r = await fetch("/api/nse-swing/last-result");
@@ -504,6 +525,7 @@ export default function NSESwingDashboard() {
         if (d.result.sectorScores?.length) setSectorScores(d.result.sectorScores);
         setLastScanTime(d.result.runAt);
       }
+      if (d.morningResult) setMorningResult(d.morningResult);
       if (Array.isArray(d.history)) setHistory(d.history);
     } catch {}
   }, []);
@@ -573,6 +595,21 @@ export default function NSESwingDashboard() {
     }
   };
 
+  const runMorningScan = async () => {
+    setRunningMorningScan(true);
+    try {
+      const r = await fetch("/api/nse-swing/run-morning-scan", { method: "POST" });
+      const d = await r.json();
+      if (d.result) {
+        setMorningResult(d.result);
+      }
+    } catch (e: any) {
+      setScanError(e?.message || "Morning scan failed");
+    } finally {
+      setRunningMorningScan(false);
+    }
+  };
+
   const signals = scanResult?.signals || [];
   const noSignalReason = scanResult?.noSignalReason;
   const totalScanned = scanResult?.totalScanned || 0;
@@ -593,29 +630,43 @@ export default function NSESwingDashboard() {
                 <h1 className="text-2xl font-black text-white">NSE Swing Research Engine</h1>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-black tracking-widest border"
                   style={{ color: "#10b981", background: "rgba(16,185,129,0.1)", borderColor: "rgba(16,185,129,0.2)" }}>
-                  INSTITUTIONAL AI
+                  TOP 3 SWING + 9:45 AM LIVE SCAN
                 </span>
               </div>
               <p className="text-sm text-slate-500">
-                Multi-source data engine · Nifty EMA · FII/DII flow · SMC · Score ≥90 only · Nightly 12:00 AM IST
+                Nightly 12:00 AM IST Top 3 Picks · Morning 9:45 AM Strategy & Change of Plan Telegram Scan
               </p>
             </div>
             <div className="flex flex-col items-end gap-2">
-              <button id="nse-swing-scan-btn" onClick={runScan} disabled={scanning}
-                className="flex items-center gap-2 rounded-xl font-bold text-sm transition-all"
-                style={{
-                  padding: "10px 22px",
-                  background: scanning ? "rgba(16,185,129,0.1)" : "linear-gradient(135deg, #10b981, #06b6d4)",
-                  color: scanning ? "#10b981" : "#fff",
-                  border: "1px solid rgba(16,185,129,0.3)",
-                  cursor: scanning ? "not-allowed" : "pointer",
-                }}>
-                {scanning
-                  ? <><RefreshCw className="w-4 h-4 animate-spin" /> Scanning NSE…</>
-                  : <><Zap className="w-4 h-4" /> Run Scan Now</>}
-              </button>
+              <div className="flex items-center gap-2">
+                <button id="nse-swing-morning-btn" onClick={runMorningScan} disabled={runningMorningScan}
+                  className="flex items-center gap-2 rounded-xl font-bold text-xs transition-all"
+                  style={{
+                    padding: "9px 16px",
+                    background: "rgba(245,158,11,0.1)",
+                    color: "#f59e0b",
+                    border: "1px solid rgba(245,158,11,0.3)",
+                    cursor: runningMorningScan ? "not-allowed" : "pointer",
+                  }}>
+                  {runningMorningScan ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Clock className="w-3.5 h-3.5" />}
+                  Run 9:45 AM Morning Scan
+                </button>
+                <button id="nse-swing-scan-btn" onClick={runScan} disabled={scanning}
+                  className="flex items-center gap-2 rounded-xl font-bold text-sm transition-all"
+                  style={{
+                    padding: "10px 22px",
+                    background: scanning ? "rgba(16,185,129,0.1)" : "linear-gradient(135deg, #10b981, #06b6d4)",
+                    color: scanning ? "#10b981" : "#fff",
+                    border: "1px solid rgba(16,185,129,0.3)",
+                    cursor: scanning ? "not-allowed" : "pointer",
+                  }}>
+                  {scanning
+                    ? <><RefreshCw className="w-4 h-4 animate-spin" /> Scanning NSE…</>
+                    : <><Zap className="w-4 h-4" /> Run 12 AM Nightly Scan</>}
+                </button>
+              </div>
               <div className="flex items-center gap-3 text-xs text-slate-500">
-                {lastScanTime && <span>Last: {fmtIST(lastScanTime)}</span>}
+                {lastScanTime && <span>Last Nightly: {fmtIST(lastScanTime)}</span>}
                 {nextScanIn && <span>Next: <span style={{ color: "#10b981", fontWeight: 700 }}>{nextScanIn}</span></span>}
               </div>
             </div>
@@ -677,6 +728,53 @@ export default function NSESwingDashboard() {
           {/* ─── Signals Tab ─────────────────────────────────────────────── */}
           {activeTab === "signals" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {/* 🌅 9:45 AM Morning Scan Banner */}
+              {morningResult && (
+                <div className="rounded-2xl p-4 border border-amber-500/30" style={{ background: "rgba(245,158,11,0.06)" }}>
+                  <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-amber-400" />
+                      <h4 className="text-sm font-bold text-amber-400">🌅 9:45 AM Morning Strategy & Change of Plan Status</h4>
+                    </div>
+                    <span className="text-xs text-slate-400 font-mono">Run: {fmtIST(morningResult.runAt)}</span>
+                  </div>
+
+                  {morningResult.changeOfPlan && (
+                    <div className="flex items-center gap-2 text-xs font-bold text-red-400 bg-red-500/10 p-2.5 rounded-lg border border-red-500/20 mb-3">
+                      <AlertTriangle className="w-4 h-4 shrink-0" />
+                      <span>{morningResult.changeOfPlanReason}</span>
+                    </div>
+                  )}
+
+                  {morningResult.signalStatuses.length > 0 && (
+                    <div className="space-y-2 mt-2">
+                      {morningResult.signalStatuses.map(s => {
+                        const isGood = s.status === "CONFIRMED_IN_ZONE";
+                        const isWait = s.status === "GAP_UP_WAIT";
+                        const isBad  = s.status === "INVALIDATED_BELOW_SL" || s.status === "T1_REACHED_SKIP";
+                        const color  = isGood ? "#10b981" : isWait ? "#f59e0b" : isBad ? "#ef4444" : "#94a3b8";
+                        return (
+                          <div key={s.symbol} className="flex items-center justify-between text-xs rounded-xl p-3 border border-white/[0.04]"
+                            style={{ background: "rgba(255,255,255,0.02)" }}>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="font-bold text-white truncate">{s.name}</span>
+                              <code className="text-[10px] text-cyan-400 font-mono">{s.symbol.replace(".NS", "")}</code>
+                            </div>
+                            <div className="flex items-center gap-4 shrink-0">
+                              <span className="font-mono text-slate-300">Live 9:45 AM: {fmtINR(s.livePrice945)}</span>
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold border"
+                                style={{ color, backgroundColor: color + "15", borderColor: color + "30" }}>
+                                {s.status.replace(/_/g, " ")}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {signals.length === 0 ? (
                 <div className="rounded-2xl border border-white/[0.06] p-12 text-center"
                   style={{ background: "rgba(255,255,255,0.02)" }}>

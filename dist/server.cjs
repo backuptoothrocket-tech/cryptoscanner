@@ -205,6 +205,7 @@ function isMarginSafe(positionMarginUsd, capitalUsd) {
 
 // nse_swing_engine.ts
 var lastResult = null;
+var lastMorningResult = null;
 var scanHistory = [];
 var scanRunning = false;
 var marketCache = null;
@@ -840,17 +841,151 @@ async function runNightlyNSEScan() {
     scanRunning = false;
   }
 }
+function fmtMorningReport(res) {
+  const dt = (/* @__PURE__ */ new Date()).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "numeric" });
+  const fmt = (n) => "\u20B9" + n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  let text = `\u{1F305} <b>NSE MORNING STRATEGY & CHANGE OF PLAN REPORT</b>
+`;
+  text += `\u{1F4C5} <b>Date: ${dt} | Time: 9:45 AM IST</b>
+
+`;
+  text += `\u{1F4CA} <b>Nifty 50:</b> ${res.marketRegime945.nifty50Price} (${res.marketRegime945.nifty50Change >= 0 ? "+" : ""}${res.marketRegime945.nifty50Change}%) \xB7 VIX: ${res.marketRegime945.vix.toFixed(1)}
+`;
+  if (res.changeOfPlan) {
+    text += `
+\u{1F6A8} <b>CHANGE OF PLAN NOTICE:</b>
+<b>${res.changeOfPlanReason}</b>
+
+`;
+  }
+  if (!res.signalStatuses.length) {
+    text += `
+\u2139\uFE0F <i>No pending swing trades were active from midnight scan.</i>
+`;
+  } else {
+    text += `
+<b>\u2501\u2501\u2501\u2501 9:45 AM TRADE RE-EVALUATION (TOP 3) \u2501\u2501\u2501\u2501</b>
+
+`;
+    for (const s of res.signalStatuses) {
+      const sig = s.nightlySignal;
+      const statusEmoji = s.status === "CONFIRMED_IN_ZONE" ? "\u{1F7E2} <b>CONFIRMED IN ENTRY ZONE</b>" : s.status === "GAP_UP_WAIT" ? "\u26A0\uFE0F <b>GAP UP \u2014 DO NOT CHASE</b>" : s.status === "INVALIDATED_BELOW_SL" ? "\u{1F6D1} <b>TRADE CANCELLED</b>" : s.status === "T1_REACHED_SKIP" ? "\u{1F680} <b>TARGET 1 REACHED</b>" : "\u{1F535} <b>HOLD / WATCHING</b>";
+      text += `\u{1F537} <b>${sig.name}</b> (<code>${sig.symbol.replace(".NS", "")}</code>)
+`;
+      text += `\u2022 Status: ${statusEmoji}
+`;
+      text += `\u2022 Live 9:45 AM Price: <code>${fmt(s.livePrice945)}</code> (Gap: ${s.gapPct >= 0 ? "+" : ""}${s.gapPct.toFixed(2)}%)
+`;
+      text += `\u2022 Entry Zone: <code>${fmt(sig.entryZoneLow)} \u2013 ${fmt(sig.entryZoneHigh)}</code>
+`;
+      text += `\u2022 Action: <i>${s.actionText}</i>
+
+`;
+    }
+  }
+  text += `\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
+\u{1F916} <i>NSE Institutional Swing Research Engine \xB7 9:45 AM Live Scan</i>`;
+  return text.trim();
+}
+async function runMorningNSEScan() {
+  const t0 = Date.now();
+  console.log("[NSE-SWING] \u{1F305} Starting 9:45 AM Morning Scan...");
+  const regime945 = await analyzeNSEMarketRegime();
+  if (!lastResult || !lastResult.signals) {
+    try {
+      await runNightlyNSEScan();
+    } catch {
+    }
+  }
+  const signals = lastResult?.signals || [];
+  const statuses = [];
+  let changeOfPlan = false;
+  let changeOfPlanReason = "";
+  if (!regime945.marketOk || regime945.vixLevel === "high") {
+    changeOfPlan = true;
+    changeOfPlanReason = `Morning market volatility spike (VIX: ${regime945.vix.toFixed(1)}). Exercise high caution before executing new buys today.`;
+  }
+  if (signals.length > 0) {
+    const syms = signals.map((s) => s.symbol);
+    const livePrices = await _getLivePrices(syms);
+    for (const sig of signals) {
+      const symKey = sig.symbol;
+      const pd = livePrices[symKey] || { price: sig.currentPrice, change: 0 };
+      const liveP = pd.price > 0 ? pd.price : sig.currentPrice;
+      const gapPct = sig.currentPrice > 0 ? (liveP - sig.currentPrice) / sig.currentPrice * 100 : 0;
+      let status = "CONFIRMED_IN_ZONE";
+      let actionText = "";
+      if (liveP < sig.stopLoss) {
+        status = "INVALIDATED_BELOW_SL";
+        actionText = "Price dropped below Stop Loss at open. Trade is CANCELLED. Do not enter.";
+        changeOfPlan = true;
+        changeOfPlanReason = `Stock ${sig.symbol.replace(".NS", "")} broke Stop Loss at market open. Trade invalidated.`;
+      } else if (liveP >= sig.target1) {
+        status = "T1_REACHED_SKIP";
+        actionText = "Target 1 hit at open gap-up. Risk/Reward no longer favorable. Skip entry.";
+        changeOfPlan = true;
+        changeOfPlanReason = `Stock ${sig.symbol.replace(".NS", "")} hit Target 1 directly at open.`;
+      } else if (liveP > sig.entryZoneHigh * 1.01) {
+        status = "GAP_UP_WAIT";
+        actionText = `Opened +${gapPct.toFixed(1)}% above entry zone. DO NOT CHASE. Set limit order at \u20B9${sig.entryZoneHigh}.`;
+      } else if (liveP >= sig.entryZoneLow && liveP <= sig.entryZoneHigh * 1.01) {
+        status = "CONFIRMED_IN_ZONE";
+        actionText = `Price is inside ideal entry zone (\u20B9${sig.entryZoneLow}\u2013\u20B9${sig.entryZoneHigh}). Execute entry now.`;
+      } else {
+        status = "GAP_DOWN_HOLD";
+        actionText = `Slight dip below entry zone but above SL (\u20B9${sig.stopLoss}). Hold limit order at \u20B9${sig.entryZoneLow}.`;
+      }
+      statuses.push({
+        symbol: sig.symbol,
+        name: sig.name,
+        nightlySignal: sig,
+        livePrice945: liveP,
+        gapPct,
+        status,
+        actionText
+      });
+    }
+  }
+  const result = {
+    runAt: (/* @__PURE__ */ new Date()).toISOString(),
+    marketRegime945: regime945,
+    signalStatuses: statuses,
+    changeOfPlan,
+    changeOfPlanReason
+  };
+  lastMorningResult = result;
+  try {
+    const db = await _readDb();
+    if (db.config?.telegramToken && db.config?.telegramChatId && db.config?.telegramEnabled) {
+      await _sendTg(db.config.telegramToken, db.config.telegramChatId, fmtMorningReport(result));
+      console.log("[NSE-SWING] \u{1F4F1} Sent 9:45 AM Telegram Strategy Update Report");
+    }
+  } catch (e) {
+    console.error("[NSE-SWING] 9:45 AM Telegram report failed:", e);
+  }
+  console.log(`[NSE-SWING] \u2705 Morning scan complete in ${((Date.now() - t0) / 1e3).toFixed(1)}s`);
+  return result;
+}
 function startNSESwingScheduler() {
-  console.log("[NSE-SWING] Scheduler active \u2014 nightly 12:00 AM IST");
+  console.log("[NSE-SWING] Scheduler active \u2014 Nightly 12:00 AM IST & Morning 9:45 AM IST");
   setInterval(async () => {
     try {
       const ist = new Date((/* @__PURE__ */ new Date()).toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
-      if (ist.getHours() === 0 && ist.getMinutes() < 5 && !scanRunning) {
-        const today = ist.toDateString();
-        const lastDate = lastResult?.runAt ? new Date(new Date(lastResult.runAt).toLocaleString("en-US", { timeZone: "Asia/Kolkata" })).toDateString() : "";
-        if (lastDate !== today) {
+      const h = ist.getHours();
+      const m = ist.getMinutes();
+      const today = ist.toDateString();
+      if (h === 0 && m < 5 && !scanRunning) {
+        const lastNightlyDate = lastResult?.runAt ? new Date(new Date(lastResult.runAt).toLocaleString("en-US", { timeZone: "Asia/Kolkata" })).toDateString() : "";
+        if (lastNightlyDate !== today) {
           console.log("[NSE-SWING] \u{1F55B} 12:00 AM IST \u2014 starting nightly scan...");
-          runNightlyNSEScan().catch((e) => console.error("[NSE-SWING] Scheduler error:", e));
+          runNightlyNSEScan().catch((e) => console.error("[NSE-SWING] Nightly scan error:", e));
+        }
+      }
+      if (h === 9 && m >= 45 && m < 50 && !scanRunning) {
+        const lastMorningDate = lastMorningResult?.runAt ? new Date(new Date(lastMorningResult.runAt).toLocaleString("en-US", { timeZone: "Asia/Kolkata" })).toDateString() : "";
+        if (lastMorningDate !== today) {
+          console.log("[NSE-SWING] \u{1F305} 9:45 AM IST \u2014 starting morning live market strategy update scan...");
+          runMorningNSEScan().catch((e) => console.error("[NSE-SWING] Morning scan error:", e));
         }
       }
     } catch {
@@ -867,8 +1002,19 @@ function registerNSESwingRoutes(app2) {
       res.status(500).json({ error: e.message || "Scan failed" });
     }
   });
+  app2.post("/api/nse-swing/run-morning-scan", async (req, res) => {
+    try {
+      const result = await runMorningNSEScan();
+      res.json({ result });
+    } catch (e) {
+      res.status(500).json({ error: e.message || "Morning scan failed" });
+    }
+  });
   app2.get("/api/nse-swing/last-result", (_req, res) => {
-    res.json({ result: lastResult, history: scanHistory, running: scanRunning });
+    res.json({ result: lastResult, morningResult: lastMorningResult, history: scanHistory, running: scanRunning });
+  });
+  app2.get("/api/nse-swing/morning-result", (_req, res) => {
+    res.json({ result: lastMorningResult });
   });
   app2.get("/api/nse-swing/market-regime", async (_req, res) => {
     try {
