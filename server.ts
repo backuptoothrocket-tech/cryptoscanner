@@ -1107,18 +1107,21 @@ const MAX_OPEN_TRADES = 2;             // Max concurrent positions for $100 acco
 const DEFAULT_CONFIG = {
   openAiKey: "",
   activeSymbols: [
-    "BTCUSDT",
-    "ETHUSDT",
-    "SOLUSDT",
-    "BNBUSDT",
-    "ADAUSDT",
-    "XRPUSDT",
-    "DOGEUSDT",
-    "LTCUSDT",
-    "AVAXUSDT",
-    "LINKUSDT",
-    "DOTUSDT",
-    "NEARUSDT"
+    "RELIANCE.NS",
+    "TATASTEEL.NS",
+    "INFY.NS",
+    "HDFCBANK.NS",
+    "TATAMOTORS.NS",
+    "SBIN.NS",
+    "ICICIBANK.NS",
+    "BHARTIARTL.NS",
+    "ITC.NS",
+    "LT.NS",
+    "TCS.NS",
+    "AXISBANK.NS",
+    "MARUTI.NS",
+    "SUNPHARMA.NS",
+    "KOTAKBANK.NS"
   ],
   confidenceThreshold: 45,
   telegramToken: "",
@@ -2476,7 +2479,8 @@ async function handleSignalPipeline(payload: any, isSimulation: boolean = false)
   const tradePlan = calculateRiskManagement(side, scored.price, scored.timeframe, symbol, atrValue);
 
   const shouldLogSignal = isSimulation ? true : (passedFilters && aiResult.decision === "SEND");
-  const canSendTelegram = config.telegramEnabled && config.telegramToken && config.telegramChatId && shouldLogSignal && !cooldownActive;
+  const isIndianStock = symbol.endsWith(".NS");
+  const canSendTelegram = config.telegramEnabled && config.telegramToken && config.telegramChatId && shouldLogSignal && !cooldownActive && isIndianStock;
 
   const logEntry: any = {
     id: entryId,

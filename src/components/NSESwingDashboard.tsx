@@ -614,6 +614,21 @@ export default function NSESwingDashboard() {
   const noSignalReason = scanResult?.noSignalReason;
   const totalScanned = scanResult?.totalScanned || 0;
 
+  const [testingTg, setTestingTg] = useState(false);
+  const [tgMsgStatus, setTgMsgStatus] = useState<string | null>(null);
+
+  const testTelegramAlert = async () => {
+    setTestingTg(true);
+    setTgMsgStatus(null);
+    try {
+      const r = await fetch("/api/nse-swing/test-telegram", { method: "POST" });
+      const d = await r.json();
+      if (d.success) setTgMsgStatus("✅ Telegram alert delivered to your phone!");
+      else setTgMsgStatus("❌ Failed: " + (d.error || "Check bot config"));
+    } catch { setTgMsgStatus("❌ Error testing Telegram"); }
+    finally { setTestingTg(false); }
+  };
+
   return (
     <div style={{ minHeight: "100vh", background: "#080810", overflowY: "auto" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 16px 48px" }}>
@@ -636,9 +651,26 @@ export default function NSESwingDashboard() {
               <p className="text-sm text-slate-500">
                 Nightly 12:00 AM IST Top 3 Picks · Morning 9:45 AM Strategy & Change of Plan Telegram Scan
               </p>
+              {tgMsgStatus && (
+                <p className="text-xs font-bold mt-1" style={{ color: tgMsgStatus.includes("✅") ? "#10b981" : "#ef4444" }}>
+                  {tgMsgStatus}
+                </p>
+              )}
             </div>
             <div className="flex flex-col items-end gap-2">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <button onClick={testTelegramAlert} disabled={testingTg}
+                  className="flex items-center gap-1.5 rounded-xl font-bold text-xs transition-all"
+                  style={{
+                    padding: "9px 14px",
+                    background: "rgba(16,185,129,0.08)",
+                    color: "#10b981",
+                    border: "1px solid rgba(16,185,129,0.25)",
+                    cursor: testingTg ? "not-allowed" : "pointer",
+                  }}>
+                  <Send className="w-3.5 h-3.5" />
+                  {testingTg ? "Sending…" : "Test Telegram"}
+                </button>
                 <button id="nse-swing-morning-btn" onClick={runMorningScan} disabled={runningMorningScan}
                   className="flex items-center gap-2 rounded-xl font-bold text-xs transition-all"
                   style={{

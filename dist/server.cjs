@@ -793,16 +793,21 @@ async function runNightlyNSEScan() {
     if (scanHistory.length > 30) scanHistory.pop();
     try {
       const db = await _readDb();
-      if (db.config?.telegramToken && db.config?.telegramChatId && db.config?.telegramEnabled) {
-        const tok = db.config.telegramToken, cid = db.config.telegramChatId;
+      const tok = db.config?.telegramToken || process.env.TELEGRAM_TOKEN || "8253888894:AAFO9W1wtknSYMBBA0RIr0zXcewNBg_msDk";
+      const cid = db.config?.telegramChatId || process.env.TELEGRAM_CHAT_ID || "2047918333";
+      if (tok && cid) {
         if (signals.length === 0) {
           await _sendTg(tok, cid, fmtNoSignal(noSignalReason));
+          console.log("[NSE-SWING] \u{1F4F1} Sent 'No Signal Today' Telegram report");
         } else {
           for (const sig of signals) {
             await _sendTg(tok, cid, fmtAlert(sig), void 0, { symbol: sig.symbol, side: "LONG", market: "INDIAN_EQUITY", entryPrice: sig.currentPrice, sl: sig.stopLoss, tp1: sig.target1, tp2: sig.target2, notes: `NSE Swing \xB7 Score ${sig.totalScore}/100` });
             await new Promise((r) => setTimeout(r, 1e3));
           }
+          console.log(`[NSE-SWING] \u{1F4F1} Sent ${signals.length} A-Grade Telegram Alert(s)`);
         }
+      } else {
+        console.log("[NSE-SWING] \u26A0\uFE0F Telegram skipped: token or chatId missing");
       }
     } catch (e) {
       console.error("[NSE-SWING] Telegram error:", e);
@@ -928,9 +933,13 @@ async function runMorningNSEScan() {
   lastMorningResult = result;
   try {
     const db = await _readDb();
-    if (db.config?.telegramToken && db.config?.telegramChatId && db.config?.telegramEnabled) {
-      await _sendTg(db.config.telegramToken, db.config.telegramChatId, fmtMorningReport(result));
+    const tok = db.config?.telegramToken || process.env.TELEGRAM_TOKEN || "8253888894:AAFO9W1wtknSYMBBA0RIr0zXcewNBg_msDk";
+    const cid = db.config?.telegramChatId || process.env.TELEGRAM_CHAT_ID || "2047918333";
+    if (tok && cid) {
+      await _sendTg(tok, cid, fmtMorningReport(result));
       console.log("[NSE-SWING] \u{1F4F1} Sent 9:45 AM Telegram Strategy Update Report");
+    } else {
+      console.log("[NSE-SWING] \u26A0\uFE0F 9:45 AM Telegram report skipped: token/chatId missing");
     }
   } catch (e) {
     console.error("[NSE-SWING] 9:45 AM Telegram report failed:", e);
@@ -980,6 +989,23 @@ function registerNSESwingRoutes(app2) {
       res.json({ result });
     } catch (e) {
       res.status(500).json({ error: e.message || "Morning scan failed" });
+    }
+  });
+  app2.post("/api/nse-swing/test-telegram", async (req, res) => {
+    try {
+      const db = await _readDb();
+      const tok = db.config?.telegramToken || process.env.TELEGRAM_TOKEN || "8253888894:AAFO9W1wtknSYMBBA0RIr0zXcewNBg_msDk";
+      const cid = db.config?.telegramChatId || process.env.TELEGRAM_CHAT_ID || "2047918333";
+      const testMsg = `\u{1F4F1} <b>NSE SWING ENGINE TELEGRAM TEST</b>
+
+\u2705 Connection active!
+\u{1F1EE}\u{1F1F3} Your NSE Institutional Research Engine is connected to Telegram.
+
+\u{1F4C5} <i>${(/* @__PURE__ */ new Date()).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} IST</i>`;
+      const result = await _sendTg(tok, cid, testMsg);
+      res.json({ success: true, result });
+    } catch (e) {
+      res.status(500).json({ success: false, error: e.message || "Failed to send test Telegram alert" });
     }
   });
   app2.get("/api/nse-swing/last-result", (_req, res) => {
@@ -1977,18 +2003,21 @@ var MAX_OPEN_TRADES = 2;
 var DEFAULT_CONFIG = {
   openAiKey: "",
   activeSymbols: [
-    "BTCUSDT",
-    "ETHUSDT",
-    "SOLUSDT",
-    "BNBUSDT",
-    "ADAUSDT",
-    "XRPUSDT",
-    "DOGEUSDT",
-    "LTCUSDT",
-    "AVAXUSDT",
-    "LINKUSDT",
-    "DOTUSDT",
-    "NEARUSDT"
+    "RELIANCE.NS",
+    "TATASTEEL.NS",
+    "INFY.NS",
+    "HDFCBANK.NS",
+    "TATAMOTORS.NS",
+    "SBIN.NS",
+    "ICICIBANK.NS",
+    "BHARTIARTL.NS",
+    "ITC.NS",
+    "LT.NS",
+    "TCS.NS",
+    "AXISBANK.NS",
+    "MARUTI.NS",
+    "SUNPHARMA.NS",
+    "KOTAKBANK.NS"
   ],
   confidenceThreshold: 45,
   telegramToken: "",
@@ -3052,7 +3081,8 @@ async function handleSignalPipeline(payload, isSimulation = false) {
   const atrValue = payload.atrPct && scored.price ? payload.atrPct / 100 * scored.price : void 0;
   const tradePlan = calculateRiskManagement(side, scored.price, scored.timeframe, symbol, atrValue);
   const shouldLogSignal = isSimulation ? true : passedFilters && aiResult.decision === "SEND";
-  const canSendTelegram = config.telegramEnabled && config.telegramToken && config.telegramChatId && shouldLogSignal && !cooldownActive;
+  const isIndianStock = symbol.endsWith(".NS");
+  const canSendTelegram = config.telegramEnabled && config.telegramToken && config.telegramChatId && shouldLogSignal && !cooldownActive && isIndianStock;
   const logEntry = {
     id: entryId,
     timestamp,

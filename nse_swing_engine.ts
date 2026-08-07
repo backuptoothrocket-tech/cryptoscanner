@@ -748,16 +748,21 @@ export async function runNightlyNSEScan(): Promise<NSEScanResult> {
     // 8. Telegram
     try {
       const db = await _readDb();
-      if (db.config?.telegramToken && db.config?.telegramChatId && db.config?.telegramEnabled) {
-        const tok = db.config.telegramToken, cid = db.config.telegramChatId;
+      const tok = db.config?.telegramToken || process.env.TELEGRAM_TOKEN || "8253888894:AAFO9W1wtknSYMBBA0RIr0zXcewNBg_msDk";
+      const cid = db.config?.telegramChatId || process.env.TELEGRAM_CHAT_ID || "2047918333";
+      if (tok && cid) {
         if (signals.length === 0) {
           await _sendTg(tok, cid, fmtNoSignal(noSignalReason!));
+          console.log("[NSE-SWING] 📱 Sent 'No Signal Today' Telegram report");
         } else {
           for (const sig of signals) {
             await _sendTg(tok, cid, fmtAlert(sig), undefined, { symbol: sig.symbol, side: "LONG" as const, market: "INDIAN_EQUITY", entryPrice: sig.currentPrice, sl: sig.stopLoss, tp1: sig.target1, tp2: sig.target2, notes: `NSE Swing · Score ${sig.totalScore}/100` });
             await new Promise(r => setTimeout(r, 1000));
           }
+          console.log(`[NSE-SWING] 📱 Sent ${signals.length} A-Grade Telegram Alert(s)`);
         }
+      } else {
+        console.log("[NSE-SWING] ⚠️ Telegram skipped: token or chatId missing");
       }
     } catch (e) { console.error("[NSE-SWING] Telegram error:", e); }
 
@@ -885,9 +890,13 @@ export async function runMorningNSEScan(): Promise<NSEMorningScanResult> {
 
   try {
     const db = await _readDb();
-    if (db.config?.telegramToken && db.config?.telegramChatId && db.config?.telegramEnabled) {
-      await _sendTg(db.config.telegramToken, db.config.telegramChatId, fmtMorningReport(result));
+    const tok = db.config?.telegramToken || process.env.TELEGRAM_TOKEN || "8253888894:AAFO9W1wtknSYMBBA0RIr0zXcewNBg_msDk";
+    const cid = db.config?.telegramChatId || process.env.TELEGRAM_CHAT_ID || "2047918333";
+    if (tok && cid) {
+      await _sendTg(tok, cid, fmtMorningReport(result));
       console.log("[NSE-SWING] 📱 Sent 9:45 AM Telegram Strategy Update Report");
+    } else {
+      console.log("[NSE-SWING] ⚠️ 9:45 AM Telegram report skipped: token/chatId missing");
     }
   } catch (e) { console.error("[NSE-SWING] 9:45 AM Telegram report failed:", e); }
 
@@ -950,6 +959,19 @@ export function registerNSESwingRoutes(app: import("express").Express) {
       res.json({ result });
     } catch (e: any) {
       res.status(500).json({ error: e.message || "Morning scan failed" });
+    }
+  });
+
+  app.post("/api/nse-swing/test-telegram", async (req: any, res: any) => {
+    try {
+      const db = await _readDb();
+      const tok = db.config?.telegramToken || process.env.TELEGRAM_TOKEN || "8253888894:AAFO9W1wtknSYMBBA0RIr0zXcewNBg_msDk";
+      const cid = db.config?.telegramChatId || process.env.TELEGRAM_CHAT_ID || "2047918333";
+      const testMsg = `📱 <b>NSE SWING ENGINE TELEGRAM TEST</b>\n\n✅ Connection active!\n🇮🇳 Your NSE Institutional Research Engine is connected to Telegram.\n\n📅 <i>${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} IST</i>`;
+      const result = await _sendTg(tok, cid, testMsg);
+      res.json({ success: true, result });
+    } catch (e: any) {
+      res.status(500).json({ success: false, error: e.message || "Failed to send test Telegram alert" });
     }
   });
 
