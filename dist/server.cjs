@@ -3430,132 +3430,6 @@ ${verdict}${notes ? `
   }
 });
 var telegramBotOffset = 0;
-async function parseAnyTelegramSignalText(text, token, chatId) {
-  try {
-    const cleanText = text.trim();
-    if (cleanText.length < 5) return false;
-    let side = null;
-    if (/\b(BUY|LONG)\b/i.test(cleanText)) side = "LONG";
-    else if (/\b(SELL|SHORT)\b/i.test(cleanText)) side = "SHORT";
-    if (!side) return false;
-    const words = cleanText.split(/\s+/).map((w) => w.replace(/[^A-Z0-9.\-=]/gi, "").toUpperCase()).filter(Boolean);
-    const ignoreKeywords = /* @__PURE__ */ new Set([
-      "BUY",
-      "LONG",
-      "SELL",
-      "SHORT",
-      "ENTRY",
-      "PRICE",
-      "SL",
-      "STOP",
-      "STOPLOSS",
-      "TP",
-      "TP1",
-      "TP2",
-      "TARGET",
-      "TARGET1",
-      "TARGET2",
-      "QTY",
-      "QUANTITY",
-      "SIGNAL",
-      "NOW",
-      "AT",
-      "@",
-      "ORDER",
-      "LIMIT",
-      "MARKET"
-    ]);
-    let symbol = "";
-    for (const word of words) {
-      if (!ignoreKeywords.has(word) && (word.length >= 2 && word.length <= 15) && !/^\d+$/.test(word)) {
-        symbol = word;
-        break;
-      }
-    }
-    if (!symbol) return false;
-    const findNum = (patterns) => {
-      for (const pat of patterns) {
-        const match = cleanText.match(pat);
-        if (match && match[1]) {
-          const val = parseFloat(match[1]);
-          if (!isNaN(val) && val > 0) return val;
-        }
-      }
-      return 0;
-    };
-    const entry = findNum([
-      /(?:ENTRY|PRICE|AT|@)\s*:?\s*(\d+(?:\.\d+)?)/i,
-      /(?:BUY|LONG|SELL|SHORT)\s+[\w.-]+\s+(?:AT|@)?\s*(\d+(?:\.\d+)?)/i,
-      /^\/trade\s+[\w.-]+\s+(?:LONG|SHORT)\s+(\d+(?:\.\d+)?)/i
-    ]);
-    const sl = findNum([
-      /(?:SL|STOP|STOPLOSS|STOP\s*LOSS)\s*:?\s*(\d+(?:\.\d+)?)/i
-    ]);
-    const tp1 = findNum([
-      /(?:TP1|TP\s*1|TARGET1|TARGET\s*1|TP|TARGET|TAKE\s*PROFIT)\s*:?\s*(\d+(?:\.\d+)?)/i
-    ]);
-    const tp2 = findNum([
-      /(?:TP2|TP\s*2|TARGET2|TARGET\s*2)\s*:?\s*(\d+(?:\.\d+)?)/i
-    ]);
-    const qty = findNum([
-      /(?:QTY|QUANTITY|LOTS|SIZE|AMOUNT|AMT)\s*:?\s*(\d+(?:\.\d+)?)/i
-    ]);
-    if (!entry || !sl || !tp1 && !tp2) return false;
-    let market = "";
-    if (symbol === "XAUUSDT" || symbol === "XAGUSDT") {
-      market = "FOREX";
-    } else if (symbol.endsWith(".NS") || !symbol.endsWith("USDT") && symbol.length <= 12 && !["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "USDCHF", "NZDUSD", "EURGBP", "EURJPY", "GBPJPY", "XAUUSD", "XAGUSD"].includes(symbol)) {
-      market = "INDIAN_EQUITY";
-    } else if (symbol.endsWith("USDT") || ["BTC", "ETH", "SOL", "BNB", "XRP", "DOGE", "ADA", "AVAX", "LINK", "DOT", "NEAR", "SHIB", "PEPE", "SUI", "UNI"].some((c) => symbol.startsWith(c))) {
-      market = "CRYPTO";
-    } else {
-      market = "FOREX";
-    }
-    const defaultQty = market === "INDIAN_EQUITY" ? 10 : 1;
-    const finalQty = qty > 0 ? qty : defaultQty;
-    const trade = await autoLogTradeFromAlert({
-      symbol,
-      side,
-      market,
-      entryPrice: entry,
-      sl,
-      tp1: tp1 || tp2,
-      tp2: tp2 || 0,
-      quantity: finalQty,
-      notes: `Auto-logged from Telegram Signal text`
-    });
-    if (trade) {
-      const cur = market === "INDIAN_EQUITY" ? "\u20B9" : "$";
-      const fmt = (n) => `${cur}${n.toLocaleString("en-IN", { minimumFractionDigits: n < 10 ? 4 : 2, maximumFractionDigits: n < 10 ? 5 : 2 })}`;
-      const rr = tp1 && sl && entry ? (Math.abs(tp1 - entry) / Math.abs(entry - sl)).toFixed(2) : "\u2014";
-      await sendTelegramNotification(
-        token,
-        chatId,
-        `\u2705 <b>TELEGRAM SIGNAL RECORDED IN JOURNAL</b>
-\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
-
-\u{1F4CC} <b>Symbol:</b>   <code>${symbol}</code> (${market.replace("_", " ")})
-${side === "LONG" ? "\u{1F4C8}" : "\u{1F4C9}"} <b>Direction:</b> <b>${side}</b>
-
-\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
-\u{1F4B0} <b>LEVELS</b>
-\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
-\u{1F7E2} <b>Entry:</b>     <code>${fmt(entry)}</code>
-\u{1F534} <b>Stop Loss:</b> <code>${fmt(sl)}</code>
-\u{1F3AF} <b>Target 1:</b>  <code>${fmt(tp1 || tp2)}</code>
-` + (tp2 && tp1 !== tp2 ? `\u{1F3AF} <b>Target 2:</b>  <code>${fmt(tp2)}</code>
-` : ``) + `\u{1F4E6} <b>Quantity:</b>  <code>${finalQty}</code>
-\u2696\uFE0F <b>R:R Ratio:</b> <code>1 : ${rr}</code>
-
-\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
-\u{1F916} <i>Signal automatically logged in Trade Journal & 24/7 server monitoring started!</i>`
-      );
-      return true;
-    }
-  } catch (e) {
-  }
-  return false;
-}
 async function parseTelegramBotUpdates() {
   const db = await readDB();
   const token = db.config.telegramToken;
@@ -3668,7 +3542,6 @@ Send <code>/pnl</code> for full account summary.`);
 The bot will monitor your trade 24/7 and alert you when SL or TP is hit! \u{1F3AF}`
         );
       } else {
-        await parseAnyTelegramSignalText(text, token, chatId);
       }
     }
   } catch (e) {
@@ -3693,17 +3566,25 @@ async function handleTradeBotCommand(text, token, chatId) {
       if (p.startsWith("MKT:")) market = p.slice(4);
     }
     if (!sl || !tp1) return false;
-    if (!market) {
-      if (symbol === "XAUUSDT" || symbol === "XAGUSDT") {
-        market = "FOREX";
-      } else if (symbol.endsWith(".NS") || !symbol.endsWith("USDT") && symbol.length <= 12 && !["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "USDCHF", "NZDUSD", "EURGBP", "EURJPY", "GBPJPY", "XAUUSD", "XAGUSD"].includes(symbol)) {
-        market = "INDIAN_EQUITY";
-      } else if (symbol.endsWith("USDT") || ["BTC", "ETH", "SOL", "BNB", "XRP", "DOGE", "ADA", "AVAX", "LINK", "DOT", "NEAR", "SHIB", "PEPE", "SUI", "UNI"].some((c) => symbol.startsWith(c))) {
-        market = "CRYPTO";
-      } else {
-        market = "FOREX";
-      }
+    const isNSESymbol = symbol.endsWith(".NS");
+    if (!isNSESymbol) {
+      await sendTelegramNotification(
+        token,
+        chatId,
+        `\u26D4 <b>BLOCKED: Non-Indian Market Signal</b>
+
+<code>${symbol}</code> is not an Indian NSE stock.
+
+\u{1F1EE}\u{1F1F3} This app only tracks <b>Indian Equity (NSE)</b> swing trades.
+
+<b>Correct format:</b>
+<code>/trade RELIANCE.NS LONG 1450 SL:1420 TP1:1500 QTY:10</code>
+
+\u{1F4CC} Add <b>.NS</b> suffix for NSE stocks (e.g. RELIANCE.NS, TATASTEEL.NS, INFY.NS)`
+      );
+      return false;
     }
+    market = "INDIAN_EQUITY";
     const defaultQty = market === "INDIAN_EQUITY" ? 10 : 1;
     const finalQty = qty > 0 ? qty : defaultQty;
     const trade = await autoLogTradeFromAlert({
@@ -3769,6 +3650,10 @@ async function runHeadlessScannerTick() {
     totalScansCount++;
     const indexToScan = (totalScansCount - 1) % symbols.length;
     const symbol = symbols[indexToScan];
+    if (!symbol.endsWith(".NS")) {
+      console.log(`[Daemon] \u26D4 Skipping non-NSE symbol in headless scan: ${symbol}`);
+      continue;
+    }
     try {
       const realInds = await fetchRecentKlinesAndTrend(symbol);
       const roundedPrice = parseFloat(realInds.price.toFixed(symbol.includes("BTC") ? 1 : 4));

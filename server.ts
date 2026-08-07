@@ -3097,8 +3097,9 @@ async function parseTelegramBotUpdates() {
         );
 
       } else {
-        // Parse natural signal text (e.g. BUY BTCUSDT Entry: 67000 SL: 65000 TP: 70000)
-        await parseAnyTelegramSignalText(text, token, chatId);
+        // NOTE: Natural signal text parser is DISABLED — only /trade commands for Indian stocks are accepted
+        // This prevents the bot from reading Forex/Crypto signals from the group chat
+        // await parseAnyTelegramSignalText(text, token, chatId);
       }
     }
   } catch (e) {
@@ -3131,18 +3132,21 @@ async function handleTradeBotCommand(text: string, token: string, chatId: string
 
     if (!sl || !tp1) return false;
 
-    // Auto-detect market
-    if (!market) {
-      if (symbol === "XAUUSDT" || symbol === "XAGUSDT") {
-        market = "FOREX";
-      } else if (symbol.endsWith(".NS") || (!symbol.endsWith("USDT") && symbol.length <= 12 && !["EURUSD","GBPUSD","USDJPY","AUDUSD","USDCAD","USDCHF","NZDUSD","EURGBP","EURJPY","GBPJPY","XAUUSD","XAGUSD"].includes(symbol))) {
-        market = "INDIAN_EQUITY";
-      } else if (symbol.endsWith("USDT") || ["BTC","ETH","SOL","BNB","XRP","DOGE","ADA","AVAX","LINK","DOT","NEAR","SHIB","PEPE","SUI","UNI"].some(c => symbol.startsWith(c))) {
-        market = "CRYPTO";
-      } else {
-        market = "FOREX";
-      }
+    // ── INDIAN MARKET ONLY ENFORCEMENT ──────────────────────────────────
+    // Only accept NSE Indian equity symbols (must end with .NS)
+    // Reject all Forex (XAUUSD, EURUSD...) and Crypto (BTCUSDT, ETHUSDT...)
+    const isNSESymbol = symbol.endsWith(".NS");
+    if (!isNSESymbol) {
+      await sendTelegramNotification(token, chatId,
+        `⛔ <b>BLOCKED: Non-Indian Market Signal</b>\n\n` +
+        `<code>${symbol}</code> is not an Indian NSE stock.\n\n` +
+        `🇮🇳 This app only tracks <b>Indian Equity (NSE)</b> swing trades.\n\n` +
+        `<b>Correct format:</b>\n<code>/trade RELIANCE.NS LONG 1450 SL:1420 TP1:1500 QTY:10</code>\n\n` +
+        `📌 Add <b>.NS</b> suffix for NSE stocks (e.g. RELIANCE.NS, TATASTEEL.NS, INFY.NS)`
+      );
+      return false;
     }
+    market = "INDIAN_EQUITY";
 
     const defaultQty = market === "INDIAN_EQUITY" ? 10 : 1;
     const finalQty = qty > 0 ? qty : defaultQty;
@@ -3218,11 +3222,17 @@ async function runHeadlessScannerTick() {
   const symbols = config.activeSymbols || [];
   if (symbols.length === 0) return;
 
-  // Scan 3 active symbols in parallel per tick for fast, continuous coverage
+  // Scan 3 active symbols in parallel per tick — INDIAN NSE ONLY
   for (let i = 0; i < 3; i++) {
     totalScansCount++;
     const indexToScan = (totalScansCount - 1) % symbols.length;
     const symbol = symbols[indexToScan];
+
+    // Skip any non-Indian symbol — enforce NSE only
+    if (!symbol.endsWith(".NS")) {
+      console.log(`[Daemon] ⛔ Skipping non-NSE symbol in headless scan: ${symbol}`);
+      continue;
+    }
 
     try {
       const realInds = await fetchRecentKlinesAndTrend(symbol);
