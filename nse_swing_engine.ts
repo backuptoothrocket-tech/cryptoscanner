@@ -663,7 +663,8 @@ export async function runNightlyNSEScan(): Promise<NSEScanResult> {
     const activeSectors = new Set(sectorScores.filter(s => s.qualifies).map(s => s.sector));
     console.log(`[NSE-SWING] Sectors: ${sectorScores.length} ranked, ${activeSectors.size} qualify`);
 
-    // 4. Pre-filter + proxy sort
+    // 4. Pre-filter + proxy sort — rank by MOMENTUM first, not catalog order
+    // This ensures recent top gainers get deep-analyzed before large-cap incumbents
     const top60 = _catalog.filter(s => {
       if (!activeSectors.has(s.sector)) return false;
       const sym = s.symbol.replace(".NS", "");
@@ -675,7 +676,11 @@ export async function runNightlyNSEScan(): Promise<NSEScanResult> {
     }).map(s => {
       const sym = s.symbol.replace(".NS", "");
       const pd  = priceMap[sym] || { price: 0, change: 0 };
-      return { s, proxy: pd.change + (catMap[sym]?.length || 0) * 3 + ((newsMap[sym] || []).filter((n: any) => n.sentiment === "positive").length) * 2 };
+      const bh  = bhavcopy[sym] || {};
+      // Momentum-weighted proxy: % gain + catalyst bonus + volume surge bonus + 52W high proximity
+      const near52wHigh = bh.yearHigh > 0 && pd.price >= bh.yearHigh * 0.92 ? 3 : 0;
+      const highVolBonus = bh.volume > 0 && bh.volume > 1_000_000 ? 2 : 0;
+      return { s, proxy: pd.change + (catMap[sym]?.length || 0) * 3 + ((newsMap[sym] || []).filter((n: any) => n.sentiment === "positive").length) * 2 + near52wHigh + highVolBonus };
     }).sort((a, b) => b.proxy - a.proxy).slice(0, 60).map(x => x.s);
 
     console.log(`[NSE-SWING] Deep-analyzing ${top60.length} candidates...`);
@@ -707,18 +712,23 @@ export async function runNightlyNSEScan(): Promise<NSEScanResult> {
       why: Object.values(c.res.whySelected).join(" | ").slice(0, 300),
     })));
 
-    // 7. Build signals
+    // 7. Build signals — threshold 75, max 1 per sector for diversity
     const signals: NSESwingSignal[] = [];
+    const usedSectors = new Set<string>();
     for (const cand of scored) {
-      if (cand.res.totalScore < 90) break;
+      if (cand.res.totalScore < 75) break; // lowered from 90 to catch genuine momentum stocks
       const sym = cand.s.symbol.replace(".NS", "");
+      // Skip negative news stocks
       if ((newsMap[sym] || []).filter((n: any) => n.sentiment === "negative").length >= 2) continue;
       const p = cand.price, atr = cand.res.atr, rrVal = cand.res.rrVal;
       if (rrVal < 1.5) continue;
+      // Sector diversity: max 1 stock per sector in the top 3
+      if (usedSectors.has(cand.s.sector)) continue;
       const sl  = Math.round((p - atr * 1.5) * 100) / 100;
       const tp1 = Math.round((p + atr * 2.5) * 100) / 100;
       const tp2 = Math.round((p + atr * 4.5) * 100) / 100;
       const rr  = sl < p ? Math.round(((tp1 - p) / (p - sl)) * 10) / 10 : 0;
+      usedSectors.add(cand.s.sector);
       signals.push({
         symbol: cand.s.symbol, name: cand.s.name, sector: cand.s.sector, currentPrice: p,
         entryZoneLow: Math.round((p - atr * 0.3) * 100) / 100, entryZoneHigh: Math.round((p + atr * 0.2) * 100) / 100,

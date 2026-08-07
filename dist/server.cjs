@@ -714,7 +714,10 @@ async function runNightlyNSEScan() {
     }).map((s) => {
       const sym = s.symbol.replace(".NS", "");
       const pd = priceMap[sym] || { price: 0, change: 0 };
-      return { s, proxy: pd.change + (catMap[sym]?.length || 0) * 3 + (newsMap[sym] || []).filter((n) => n.sentiment === "positive").length * 2 };
+      const bh = bhavcopy[sym] || {};
+      const near52wHigh = bh.yearHigh > 0 && pd.price >= bh.yearHigh * 0.92 ? 3 : 0;
+      const highVolBonus = bh.volume > 0 && bh.volume > 1e6 ? 2 : 0;
+      return { s, proxy: pd.change + (catMap[sym]?.length || 0) * 3 + (newsMap[sym] || []).filter((n) => n.sentiment === "positive").length * 2 + near52wHigh + highVolBonus };
     }).sort((a, b) => b.proxy - a.proxy).slice(0, 60).map((x) => x.s);
     console.log(`[NSE-SWING] Deep-analyzing ${top60.length} candidates...`);
     const scored = [];
@@ -745,16 +748,19 @@ async function runNightlyNSEScan() {
       why: Object.values(c.res.whySelected).join(" | ").slice(0, 300)
     })));
     const signals = [];
+    const usedSectors = /* @__PURE__ */ new Set();
     for (const cand of scored) {
-      if (cand.res.totalScore < 90) break;
+      if (cand.res.totalScore < 75) break;
       const sym = cand.s.symbol.replace(".NS", "");
       if ((newsMap[sym] || []).filter((n) => n.sentiment === "negative").length >= 2) continue;
       const p = cand.price, atr = cand.res.atr, rrVal = cand.res.rrVal;
       if (rrVal < 1.5) continue;
+      if (usedSectors.has(cand.s.sector)) continue;
       const sl = Math.round((p - atr * 1.5) * 100) / 100;
       const tp1 = Math.round((p + atr * 2.5) * 100) / 100;
       const tp2 = Math.round((p + atr * 4.5) * 100) / 100;
       const rr = sl < p ? Math.round((tp1 - p) / (p - sl) * 10) / 10 : 0;
+      usedSectors.add(cand.s.sector);
       signals.push({
         symbol: cand.s.symbol,
         name: cand.s.name,
