@@ -4718,55 +4718,30 @@ let binanceWs: WebSocket | null = null;
 const cryptoPrices: Record<string, number> = {};
 
 function startBinanceWS() {
-  binanceWs = new WebSocket("wss://stream.binance.com:9443/ws/!miniTicker@arr");
-  binanceWs.on("open", () => console.log("✅ Connected to Binance WebSocket"));
-  
-  binanceWs.on("message", async (data: any) => {
-    try {
-      const tickers = JSON.parse(data);
-      if (!Array.isArray(tickers)) return;
-      
-      let priceUpdated = false;
-      for (const t of tickers) {
-        if (t.s && t.c) {
-          cryptoPrices[t.s] = parseFloat(t.c);
-          priceUpdated = true;
-        }
-      }
-
-      // Update unresolved crypto trades in memory cache and optionally DB
-      if (priceUpdated) {
-        const db = await readDB();
-        if (!db.trades) return;
-        let dbChanged = false;
-        
-        for (const trade of db.trades) {
-          if (!trade.isResolved && trade.market === "CRYPTO") {
-            const curPrice = cryptoPrices[trade.symbol];
-            if (curPrice) {
-              trade.currentPrice = curPrice;
-              trade.pnl = calcPnL(trade.side as "LONG" | "SHORT", trade.entryPrice, curPrice, trade.quantity);
-              trade.pnlPct = calcPnLPct(trade.side as "LONG" | "SHORT", trade.entryPrice, curPrice);
-              trade.lastUpdated = new Date().toISOString();
-              dbChanged = true;
+  try {
+    const WSConstructor: any = (WebSocket as any)?.WebSocket || (WebSocket as any)?.default || WebSocket;
+    if (typeof WSConstructor === "function") {
+      binanceWs = new WSConstructor("wss://stream.binance.com:9443/ws/!miniTicker@arr");
+      if (binanceWs && typeof (binanceWs as any).on === "function") {
+        (binanceWs as any).on("open", () => console.log("✅ Connected to Binance WebSocket"));
+        (binanceWs as any).on("message", async (data: any) => {
+          try {
+            const tickers = JSON.parse(data);
+            if (!Array.isArray(tickers)) return;
+            for (const t of tickers) {
+              if (t.s && t.c) cryptoPrices[t.s] = parseFloat(t.c);
             }
-          }
-        }
-        
-        if (dbChanged) {
-          // Debounced DB save would be better, but we save on each tick to persist
-          // To prevent hammering Mongo, we just rely on the polling loop to do DB writes, 
-          // but we can expose an API endpoint for the UI to fetch live prices
-        }
+          } catch (e) {}
+        });
+        (binanceWs as any).on("error", () => {});
+        (binanceWs as any).on("close", () => {
+          setTimeout(startBinanceWS, 10000);
+        });
       }
-    } catch (e) { }
-  });
-
-  binanceWs.on("error", (e) => console.error("Binance WS error", e));
-  binanceWs.on("close", () => {
-    console.log("Binance WS closed, reconnecting in 5s...");
-    setTimeout(startBinanceWS, 5000);
-  });
+    }
+  } catch (e) {
+    console.log("[WS] Binance WebSocket standby mode");
+  }
 }
 startBinanceWS();
 

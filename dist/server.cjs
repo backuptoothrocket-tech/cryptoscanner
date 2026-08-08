@@ -4952,46 +4952,32 @@ setupVite().then(() => {
   let binanceWs = null;
   const cryptoPrices = {};
   function startBinanceWS() {
-    binanceWs = new WebSocket("wss://stream.binance.com:9443/ws/!miniTicker@arr");
-    binanceWs.on("open", () => console.log("\u2705 Connected to Binance WebSocket"));
-    binanceWs.on("message", async (data) => {
-      try {
-        const tickers = JSON.parse(data);
-        if (!Array.isArray(tickers)) return;
-        let priceUpdated = false;
-        for (const t of tickers) {
-          if (t.s && t.c) {
-            cryptoPrices[t.s] = parseFloat(t.c);
-            priceUpdated = true;
-          }
-        }
-        if (priceUpdated) {
-          const db = await readDB();
-          if (!db.trades) return;
-          let dbChanged = false;
-          for (const trade of db.trades) {
-            if (!trade.isResolved && trade.market === "CRYPTO") {
-              const curPrice = cryptoPrices[trade.symbol];
-              if (curPrice) {
-                trade.currentPrice = curPrice;
-                trade.pnl = calcPnL(trade.side, trade.entryPrice, curPrice, trade.quantity);
-                trade.pnlPct = calcPnLPct(trade.side, trade.entryPrice, curPrice);
-                trade.lastUpdated = (/* @__PURE__ */ new Date()).toISOString();
-                dbChanged = true;
+    try {
+      const WSConstructor = WebSocket?.WebSocket || WebSocket?.default || WebSocket;
+      if (typeof WSConstructor === "function") {
+        binanceWs = new WSConstructor("wss://stream.binance.com:9443/ws/!miniTicker@arr");
+        if (binanceWs && typeof binanceWs.on === "function") {
+          binanceWs.on("open", () => console.log("\u2705 Connected to Binance WebSocket"));
+          binanceWs.on("message", async (data) => {
+            try {
+              const tickers = JSON.parse(data);
+              if (!Array.isArray(tickers)) return;
+              for (const t of tickers) {
+                if (t.s && t.c) cryptoPrices[t.s] = parseFloat(t.c);
               }
+            } catch (e) {
             }
-          }
-          if (dbChanged) {
-          }
+          });
+          binanceWs.on("error", () => {
+          });
+          binanceWs.on("close", () => {
+            setTimeout(startBinanceWS, 1e4);
+          });
         }
-      } catch (e) {
       }
-    });
-    binanceWs.on("error", (e) => console.error("Binance WS error", e));
-    binanceWs.on("close", () => {
-      console.log("Binance WS closed, reconnecting in 5s...");
-      setTimeout(startBinanceWS, 5e3);
-    });
+    } catch (e) {
+      console.log("[WS] Binance WebSocket standby mode");
+    }
   }
   startBinanceWS();
   app.get("/api/live-prices", (req, res) => {
