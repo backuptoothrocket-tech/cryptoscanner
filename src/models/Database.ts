@@ -161,16 +161,17 @@ export const Trade = mongoose.model<ITradeRecord>("Trade", TradeSchema);
 export async function connectDatabase() {
   const uri = process.env.MONGODB_URI;
   if (!uri) {
-    console.error("CRITICAL ERROR: MONGODB_URI is not set in the environment.");
-    console.error("Shutting down to prevent ephemeral data loss.");
-    process.exit(1);
+    console.warn("⚠️ MONGODB_URI is not set in environment. Running with local db.json storage mode.");
+    return false;
   }
 
   try {
     await mongoose.connect(uri);
     console.log("✅ Successfully connected to MongoDB Atlas");
+    return true;
   } catch (error) {
     console.error("❌ MongoDB connection error:", error);
-    process.exit(1);
+    console.warn("⚠️ Falling back to local db.json storage mode.");
+    return false;
   }
 }

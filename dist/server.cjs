@@ -109,16 +109,17 @@ var Trade = import_mongoose.default.model("Trade", TradeSchema);
 async function connectDatabase() {
   const uri = process.env.MONGODB_URI;
   if (!uri) {
-    console.error("CRITICAL ERROR: MONGODB_URI is not set in the environment.");
-    console.error("Shutting down to prevent ephemeral data loss.");
-    process.exit(1);
+    console.warn("\u26A0\uFE0F MONGODB_URI is not set in environment. Running with local db.json storage mode.");
+    return false;
   }
   try {
     await import_mongoose.default.connect(uri);
     console.log("\u2705 Successfully connected to MongoDB Atlas");
+    return true;
   } catch (error) {
     console.error("\u274C MongoDB connection error:", error);
-    process.exit(1);
+    console.warn("\u26A0\uFE0F Falling back to local db.json storage mode.");
+    return false;
   }
 }
 
@@ -2042,39 +2043,62 @@ var DEFAULT_CONFIG = {
   pollingIntervalSeconds: 60
 };
 async function readDB() {
-  try {
-    const configDoc = await Config.getSingleton();
-    const logs = await Log.find().lean();
-    const trades = await Trade.find().lean();
-    return {
-      config: { ...DEFAULT_CONFIG, ...configDoc.toObject() },
-      logs,
-      trades
-    };
-  } catch (e) {
-    console.error("Error reading from MongoDB", e);
-    return { config: DEFAULT_CONFIG, logs: [], trades: [] };
+  if (mongoose.connection.readyState === 1) {
+    try {
+      const configDoc = await Config.getSingleton();
+      const logs = await Log.find().lean();
+      const trades = await Trade.find().lean();
+      return {
+        config: { ...DEFAULT_CONFIG, ...configDoc.toObject() },
+        logs,
+        trades
+      };
+    } catch (e) {
+      console.error("Error reading from MongoDB", e);
+    }
   }
+  try {
+    if (import_fs.default.existsSync("db.json")) {
+      const raw = import_fs.default.readFileSync("db.json", "utf8");
+      const parsed = JSON.parse(raw);
+      return {
+        config: { ...DEFAULT_CONFIG, ...parsed.config || {} },
+        logs: parsed.logs || [],
+        trades: parsed.trades || []
+      };
+    }
+  } catch (e) {
+    console.error("Error reading local db.json", e);
+  }
+  return { config: DEFAULT_CONFIG, logs: [], trades: [] };
 }
 async function writeDB(db) {
+  if (mongoose.connection.readyState === 1) {
+    try {
+      const configDoc = await Config.getSingleton();
+      Object.assign(configDoc, db.config);
+      await configDoc.save();
+      if (db.logs && db.logs.length > 0) {
+        const bulkOps = db.logs.map((log) => ({
+          updateOne: { filter: { id: log.id }, update: { $set: log }, upsert: true }
+        }));
+        await Log.bulkWrite(bulkOps);
+      }
+      if (db.trades && db.trades.length > 0) {
+        const bulkOps = db.trades.map((trade) => ({
+          updateOne: { filter: { id: trade.id }, update: { $set: trade }, upsert: true }
+        }));
+        await Trade.bulkWrite(bulkOps);
+      }
+      return;
+    } catch (e) {
+      console.error("Error writing to MongoDB", e);
+    }
+  }
   try {
-    const configDoc = await Config.getSingleton();
-    Object.assign(configDoc, db.config);
-    await configDoc.save();
-    if (db.logs && db.logs.length > 0) {
-      const bulkOps = db.logs.map((log) => ({
-        updateOne: { filter: { id: log.id }, update: { $set: log }, upsert: true }
-      }));
-      await Log.bulkWrite(bulkOps);
-    }
-    if (db.trades && db.trades.length > 0) {
-      const bulkOps = db.trades.map((trade) => ({
-        updateOne: { filter: { id: trade.id }, update: { $set: trade }, upsert: true }
-      }));
-      await Trade.bulkWrite(bulkOps);
-    }
+    import_fs.default.writeFileSync("db.json", JSON.stringify(db, null, 2), "utf8");
   } catch (e) {
-    console.error("Error writing to MongoDB", e);
+    console.error("Error writing to db.json", e);
   }
 }
 async function backfillTradesFromLogs() {

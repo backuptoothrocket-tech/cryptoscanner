@@ -1177,42 +1177,69 @@ interface DB {
 }
 
 async function readDB(): Promise<DB> {
-  try {
-    const configDoc = await Config.getSingleton();
-    const logs = await Log.find().lean();
-    const trades = await Trade.find().lean();
-    return {
-      config: { ...DEFAULT_CONFIG, ...configDoc.toObject() },
-      logs: logs as any[],
-      trades: trades as any[]
-    };
-  } catch (e) {
-    console.error("Error reading from MongoDB", e);
-    return { config: DEFAULT_CONFIG, logs: [], trades: [] };
+  if (mongoose.connection.readyState === 1) {
+    try {
+      const configDoc = await Config.getSingleton();
+      const logs = await Log.find().lean();
+      const trades = await Trade.find().lean();
+      return {
+        config: { ...DEFAULT_CONFIG, ...configDoc.toObject() },
+        logs: logs as any[],
+        trades: trades as any[]
+      };
+    } catch (e) {
+      console.error("Error reading from MongoDB", e);
+    }
   }
+
+  // Fallback to local db.json if MongoDB is not connected
+  try {
+    if (fs.existsSync("db.json")) {
+      const raw = fs.readFileSync("db.json", "utf8");
+      const parsed = JSON.parse(raw);
+      return {
+        config: { ...DEFAULT_CONFIG, ...(parsed.config || {}) },
+        logs: parsed.logs || [],
+        trades: parsed.trades || []
+      };
+    }
+  } catch (e) {
+    console.error("Error reading local db.json", e);
+  }
+  return { config: DEFAULT_CONFIG, logs: [], trades: [] };
 }
 
 async function writeDB(db: DB) {
-  try {
-    const configDoc = await Config.getSingleton();
-    Object.assign(configDoc, db.config);
-    await configDoc.save();
+  if (mongoose.connection.readyState === 1) {
+    try {
+      const configDoc = await Config.getSingleton();
+      Object.assign(configDoc, db.config);
+      await configDoc.save();
 
-    if (db.logs && db.logs.length > 0) {
-      const bulkOps = db.logs.map(log => ({
-        updateOne: { filter: { id: log.id }, update: { $set: log }, upsert: true }
-      }));
-      await Log.bulkWrite(bulkOps);
+      if (db.logs && db.logs.length > 0) {
+        const bulkOps = db.logs.map(log => ({
+          updateOne: { filter: { id: log.id }, update: { $set: log }, upsert: true }
+        }));
+        await Log.bulkWrite(bulkOps);
+      }
+      
+      if (db.trades && db.trades.length > 0) {
+        const bulkOps = db.trades.map(trade => ({
+          updateOne: { filter: { id: trade.id }, update: { $set: trade }, upsert: true }
+        }));
+        await Trade.bulkWrite(bulkOps);
+      }
+      return;
+    } catch (e) {
+      console.error("Error writing to MongoDB", e);
     }
-    
-    if (db.trades && db.trades.length > 0) {
-      const bulkOps = db.trades.map(trade => ({
-        updateOne: { filter: { id: trade.id }, update: { $set: trade }, upsert: true }
-      }));
-      await Trade.bulkWrite(bulkOps);
-    }
+  }
+
+  // Fallback write to db.json
+  try {
+    fs.writeFileSync("db.json", JSON.stringify(db, null, 2), "utf8");
   } catch (e) {
-    console.error("Error writing to MongoDB", e);
+    console.error("Error writing to db.json", e);
   }
 }
 
