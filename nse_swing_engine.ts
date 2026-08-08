@@ -918,6 +918,15 @@ export async function runMorningNSEScan(): Promise<NSEMorningScanResult> {
 
 export function startNSESwingScheduler() {
   console.log("[NSE-SWING] Scheduler active — Nightly 12:00 AM IST & Morning 9:45 AM IST");
+
+  // Initial boot-up scan: run once 15 seconds after server start if no result exists
+  setTimeout(() => {
+    if (!lastResult && !scanRunning) {
+      console.log("[NSE-SWING] 🚀 Initial boot scan triggering...");
+      runNightlyNSEScan().catch(e => console.error("[NSE-SWING] Boot scan error:", e));
+    }
+  }, 15000);
+
   setInterval(async () => {
     try {
       const ist = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));

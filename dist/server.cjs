@@ -955,6 +955,12 @@ async function runMorningNSEScan() {
 }
 function startNSESwingScheduler() {
   console.log("[NSE-SWING] Scheduler active \u2014 Nightly 12:00 AM IST & Morning 9:45 AM IST");
+  setTimeout(() => {
+    if (!lastResult && !scanRunning) {
+      console.log("[NSE-SWING] \u{1F680} Initial boot scan triggering...");
+      runNightlyNSEScan().catch((e) => console.error("[NSE-SWING] Boot scan error:", e));
+    }
+  }, 15e3);
   setInterval(async () => {
     try {
       const ist = new Date((/* @__PURE__ */ new Date()).toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
