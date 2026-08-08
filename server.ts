@@ -2,7 +2,7 @@ import express from "express";
 import path from "path";
 import fs from "fs";
 import { OpenAI } from "openai";
-import WebSocket from "ws";
+import mongoose from "mongoose";
 import { Config, Log, Trade, connectDatabase } from "./src/models/Database.js";
 import { calcPnL, calcPnLPct, formatPrecision, calculateCryptoPositionSize, calculateForexLots, isMarginSafe } from "./src/utils/precisionMath.js";
 import { initNSESwingEngine, registerNSESwingRoutes, startNSESwingScheduler } from "./nse_swing_engine.js";

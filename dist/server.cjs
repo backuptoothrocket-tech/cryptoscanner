@@ -27,7 +27,7 @@ var import_express = __toESM(require("express"), 1);
 var import_path = __toESM(require("path"), 1);
 var import_fs = __toESM(require("fs"), 1);
 var import_openai = require("openai");
-var import_ws = __toESM(require("ws"), 1);
+var import_mongoose2 = __toESM(require("mongoose"), 1);
 
 // src/models/Database.ts
 var import_mongoose = __toESM(require("mongoose"), 1);
@@ -2043,7 +2043,7 @@ var DEFAULT_CONFIG = {
   pollingIntervalSeconds: 60
 };
 async function readDB() {
-  if (mongoose.connection.readyState === 1) {
+  if (import_mongoose2.default.connection.readyState === 1) {
     try {
       const configDoc = await Config.getSingleton();
       const logs = await Log.find().lean();
@@ -2073,7 +2073,7 @@ async function readDB() {
   return { config: DEFAULT_CONFIG, logs: [], trades: [] };
 }
 async function writeDB(db) {
-  if (mongoose.connection.readyState === 1) {
+  if (import_mongoose2.default.connection.readyState === 1) {
     try {
       const configDoc = await Config.getSingleton();
       Object.assign(configDoc, db.config);
@@ -4952,7 +4952,7 @@ setupVite().then(() => {
   let binanceWs = null;
   const cryptoPrices = {};
   function startBinanceWS() {
-    binanceWs = new import_ws.default("wss://stream.binance.com:9443/ws/!miniTicker@arr");
+    binanceWs = new WebSocket("wss://stream.binance.com:9443/ws/!miniTicker@arr");
     binanceWs.on("open", () => console.log("\u2705 Connected to Binance WebSocket"));
     binanceWs.on("message", async (data) => {
       try {
