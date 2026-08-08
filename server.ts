@@ -1805,6 +1805,15 @@ function startTradeMonitorDaemon() {
       let hasChanges = false;
 
       for (const trade of openTrades) {
+        // Enforce Indian Market trades only: auto-close and skip any non-NSE trades
+        if (trade.market !== "INDIAN_EQUITY" && !trade.symbol.endsWith(".NS")) {
+          trade.isResolved = true;
+          trade.resolvedStatus = "CLOSED_NON_NSE";
+          trade.resolvedAt = new Date().toISOString();
+          hasChanges = true;
+          continue;
+        }
+
         const curPrice = priceMap[trade.symbol]?.price;
         if (!curPrice || curPrice <= 0) continue;
 
@@ -1834,7 +1843,9 @@ function startTradeMonitorDaemon() {
         if (statusChanged && ["SL_HIT", "TP1_HIT", "TP2_HIT"].includes(newStatus)) {
           const token = db.config.telegramToken;
           const chatId = db.config.telegramChatId;
-          if (token && chatId && db.config.telegramEnabled) {
+          // INDIAN MARKET ONLY — skip Crypto/Forex trade monitor alerts
+          const isIndian = trade.market === "INDIAN_EQUITY" || (trade.symbol || "").endsWith(".NS");
+          if (token && chatId && db.config.telegramEnabled && isIndian) {
             const curSym = trade.market === "INDIAN_EQUITY" ? "₹" : "$";
             const fmt = (n: number) => `${curSym}${Math.abs(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             const emoji = newStatus === "SL_HIT" ? "❌" : newStatus === "TP1_HIT" ? "✅" : "🎯";
@@ -4739,6 +4750,10 @@ app.get("/api/live-prices", (req, res) => {
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server is listening on http://0.0.0.0:${PORT}`);
+    // Auto-purge all non-Indian (.NS) trades from MongoDB Atlas on boot
+    Trade.deleteMany({ symbol: { $not: /\.NS$/i } }).then(res => {
+      if (res.deletedCount) console.log(`[Boot] 🗑️ Cleaned ${res.deletedCount} non-Indian trades from database`);
+    }).catch(() => {});
     // Auto-backfill any valid scan signals into Trade Journal
     backfillTradesFromLogs();
     // Start 24/7 server-side Trade Monitor Daemon

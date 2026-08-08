@@ -2552,6 +2552,13 @@ function startTradeMonitorDaemon() {
       const priceMap = await getLivePricesBatch(symbols);
       let hasChanges = false;
       for (const trade of openTrades) {
+        if (trade.market !== "INDIAN_EQUITY" && !trade.symbol.endsWith(".NS")) {
+          trade.isResolved = true;
+          trade.resolvedStatus = "CLOSED_NON_NSE";
+          trade.resolvedAt = (/* @__PURE__ */ new Date()).toISOString();
+          hasChanges = true;
+          continue;
+        }
         const curPrice = priceMap[trade.symbol]?.price;
         if (!curPrice || curPrice <= 0) continue;
         const prevStatus = trade.status || "HOLDING";
@@ -2575,7 +2582,8 @@ function startTradeMonitorDaemon() {
         if (statusChanged && ["SL_HIT", "TP1_HIT", "TP2_HIT"].includes(newStatus)) {
           const token = db.config.telegramToken;
           const chatId = db.config.telegramChatId;
-          if (token && chatId && db.config.telegramEnabled) {
+          const isIndian = trade.market === "INDIAN_EQUITY" || (trade.symbol || "").endsWith(".NS");
+          if (token && chatId && db.config.telegramEnabled && isIndian) {
             const curSym = trade.market === "INDIAN_EQUITY" ? "\u20B9" : "$";
             const fmt = (n) => `${curSym}${Math.abs(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
             const emoji = newStatus === "SL_HIT" ? "\u274C" : newStatus === "TP1_HIT" ? "\u2705" : "\u{1F3AF}";
@@ -4961,6 +4969,10 @@ setupVite().then(() => {
   });
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server is listening on http://0.0.0.0:${PORT}`);
+    Trade.deleteMany({ symbol: { $not: /\.NS$/i } }).then((res) => {
+      if (res.deletedCount) console.log(`[Boot] \u{1F5D1}\uFE0F Cleaned ${res.deletedCount} non-Indian trades from database`);
+    }).catch(() => {
+    });
     backfillTradesFromLogs();
     startTradeMonitorDaemon();
     startTelegramBotListener();
